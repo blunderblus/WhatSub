@@ -7,6 +7,39 @@
         .movie-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
         .streaming-results { margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
         .expire-warning { color: red; font-weight: bold; }
+        .badge.subscription {
+            background-color: #1db954;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        .badge.rent {
+            background-color: #f39c12;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-right: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .badge.buy {
+            background-color: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-right: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -60,27 +93,69 @@
             const response = await fetch(`/contents/streaming_info/?tmdb_id=${tmdbId}&media_type=${mediaType}`);
             const data = await response.json();
 
+            console.log(JSON.stringify(data, null, 2));
+
             if (!data.providers || data.providers.length === 0) {
                 resultBox.innerHTML = "<p>현재 한국에서 시청 가능한 곳이 없습니다.</p>";
                 return;
             }
+            const priority = {
+                subscription: 0,
+                free: 1,
+                ads: 2,
+                rent: 3,
+                buy: 4
+            };
+
+            data.providers.sort(
+                (a, b) => priority[a.type] - priority[b.type]
+            );
 
             let html = "<ul>";
-            data.providers.forEach(p => {
-                // 구독(flatrate) 서비스만 필터링하고 싶다면 여기서 조건문을 걸 수 있습니다.
-                let typeText = p.type === 'flatrate' ? '구독' : (p.type === 'rent' ? '대여' : '구매');
-                let expireText = p.expires_on ? `<span class="expire-warning">(종료 예정일: ${p.expires_on})</span>` : '<span style="color: green;">(안전)</span>';
+            data.providers.forEach(p => { 
+                let badge = ''; 
+                let typeText;
                 
+                if (p.type === 'subscription') { 
+                    badge = `<span class="badge subscription">Watch Now</span>`; 
+                } 
+
+                switch (p.type) { 
+                    case 'subscription': typeText = '구독'; break; 
+                    case 'rent':         typeText = '대여'; break; 
+                    case 'buy':          typeText = '구매'; break; 
+                    case 'free':         typeText = '무료'; break; 
+                    default:             typeText = '기타'; 
+                } 
+
+                let expireText = p.expires_on 
+                    ? `<span class="expire-warning">(종료 예정일: ${p.expires_on})</span>` 
+                    : '<span style="color: green;">(안전)</span>';
+                
+                let actionBtn = '';
+                if (p.type === 'subscription') {
+                    actionBtn = `<a href="${p.link}" target="_blank" class="badge subscription">Watch Now</a>`;
+                } else if (p.type === 'rent') {
+                    actionBtn = `<a href="${p.link}" target="_blank" class="badge rent">대여하기</a>`;
+                } else if (p.type === 'buy') {
+                    actionBtn = `<a href="${p.link}" target="_blank" class="badge buy">구매하기</a>`;
+                } else {
+                    actionBtn = `<a href="${p.link}" target="_blank">보러가기</a>`;
+                }
+
                 html += `
-                    <li>
-                        <strong>${p.service}</strong> [${typeText}] ${expireText}
-                        <a href="${p.link}" target="_blank" style="margin-left: 10px;">보러가기</a>
-                    </li>
-                `;
-            });
-            html += "</ul>";
-            resultBox.innerHTML = html;
-        }
+                        <li>
+                            <div class="provider-item">
+                                ${actionBtn}
+                                <strong>${p.service}</strong> [${typeText}] ${expireText}
+                            </div>
+                        </li>
+                    `;
+                }); // forEach 끝
+
+                html += "</ul>";
+                resultBox.innerHTML = html;
+            } // checkStreaming 함수 끝
     </script>
 </body>
 </html>
