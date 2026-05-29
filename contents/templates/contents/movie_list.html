@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ content_label }} 목록</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f5f7f9;
+            color: #17202a;
+            font-family: "Pretendard", "Segoe UI", system-ui, sans-serif;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .page {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 36px 0 48px;
+            transition: filter 160ms ease;
+        }
+
+        .nav-toggle {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .nav-open,
+        .nav-backdrop {
+            display: none;
+        }
+
+        .side-nav {
+            position: fixed;
+            top: 28px;
+            left: 24px;
+            display: grid;
+            gap: 8px;
+            width: 136px;
+            padding: 12px;
+            border: 1px solid #dce3e9;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 12px 32px rgba(27, 39, 51, 0.12);
+            z-index: 10;
+        }
+
+        .side-nav a {
+            padding: 10px 12px;
+            border: 1px solid #c8d1da;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #26323d;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            box-shadow: 0 8px 24px rgba(27, 39, 51, 0.06);
+        }
+
+        .side-nav a.active {
+            border-color: #2f6f73;
+            background: #2f6f73;
+            color: #ffffff;
+        }
+
+        @media (max-width: 1549px) {
+            .nav-open {
+                position: fixed;
+                top: 16px;
+                left: 16px;
+                z-index: 13;
+                display: grid;
+                place-items: center;
+                width: 44px;
+                height: 44px;
+                border: 1px solid #c8d1da;
+                border-radius: 8px;
+                background: #ffffff;
+                color: #26323d;
+                font-size: 22px;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 10px 28px rgba(27, 39, 51, 0.14);
+            }
+
+            .side-nav {
+                top: 0;
+                left: 0;
+                width: min(280px, calc(100vw - 48px));
+                height: 100vh;
+                align-content: start;
+                padding: 72px 18px 18px;
+                border-radius: 0;
+                transform: translateX(-110%);
+                transition: transform 180ms ease;
+                z-index: 14;
+            }
+
+            .nav-backdrop {
+                position: fixed;
+                inset: 0;
+                z-index: 12;
+                background: rgba(17, 24, 32, 0.34);
+                backdrop-filter: blur(4px);
+                cursor: pointer;
+            }
+
+            .nav-toggle:checked ~ .side-nav {
+                transform: translateX(0);
+            }
+
+            .nav-toggle:checked ~ .nav-backdrop {
+                display: block;
+            }
+
+            .nav-toggle:checked ~ .page {
+                filter: blur(2px);
+            }
+        }
+
+        .header {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            margin: 0 0 6px;
+            color: #5e6d7a;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            color: #111820;
+            font-size: 42px;
+            line-height: 1.1;
+        }
+
+        .genre-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .genre-chip,
+        .pagination button {
+            min-height: 40px;
+            border: 1px solid #c8d1da;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #26323d;
+            cursor: pointer;
+        }
+
+        .genre-chip {
+            padding: 0 14px;
+        }
+
+        .genre-chip:hover,
+        .pagination button:not(:disabled):hover {
+            border-color: #2f6f73;
+        }
+
+        .genre-chip.active {
+            border-color: #2f6f73;
+            background: #2f6f73;
+            color: #ffffff;
+        }
+
+        .notice,
+        .loader {
+            padding: 18px;
+            border: 1px solid #d7b7a3;
+            border-radius: 8px;
+            background: #fff4ec;
+            color: #7b3d1c;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .movie-card {
+            overflow: hidden;
+            border: 1px solid #dce3e9;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 28px rgba(27, 39, 51, 0.08);
+            cursor: pointer;
+            transition: border-color 160ms ease, transform 160ms ease;
+        }
+
+        .movie-card:hover {
+            border-color: #2f6f73;
+            transform: translateY(-2px);
+        }
+
+        .movie-card img.poster,
+        .poster-empty {
+            width: 100%;
+            aspect-ratio: 2 / 3;
+        }
+
+        .movie-card img.poster {
+            display: block;
+            object-fit: cover;
+        }
+
+        .poster-empty {
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            background: #dfe7ec;
+            color: #44515e;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .movie-info {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+        }
+
+        .movie-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #687785;
+            font-size: 13px;
+        }
+
+        .movie-meta strong {
+            color: #b24d18;
+        }
+
+        .movie-info h2 {
+            margin: 0;
+            color: #17202a;
+            font-size: 16px;
+            line-height: 1.3;
+        }
+
+        .movie-info p {
+            display: -webkit-box;
+            min-height: 67px;
+            margin: 0;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3;
+            color: #4c5b68;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .provider-panel {
+            display: none;
+            gap: 8px;
+            padding: 0 14px 14px;
+        }
+
+        .movie-card:hover .provider-panel,
+        .movie-card:focus-within .provider-panel {
+            display: grid;
+        }
+
+        .provider-link {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 9px;
+            min-height: 42px;
+            padding: 7px 9px;
+            border: 1px solid #d8e0e6;
+            border-radius: 8px;
+            color: #1b2733;
+            text-decoration: none;
+            background: #f8fafb;
+        }
+
+        .provider-link:hover {
+            border-color: #2f6f73;
+            background: #eef7f6;
+        }
+
+        .provider-icon,
+        .provider-fallback {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+        }
+
+        .provider-icon {
+            object-fit: contain;
+            background: #ffffff;
+        }
+
+        .provider-fallback {
+            display: grid;
+            place-items: center;
+            background: #26323d;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .provider-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .provider-type {
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: #e7edf1;
+            color: #4c5b68;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .provider-empty {
+            margin: 0;
+            color: #687785;
+            font-size: 13px;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding-top: 28px;
+        }
+
+        .pagination button {
+            min-width: 78px;
+            padding: 0 14px;
+        }
+
+        .pagination button:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+        }
+
+        @media (max-width: 560px) {
+            .page {
+                width: min(100% - 20px, 1180px);
+                padding-top: 24px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .movie-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            .movie-info {
+                padding: 11px;
+            }
+
+            .provider-link {
+                grid-template-columns: 30px minmax(0, 1fr);
+            }
+
+            .provider-type {
+                grid-column: 2;
+                justify-self: start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <input class="nav-toggle" id="navToggle" type="checkbox">
+    <label class="nav-open" for="navToggle" aria-label="메뉴 열기">☰</label>
+    <nav class="side-nav" aria-label="콘텐츠 유형">
+        <a href="/contents/movies/" class="{% if media_type == 'movie' %}active{% endif %}">영화</a>
+        <a href="/contents/shows/" class="{% if media_type == 'tv' %}active{% endif %}">드라마</a>
+        <a href="/accounts/profile/">프로필</a>
+        <a href="/accounts/google/login/">로그인</a>
+    </nav>
+    <label class="nav-backdrop" for="navToggle" aria-label="메뉴 닫기"></label>
+
+    <main id="app" class="page">
+        <section class="header" aria-label="{{ content_label }} 장르 필터">
+            <div>
+                <p class="eyebrow">WhatSub {{ content_label_en }}</p>
+                <h1>[[ selectedGenreName ]]</h1>
+            </div>
+
+            <div class="genre-list">
+                <button
+                    type="button"
+                    class="genre-chip"
+                    :class="{ active: selectedGenre === '' }"
+                    @click="selectGenre('')"
+                >
+                    전체
+                </button>
+                <button
+                    v-for="genre in genres"
+                    :key="genre.id"
+                    type="button"
+                    class="genre-chip"
+                    :class="{ active: String(selectedGenre) === String(genre.id) }"
+                    @click="selectGenre(genre.id)"
+                >
+                    [[ genre.name ]]
+                </button>
+            </div>
+        </section>
+
+        <p v-if="errorMessage" class="notice">[[ errorMessage ]]</p>
+
+        <section :aria-busy="loading">
+            <div v-if="loading" class="loader">영화 목록을 불러오는 중입니다.</div>
+            <div v-else-if="movies.length === 0 && !errorMessage" class="loader">표시할 영화가 없습니다.</div>
+            <div v-else class="movie-grid">
+                <article
+                    v-for="movie in movies"
+                    :key="movie.tmdb_id"
+                    class="movie-card"
+                    tabindex="0"
+                    @click="goToDetail(movie.tmdb_id)"
+                    @keydown.enter="goToDetail(movie.tmdb_id)"
+                    @mouseenter="loadProviders(movie.tmdb_id)"
+                    @focusin="loadProviders(movie.tmdb_id)"
+                >
+                    <img v-if="movie.poster_url" class="poster" :src="movie.poster_url" :alt="`${movie.title} 포스터`" loading="lazy">
+                    <div v-else class="poster-empty">[[ movie.title ]]</div>
+                    <div class="movie-info">
+                        <div class="movie-meta">
+                            <span>[[ movie.release_date || '개봉일 미정' ]]</span>
+                            <strong>[[ Number(movie.rating).toFixed(1) ]]</strong>
+                        </div>
+                        <h2>[[ movie.title ]]</h2>
+                        <p>[[ movie.overview ]]</p>
+                    </div>
+
+                    <div class="provider-panel" @click.stop>
+                        <p v-if="providerLoading[movie.tmdb_id]" class="provider-empty">서비스 확인 중...</p>
+                        <p v-else-if="providerError[movie.tmdb_id]" class="provider-empty">서비스 정보를 불러오지 못했습니다.</p>
+                        <p v-else-if="providersFor(movie.tmdb_id).length === 0" class="provider-empty">현재 이용 가능한 서비스가 없습니다.</p>
+                        <a
+                            v-for="provider in providersFor(movie.tmdb_id)"
+                            :key="`${provider.service}-${provider.type}-${provider.link}`"
+                            class="provider-link"
+                            :href="provider.link"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                    :title="`${provider.display_name || provider.service}에서 ${provider.type_label}`"
+                        >
+                            <img v-if="provider.icon_url" class="provider-icon" :src="provider.icon_url" :alt="provider.display_name || provider.service">
+                            <span v-else class="provider-fallback">[[ providerInitial(provider.display_name || provider.service) ]]</span>
+                            <span class="provider-name">[[ provider.display_name || provider.service ]]</span>
+                            <span class="provider-type">[[ provider.type_label ]]</span>
+                        </a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <nav class="pagination" aria-label="{{ content_label }} 목록 페이지">
+            <button type="button" :disabled="currentPage <= 1 || loading" @click="changePage(-1)">이전</button>
+            <span>[[ currentPage ]] / [[ totalPages ]]</span>
+            <button type="button" :disabled="currentPage >= totalPages || loading" @click="changePage(1)">다음</button>
+        </nav>
+    </main>
+
+    <script>
+        const { createApp } = Vue;
+        const mediaType = '{{ media_type }}';
+        const contentLabel = '{{ content_label }}';
+        const listApiUrl = '{{ list_api_url }}';
+        const genresApiUrl = '{{ genres_api_url }}';
+        const detailBaseUrl = '{{ detail_base_url }}';
+
+        createApp({
+            delimiters: ['[[', ']]'],
+            data() {
+                return {
+                    genres: [],
+                    movies: [],
+                    selectedGenre: '',
+                    currentPage: 1,
+                    totalPages: 1,
+                    loading: false,
+                    errorMessage: '',
+                    providersByMovie: {},
+                    providerLoading: {},
+                    providerError: {},
+                };
+            },
+            computed: {
+                selectedGenreName() {
+                    if (!this.selectedGenre) return `전체 ${contentLabel}`;
+                    const selected = this.genres.find((genre) => String(genre.id) === String(this.selectedGenre));
+                    return selected ? selected.name : '선택한 장르';
+                },
+            },
+            async mounted() {
+                await Promise.all([this.loadGenres(), this.loadMovies()]);
+            },
+            methods: {
+                async loadGenres() {
+                    try {
+                        const data = await this.requestJson(genresApiUrl);
+                        this.genres = data.genres || [];
+                    } catch (error) {
+                        this.errorMessage = error.message;
+                    }
+                },
+                async loadMovies(page = 1) {
+                    this.loading = true;
+                    this.errorMessage = '';
+
+                    const params = new URLSearchParams({ page });
+                    if (this.selectedGenre) params.set('genre', this.selectedGenre);
+
+                    try {
+                        const data = await this.requestJson(`${listApiUrl}?${params.toString()}`);
+                        this.movies = data.results || [];
+                        this.currentPage = data.page || page;
+                        this.totalPages = Math.min(data.total_pages || 1, 500);
+                    } catch (error) {
+                        this.movies = [];
+                        this.errorMessage = error.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async loadProviders(tmdbId) {
+                    if (this.providersByMovie[tmdbId] || this.providerLoading[tmdbId]) return;
+
+                    this.providerLoading[tmdbId] = true;
+                    this.providerError[tmdbId] = false;
+
+                    try {
+                        const data = await this.requestJson(`/contents/streaming_info/?tmdb_id=${tmdbId}&media_type=${mediaType}&debug_raw=1`);
+                        console.log('[WhatSub] streaming_info response:', {
+                            tmdbId,
+                            data,
+                        });
+                        console.log('[WhatSub] streaming availability original JSON:', data.raw_streaming_data);
+                        this.providersByMovie[tmdbId] = data.providers || [];
+                    } catch (error) {
+                        this.providerError[tmdbId] = true;
+                    } finally {
+                        this.providerLoading[tmdbId] = false;
+                    }
+                },
+                providersFor(tmdbId) {
+                    return this.providersByMovie[tmdbId] || [];
+                },
+                providerInitial(service) {
+                    return (service || '?').trim().charAt(0).toUpperCase();
+                },
+                async requestJson(url) {
+                    const response = await fetch(url);
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        throw new Error(data.error || '요청 처리 중 문제가 발생했습니다.');
+                    }
+
+                    return data;
+                },
+                selectGenre(genreId) {
+                    this.selectedGenre = genreId;
+                    this.loadMovies(1);
+                },
+                changePage(offset) {
+                    const nextPage = this.currentPage + offset;
+                    if (nextPage < 1 || nextPage > this.totalPages || this.loading) return;
+                    this.loadMovies(nextPage);
+                },
+                goToDetail(tmdbId) {
+                    window.location.href = `${detailBaseUrl}${tmdbId}/`;
+                },
+            },
+        }).mount('#app');
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import User
+from django.conf import settings
 
 class Category(models.Model):
     name = models.CharField(max_length=30) # 구독 서비스의 유형 (e.g.스트리밍, 음악, 배달, 쇼핑...)
@@ -18,7 +18,7 @@ class Platform(models.Model):
     description = models.TextField(blank=True) # 서비스 설명
 
 class UserSubscription(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE) # accounts User Foreign Key
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE) # accounts User Foreign Key
     platform = models.ForeignKey(Platform, on_delete=models.CASCADE) # subscriptions Platform Foreign Key
 
     plan_name = models.CharField(max_length=100) # 현재 이용중인 구독 상품
