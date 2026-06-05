@@ -270,50 +270,22 @@
         }
 
         .provider-panel {
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
-            gap: 6px;
-            height: 132px;
+            display: none;
+            gap: 8px;
             padding: 0 14px 14px;
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transition: opacity 140ms ease, visibility 140ms ease;
         }
 
         .movie-card:hover .provider-panel,
         .movie-card:focus-within .provider-panel {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-        }
-
-        .provider-summary {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            min-height: 18px;
-            color: #687785;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .provider-list {
             display: grid;
-            align-content: start;
-            gap: 8px;
-            min-height: 0;
-            overflow-y: auto;
-            padding-right: 2px;
         }
 
         .provider-link {
             display: grid;
-            grid-template-columns: 34px minmax(0, 1fr) max-content;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
             align-items: center;
             gap: 9px;
-            min-height: 46px;
+            min-height: 42px;
             padding: 7px 9px;
             border: 1px solid #d8e0e6;
             border-radius: 8px;
@@ -329,7 +301,6 @@
 
         .provider-icon,
         .provider-fallback {
-            align-self: center;
             width: 34px;
             height: 34px;
             border-radius: 8px;
@@ -350,23 +321,20 @@
         }
 
         .provider-name {
-            align-self: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             font-size: 13px;
             font-weight: 700;
-            line-height: 1.25;
-            white-space: normal;
-            overflow-wrap: anywhere;
         }
 
         .provider-type {
-            align-self: center;
             padding: 3px 7px;
             border-radius: 999px;
             background: #e7edf1;
             color: #4c5b68;
             font-size: 12px;
             font-weight: 700;
-            white-space: nowrap;
         }
 
         .provider-empty {
@@ -416,11 +384,6 @@
                 grid-template-columns: 30px minmax(0, 1fr);
             }
 
-            .provider-panel {
-                height: 124px;
-                padding: 0 11px 11px;
-            }
-
             .provider-type {
                 grid-column: 2;
                 justify-self: start;
@@ -435,7 +398,11 @@
         <a href="/contents/movies/" class="{% if media_type == 'movie' %}active{% endif %}">영화</a>
         <a href="/contents/shows/" class="{% if media_type == 'tv' %}active{% endif %}">드라마</a>
         <a href="/accounts/profile/">프로필</a>
-        <a href="/accounts/google/login/">로그인</a>
+        {% if request.user.is_authenticated %}
+            <a href="/accounts/logout/">로그아웃</a>
+        {% else %}
+            <a href="/accounts/google/login/">로그인</a>
+        {% endif %}
     </nav>
     <label class="nav-backdrop" for="navToggle" aria-label="메뉴 닫기"></label>
 
@@ -496,31 +463,23 @@
                     </div>
 
                     <div class="provider-panel" @click.stop>
-                        <div class="provider-summary">
-                            <span v-if="providerLoading[movie.tmdb_id]">OTT 확인 중</span>
-                            <span v-else-if="providerError[movie.tmdb_id]">OTT 정보 오류</span>
-                            <span v-else>이용 가능 [[ providersFor(movie.tmdb_id).length ]]개</span>
-                            <span v-if="providersFor(movie.tmdb_id).length > 2">스크롤</span>
-                        </div>
-                        <div class="provider-list">
-                            <p v-if="providerLoading[movie.tmdb_id]" class="provider-empty">서비스 확인 중...</p>
-                            <p v-else-if="providerError[movie.tmdb_id]" class="provider-empty">서비스 정보를 불러오지 못했습니다.</p>
-                            <p v-else-if="providersFor(movie.tmdb_id).length === 0" class="provider-empty">현재 이용 가능한 서비스가 없습니다.</p>
-                            <a
-                                v-for="provider in providersFor(movie.tmdb_id)"
-                                :key="`${provider.service}-${provider.type}-${provider.link}`"
-                                class="provider-link"
-                                :href="provider.link"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                :title="`${provider.display_name || provider.service}에서 ${provider.type_label}`"
-                            >
-                                <img v-if="provider.icon_url" class="provider-icon" :src="provider.icon_url" :alt="provider.display_name || provider.service">
-                                <span v-else class="provider-fallback">[[ providerInitial(provider.display_name || provider.service) ]]</span>
-                                <span class="provider-name">[[ provider.display_name || provider.service ]]</span>
-                                <span class="provider-type">[[ provider.type_label ]]</span>
-                            </a>
-                        </div>
+                        <p v-if="providerLoading[movie.tmdb_id]" class="provider-empty">서비스 확인 중...</p>
+                        <p v-else-if="providerError[movie.tmdb_id]" class="provider-empty">서비스 정보를 불러오지 못했습니다.</p>
+                        <p v-else-if="providersFor(movie.tmdb_id).length === 0" class="provider-empty">현재 이용 가능한 서비스가 없습니다.</p>
+                        <a
+                            v-for="provider in providersFor(movie.tmdb_id)"
+                            :key="`${provider.service}-${provider.type}-${provider.link}`"
+                            class="provider-link"
+                            :href="provider.link"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                    :title="`${provider.display_name || provider.service}에서 ${provider.type_label}`"
+                        >
+                            <img v-if="provider.icon_url" class="provider-icon" :src="provider.icon_url" :alt="provider.display_name || provider.service">
+                            <span v-else class="provider-fallback">[[ providerInitial(provider.display_name || provider.service) ]]</span>
+                            <span class="provider-name">[[ provider.display_name || provider.service ]]</span>
+                            <span class="provider-type">[[ provider.type_label ]]</span>
+                        </a>
                     </div>
                 </article>
             </div>

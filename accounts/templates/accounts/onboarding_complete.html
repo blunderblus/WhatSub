@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>환영합니다 · WhatSub</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: grid; place-items: center;
+            background: #f5f7f9; color: #17202a;
+            font-family: "Pretendard", "Segoe UI", system-ui, sans-serif;
+            overflow: hidden;
+        }
+        canvas { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+        .card {
+            position: relative; z-index: 20; width: min(520px, calc(100% - 32px));
+            padding: 48px 36px; text-align: center;
+            border: 1px solid #dce3e9; border-radius: 20px; background: #fff;
+            box-shadow: 0 24px 64px rgba(27, 39, 51, 0.12);
+            animation: pop 0.6s cubic-bezier(.2,1.2,.3,1) both;
+        }
+        @keyframes pop {
+            from { opacity: 0; transform: scale(0.92) translateY(12px); }
+            to { opacity: 1; transform: none; }
+        }
+        h1 { margin: 0 0 12px; font-size: 32px; color: #111820; }
+        h2 { margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #687785; }
+        .note {
+            margin: 0 0 28px; padding: 12px 14px; border-radius: 10px;
+            background: #eef6f6; color: #45525e; font-size: 13px; line-height: 1.5;
+        }
+        .btn {
+            display: inline-block; padding: 14px 28px; border-radius: 10px;
+            background: #2f6f73; color: #fff; font-weight: 800; text-decoration: none;
+        }
+        .btn:hover { background: #275c5f; }
+    </style>
+</head>
+<body>
+    <canvas id="confetti"></canvas>
+    <main class="card">
+        <h1>WhatSub?에 오신 것을 환영합니다!</h1>
+        <h2>함께 슬기로운 구독생활 해봐요.</h2>
+        <p class="note">
+            분석에 사용된 이메일 내용은 서버에 저장되지 않았으며, 스캔이 끝난 뒤 자동으로 폐기되었습니다.
+        </p>
+        <a class="btn" href="{% url 'accounts:profile' %}">내 대시보드로 이동</a>
+    </main>
+    <script>
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        let W, H, pieces = [];
+        function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+        resize(); addEventListener('resize', resize);
+        const colors = ['#2f6f73','#e50914','#01137c','#00a8e1','#f5c518','#ff6b6b','#4ecdc4'];
+        for (let i = 0; i < 120; i++) {
+            pieces.push({
+                x: Math.random() * innerWidth, y: Math.random() * innerHeight - innerHeight,
+                w: 6 + Math.random() * 8, h: 10 + Math.random() * 6,
+                color: colors[i % colors.length],
+                vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2,
+                rot: Math.random() * 360, vr: -4 + Math.random() * 8,
+            });
+        }
+        function frame() {
+            ctx.clearRect(0, 0, W, H);
+            pieces.forEach(p => {
+                p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+                if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot * Math.PI / 180);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                ctx.restore();
+            });
+            requestAnimationFrame(frame);
+        }
+        frame();
+    </script>
+</body>
+</html>
