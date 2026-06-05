@@ -1,6 +1,7 @@
+from django.conf import settings
 from django.http import JsonResponse
 
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.models import SocialApp, SocialToken
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -8,6 +9,39 @@ from googleapiclient.discovery import build
 from email.header import decode_header, make_header
 
 # Create your views here.
+
+
+def _build_gmail_service(user):
+    """
+    Build an authenticated Gmail service for the user, including the refresh
+    token / client credentials so short-lived access tokens auto-renew.
+    Returns (service, error_message).
+    """
+    if not user.is_authenticated:
+        return None, 'login required'
+
+    social_token = SocialToken.objects.filter(account__user=user).first()
+    if social_token is None:
+        return None, 'social token not found'
+
+    client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '')
+    client_secret = getattr(settings, 'GOOGLE_CLIENT_SECRET', '')
+    if not client_id:
+        app = SocialApp.objects.filter(provider='google').first()
+        if app:
+            client_id, client_secret = app.client_id, app.secret
+
+    credentials = Credentials(
+        token=social_token.token,
+        refresh_token=social_token.token_secret or None,
+        token_uri='https://oauth2.googleapis.com/token',
+        client_id=client_id or None,
+        client_secret=client_secret or None,
+        scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+    )
+
+    service = build('gmail', 'v1', credentials=credentials)
+    return service, None
 
 def test_view(request):
     return JsonResponse({
@@ -36,19 +70,9 @@ def gmail_test(request):
 
 def gmail_messages(request):
 
-    social_token = SocialToken.objects.filter(
-        account__user=request.user
-    ).first()
-
-    credentials = Credentials(
-        token=social_token.token
-    )
-
-    service = build(
-        'gmail',
-        'v1',
-        credentials=credentials
-    )
+    service, error = _build_gmail_service(request.user)
+    if error:
+        return JsonResponse({'error': error})
 
     results = service.users().messages().list(
         userId='me',
@@ -93,24 +117,9 @@ KEYWORDS = [
 
 def gmail_detail(request):
 
-    social_token = SocialToken.objects.filter(
-        account__user=request.user
-    ).first()
-
-    if social_token is None:
-        return JsonResponse({
-            'error': 'social token not found'
-        })
-
-    credentials = Credentials(
-        token=social_token.token
-    )
-
-    service = build(
-        'gmail',
-        'v1',
-        credentials=credentials
-    )
+    service, error = _build_gmail_service(request.user)
+    if error:
+        return JsonResponse({'error': error})
 
     results = service.users().messages().list(
         userId='me',

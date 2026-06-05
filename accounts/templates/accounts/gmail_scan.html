@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail 구독 찾기 · WhatSub</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; background: #f5f7f9; color: #17202a;
+            font-family: "Pretendard", "Segoe UI", system-ui, sans-serif;
+        }
+        .wrap { width: min(820px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 60px; }
+        .eyebrow { margin: 0 0 6px; color: #5e6d7a; font-size: 13px; font-weight: 800; text-transform: uppercase; }
+        h1 { margin: 0 0 8px; font-size: 32px; color: #111820; }
+        .lead { margin: 0 0 24px; color: #687785; }
+        .state { padding: 20px; border: 1px solid #dce3e9; border-radius: 12px; background: #fff; color: #45525e; }
+        .cta { display: inline-block; margin-top: 12px; padding: 11px 18px; border-radius: 8px; background: #2f6f73; color: #fff; font-weight: 700; text-decoration: none; }
+        .row {
+            display: grid; grid-template-columns: minmax(0,1fr) 130px 120px auto; gap: 10px; align-items: center;
+            padding: 12px; border: 1px solid #dce3e9; border-radius: 10px; background: #fff; margin-bottom: 10px;
+        }
+        .subj { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sender { color: #8a97a2; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .row input { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #c8d1da; border-radius: 7px; font: inherit; }
+        .row button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 7px; background: #2f6f73; color: #fff; font-weight: 700; cursor: pointer; }
+        .row button:hover { background: #275c5f; }
+        .back { display: inline-block; margin-bottom: 18px; color: #2f6f73; font-weight: 700; text-decoration: none; }
+        .muted { color: #93a0ab; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <a class="back" href="{% url 'accounts:onboarding' %}">← 뒤로</a>
+        <p class="eyebrow">Gmail Detection</p>
+        <h1>받은편지함에서 구독 찾기</h1>
+        <p class="lead">최근 1개월 내 결제·구독 관련 메일을 분석합니다. 추가할 항목을 확인하세요.</p>
+
+        <div id="status" class="state">받은편지함을 확인하는 중입니다…</div>
+        <div id="results"></div>
+    </main>
+
+    <script>
+        const PLATFORM_KEYWORDS = [
+            ['Netflix', 'netflix'], ['Disney+', 'disney'], ['Watcha', 'watcha'],
+            ['TVING', 'tving'], ['TVING', '티빙'], ['Wavve', 'wavve'],
+            ['Coupang Play', 'coupang'], ['Amazon Prime Video', 'prime'],
+            ['Apple TV+', 'apple'], ['SPOTV', 'spotv'], ['Laftel', 'laftel'],
+            ['YouTube Premium', 'youtube'], ['Spotify', 'spotify'], ['ChatGPT Plus', 'openai'],
+        ];
+
+        function guessPlatform(text) {
+            const lower = (text || '').toLowerCase();
+            for (const [name, kw] of PLATFORM_KEYWORDS) {
+                if (lower.includes(kw)) return name;
+            }
+            return '';
+        }
+
+        function getCookie(name) {
+            const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return m ? m.pop() : '';
+        }
+
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        async function scan() {
+            const statusEl = document.getElementById('status');
+            const resultsEl = document.getElementById('results');
+            try {
+                const res = await fetch('/detector/gmail_detail/');
+                const data = await res.json();
+
+                if (data.error) {
+                    statusEl.innerHTML = 'Gmail에 연결되어 있지 않습니다. Google 계정으로 로그인하면 받은편지함을 분석할 수 있어요.' +
+                        '<br><a class="cta" href="/accounts/google/login/">Google 계정 연결하기</a>';
+                    return;
+                }
+
+                const emails = data.emails || [];
+                if (emails.length === 0) {
+                    statusEl.textContent = '구독 관련 메일을 찾지 못했습니다.';
+                    return;
+                }
+
+                statusEl.textContent = `${emails.length}건의 구독 관련 메일을 찾았습니다. 추가할 항목을 저장하세요.`;
+                const csrf = getCookie('csrftoken');
+
+                resultsEl.innerHTML = emails.map(e => {
+                    const platform = guessPlatform(`${e.subject} ${e.sender}`);
+                    return `
+                        <form class="row" method="post" action="{% url 'accounts:save_from_gmail' %}">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrf}">
+                            <div>
+                                <div class="subj" title="${escapeHtml(e.subject)}">${escapeHtml(e.subject) || '(제목 없음)'}</div>
+                                <div class="sender" title="${escapeHtml(e.sender)}">${escapeHtml(e.sender)}</div>
+                            </div>
+                            <input type="text" name="platform" value="${escapeHtml(platform)}" placeholder="플랫폼">
+                            <input type="number" name="payment_amount" placeholder="금액" min="0">
+                            <button type="submit">추가</button>
+                        </form>`;
+                }).join('');
+            } catch (err) {
+                statusEl.textContent = '메일을 분석하는 중 오류가 발생했습니다: ' + err.message;
+            }
+        }
+
+        scan();
+    </script>
+</body>
+</html>

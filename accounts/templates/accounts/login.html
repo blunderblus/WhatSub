@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 · WhatSub</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: grid; place-items: center;
+            background: #f5f7f9; color: #17202a;
+            font-family: "Pretendard", "Segoe UI", system-ui, sans-serif;
+        }
+        .card {
+            width: min(420px, calc(100% - 32px));
+            padding: 36px 32px; border: 1px solid #dce3e9; border-radius: 14px;
+            background: #fff; box-shadow: 0 18px 48px rgba(27, 39, 51, 0.10);
+        }
+        .brand { margin: 0 0 4px; font-size: 26px; font-weight: 800; color: #111820; }
+        .sub { margin: 0 0 26px; color: #687785; font-size: 14px; }
+        label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: #45525e; }
+        input[type=text], input[type=password] {
+            width: 100%; min-height: 44px; margin-bottom: 16px; padding: 0 12px;
+            border: 1px solid #c8d1da; border-radius: 8px; font: inherit;
+        }
+        button[type=submit] {
+            width: 100%; min-height: 46px; border: 0; border-radius: 8px;
+            background: #2f6f73; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer;
+        }
+        button[type=submit]:hover { background: #275c5f; }
+        .google {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; min-height: 46px; margin-top: 12px;
+            border: 1px solid #c8d1da; border-radius: 8px; background: #fff;
+            color: #26323d; font-weight: 700; text-decoration: none;
+        }
+        .google:hover { border-color: #2f6f73; }
+        .divider { display: flex; align-items: center; gap: 10px; margin: 18px 0; color: #9aa7b2; font-size: 12px; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e1e8ee; }
+        .foot { margin-top: 22px; text-align: center; font-size: 14px; color: #687785; }
+        .foot a { color: #2f6f73; font-weight: 700; text-decoration: none; }
+        .errors { margin: 0 0 16px; padding: 10px 12px; border-radius: 8px; background: #fdecea; color: #8a2c20; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <p class="brand">WhatSub</p>
+        <p class="sub">구독을 한 곳에서 관리하세요.</p>
+
+        {% if form.errors %}
+            <div class="errors">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+        {% endif %}
+
+        <form method="post" action="{% url 'accounts:login' %}">
+            {% csrf_token %}
+            <label for="id_username">아이디</label>
+            <input type="text" name="username" id="id_username" required autofocus>
+            <label for="id_password">비밀번호</label>
+            <input type="password" name="password" id="id_password" required>
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+            <button type="submit">로그인</button>
+        </form>
+
+        <div class="divider">또는</div>
+        <a class="google" href="/accounts/google/login/">Google 계정으로 계속하기</a>
+
+        <p class="foot">계정이 없으신가요? <a href="{% url 'accounts:signup' %}">회원가입</a></p>
+    </main>
+</body>
+</html>

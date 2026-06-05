@@ -1,7 +1,43 @@
+from datetime import timedelta
+
 import requests
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
+
+from subscriptions.models import Platform
+from . import watchmode as wm
+from .models import Content, ContentPlatform, WatchmodeUsage
+
+SOURCES_CACHE_TTL = timedelta(hours=24)
+_PROVIDER_PRIORITY = {'subscription': 0, 'free': 1, 'ads': 2, 'rent': 3, 'buy': 4, 'addon': 5}
+_TYPE_TO_SOURCE = {'subscription': 'sub', 'free': 'free', 'rent': 'rent', 'buy': 'buy'}
+
+# Maps normalized provider names (from RapidAPI / Watchmode) to a canonical
+# display name and a local icon file under MEDIA_ROOT (subscriptions/media).
+_PLATFORM_ICONS = {
+    'netflix': ('Netflix', 'Netflix_icon.png'),
+    'disney+': ('Disney+', 'DisneyPlus_icon.png'),
+    'disneyplus': ('Disney+', 'DisneyPlus_icon.png'),
+    'disney plus': ('Disney+', 'DisneyPlus_icon.png'),
+    'apple tv+': ('Apple TV+', 'AppleTV_icon.png'),
+    'apple tv plus': ('Apple TV+', 'AppleTV_icon.png'),
+    'apple tv': ('Apple TV+', 'AppleTV_icon.png'),
+    'appletv': ('Apple TV+', 'AppleTV_icon.png'),
+    'amazon prime video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
+    'prime video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
+    'amazon video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
+    'amazon': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
+    'coupang play': ('Coupang Play', 'CoupangPlay_icon.png'),
+    'coupangplay': ('Coupang Play', 'CoupangPlay_icon.png'),
+    'tving': ('TVING', 'TVING_icon.png'),
+    'wavve': ('Wavve', 'Wavve_icon.png'),
+    'watcha': ('Watcha', 'Watcha_icon.webp'),
+    'spotv': ('SPOTV', 'SpotvNow_icon.png'),
+    'spotv now': ('SPOTV', 'SpotvNow_icon.png'),
+    'spotvnow': ('SPOTV', 'SpotvNow_icon.png'),
+}
 
 # 1. 검색 화면 렌더링 뷰
 def search_page(request):
@@ -171,13 +207,10 @@ def _tmdb_content_detail(request, tmdb_id, media_type):
             'cast': cast,
         }
 
-        raw_streaming_data = _fetch_streaming_availability(tmdb_id, media_type)
         payload = {
             'movie': movie,
-            'providers': _parse_streaming_providers(raw_streaming_data),
+            'providers': get_streaming_providers(tmdb_id, media_type),
         }
-        if request.GET.get('debug_raw') == '1':
-            payload['raw_streaming_data'] = raw_streaming_data
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except requests.exceptions.HTTPError as err:
         status_code = err.response.status_code if err.response is not None else 500
@@ -205,6 +238,136 @@ def _tmdb_image(path, size):
 def _get_streaming_providers(tmdb_id, media_type):
     data = _fetch_streaming_availability(tmdb_id, media_type)
     return _parse_streaming_providers(data)
+
+
+def _kr_local_present(providers):
+    return any((p.get('service') or '').lower() in wm.KR_LOCAL_SERVICES for p in providers)
+
+
+def _merge_providers(primary, secondary):
+    """Merge two provider lists, de-duplicating by (service name, type)."""
+    seen = {((p.get('service') or '').lower(), p.get('type')) for p in primary}
+    merged = list(primary)
+    for prov in secondary:
+        key = ((prov.get('service') or '').lower(), prov.get('type'))
+        if key not in seen:
+            seen.add(key)
+            merged.append(prov)
+    return sorted(merged, key=lambda x: _PROVIDER_PRIORITY.get(x.get('type'), 99))
+
+
+def _sync_content_platforms(content, providers):
+    """Persist availability rows for providers that map to a known Platform."""
+    name_map = {p.name.lower(): p for p in Platform.objects.all()}
+    for prov in providers:
+        platform = name_map.get((prov.get('service') or '').lower())
+        source_type = _TYPE_TO_SOURCE.get(prov.get('type'))
+        if not platform or not source_type:
+            continue
+        ContentPlatform.objects.update_or_create(
+            content=content, platform=platform, source_type=source_type,
+            defaults={
+                'deeplink_url': prov.get('link') or '',
+                'price': prov.get('price'),
+                'is_available': True,
+            },
+        )
+
+
+def _decorate_providers(providers):
+    """Attach local icon URLs and normalize display names for known services."""
+    decorated = []
+    for prov in providers:
+        prov = dict(prov)
+        key = (prov.get('service') or '').lower().strip()
+        match = _PLATFORM_ICONS.get(key)
+        if match:
+            display_name, filename = match
+            prov['display_name'] = display_name
+            prov['icon_url'] = f'{settings.MEDIA_URL}{filename}'
+        decorated.append(prov)
+    return decorated
+
+
+def _augment_with_watchmode(content, tmdb_id, media_type, providers):
+    """Fill KR availability gaps using Watchmode. Returns (providers, api_calls)."""
+    calls = 0
+    watchmode_id = content.watchmode_id
+    if not watchmode_id:
+        watchmode_id = wm.resolve_watchmode_id(tmdb_id, media_type)
+        calls += 1
+        if watchmode_id:
+            content.watchmode_id = watchmode_id
+    if watchmode_id:
+        wm_providers = wm.parse_sources(wm.fetch_sources(watchmode_id, 'KR'))
+        calls += 1
+        providers = _merge_providers(providers, wm_providers)
+    return providers, calls
+
+
+def get_streaming_providers(tmdb_id, media_type, allow_watchmode=True, force_refresh=False):
+    """
+    Resolve per-title KR streaming availability with a 24h DB cache.
+
+    RapidAPI streaming-availability is the primary source. Watchmode is only
+    queried (to fill KR gaps: TVING/Watcha/Wavve or missing titles) when
+    ``allow_watchmode`` is True — reserved for detail-page views so that
+    hovering across a list does not burn the Watchmode free-tier budget.
+    """
+    content, _ = Content.objects.get_or_create(
+        tmdb_id=tmdb_id,
+        defaults={'title': '', 'content_type': media_type},
+    )
+    is_fresh = (
+        not force_refresh
+        and content.sources_synced_at
+        and timezone.now() - content.sources_synced_at < SOURCES_CACHE_TTL
+    )
+
+    if is_fresh:
+        providers = content.sources_cache or []
+        # A title first cached from a list hover (RapidAPI only) can still be
+        # enriched on its detail view without resetting the cache window.
+        if (
+            allow_watchmode and not content.watchmode_checked
+            and not _kr_local_present(providers)
+            and wm.is_configured() and WatchmodeUsage.can_call()
+        ):
+            providers, calls = _augment_with_watchmode(content, tmdb_id, media_type, providers)
+            if calls:
+                WatchmodeUsage.increment(calls)
+            content.sources_cache = providers
+            content.watchmode_checked = True
+            content.save(update_fields=['sources_cache', 'watchmode_checked', 'watchmode_id'])
+            _sync_content_platforms(content, providers)
+        return _decorate_providers(providers)
+
+    # Cache miss / expired: refresh from RapidAPI (primary).
+    try:
+        providers = _parse_streaming_providers(
+            _fetch_streaming_availability(tmdb_id, media_type)
+        )
+    except Exception as exc:  # noqa: BLE001 - never let availability break the page
+        print(f'RapidAPI availability failed for {media_type}/{tmdb_id}: {exc}', flush=True)
+        providers = []
+
+    watchmode_checked = False
+    needs_watchmode = not providers or not _kr_local_present(providers)
+    if allow_watchmode and needs_watchmode and wm.is_configured() and WatchmodeUsage.can_call():
+        providers, calls = _augment_with_watchmode(content, tmdb_id, media_type, providers)
+        if calls:
+            WatchmodeUsage.increment(calls)
+        watchmode_checked = True
+
+    content.sources_cache = providers
+    content.sources_synced_at = timezone.now()
+    content.watchmode_checked = watchmode_checked
+    content.save(update_fields=[
+        'sources_cache', 'sources_synced_at', 'watchmode_checked', 'watchmode_id',
+    ])
+    _sync_content_platforms(content, providers)
+
+    return _decorate_providers(providers)
 
 
 def _fetch_streaming_availability(tmdb_id, media_type):
@@ -342,18 +505,11 @@ def api_streaming_info(request):
         return JsonResponse({'error': '파라미터 누락'}, status=400)
 
     try:
-        raw_streaming_data = _fetch_streaming_availability(tmdb_id, media_type)
-        payload = {'providers': _parse_streaming_providers(raw_streaming_data)}
-        if request.GET.get('debug_raw') == '1':
-            payload['raw_streaming_data'] = raw_streaming_data
+        # List-grid hover: RapidAPI only (cheap). Watchmode enrichment is
+        # reserved for the detail page to protect the monthly free-tier budget.
+        payload = {
+            'providers': get_streaming_providers(tmdb_id, media_type, allow_watchmode=False),
+        }
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
-
-    except requests.exceptions.HTTPError as err:
-        # 404(작품 없음) 등 HTTP 에러 발생 시 처리
-        status_code = err.response.status_code if err.response is not None else 500
-        if status_code == 404:
-            return JsonResponse({'providers': []}, json_dumps_params={'ensure_ascii': False})
-        return JsonResponse({'error': f"API HTTP 에러: {err}"}, status=status_code)
-        
     except Exception as e:
         return JsonResponse({'error': f"서버 에러: {str(e)}"}, status=500)

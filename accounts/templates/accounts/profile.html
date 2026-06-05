@@ -1,591 +1,142 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내 프로필</title>
+    <title>내 프로필 · WhatSub</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            background: #f5f7f9;
-            color: #17202a;
-            font-family: "Pretendard", "Segoe UI", system-ui, sans-serif;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .shell {
-            min-height: 100vh;
-            transition: filter 160ms ease;
-        }
-
-        .nav-toggle {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .nav-open,
-        .nav-backdrop {
-            display: none;
-        }
-
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f5f7f9; color: #17202a; font-family: "Pretendard", "Segoe UI", system-ui, sans-serif; }
+        a { color: inherit; text-decoration: none; }
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 220px;
-            height: 100vh;
-            padding: 24px 18px;
-            border-right: 1px solid #dce3e9;
-            background: #ffffff;
-            z-index: 10;
+            position: fixed; top: 0; left: 0; width: 220px; height: 100vh; padding: 24px 18px;
+            border-right: 1px solid #dce3e9; background: #fff; z-index: 10;
         }
-
-        .brand {
-            margin: 0 0 28px;
-            color: #111820;
-            font-size: 22px;
-            font-weight: 800;
-        }
-
-        .nav {
-            display: grid;
-            gap: 8px;
-        }
-
-        .nav a {
-            padding: 11px 12px;
-            border-radius: 8px;
-            color: #4c5b68;
-            font-weight: 700;
-        }
-
-        .nav a.active {
-            background: #2f6f73;
-            color: #ffffff;
-        }
-
-        .login-link {
-            margin-top: 12px;
-            border: 1px solid #c8d1da;
-        }
-
-        .main {
-            width: min(1180px, calc(100% - 36px));
-            margin: 0 auto 0 260px;
-            padding: 34px 0 54px;
-        }
-
-        .profile-hero {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 22px;
-            align-items: center;
-            margin-bottom: 26px;
-        }
-
-        .eyebrow {
-            margin: 0 0 8px;
-            color: #5e6d7a;
-            font-size: 13px;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        h1 {
-            margin: 0;
-            color: #111820;
-            font-size: 42px;
-            line-height: 1.1;
-        }
-
-        .account-card {
-            display: grid;
-            grid-template-columns: 54px minmax(0, 1fr);
-            gap: 12px;
-            align-items: center;
-            min-width: 300px;
-            padding: 14px;
-            border: 1px solid #dce3e9;
-            border-radius: 8px;
-            background: #ffffff;
-            box-shadow: 0 10px 28px rgba(27, 39, 51, 0.08);
-        }
-
-        .avatar {
-            display: grid;
-            place-items: center;
-            width: 54px;
-            height: 54px;
-            border-radius: 8px;
-            background: #26323d;
-            color: #ffffff;
-            font-size: 22px;
-            font-weight: 800;
-        }
-
-        .account-card strong,
-        .account-card span {
-            display: block;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .account-card span {
-            margin-top: 4px;
-            color: #687785;
-            font-size: 14px;
-        }
-
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 14px;
-            margin-bottom: 28px;
-        }
-
-        .metric {
-            padding: 18px;
-            border: 1px solid #dce3e9;
-            border-radius: 8px;
-            background: #ffffff;
-        }
-
-        .metric span {
-            display: block;
-            color: #687785;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .metric strong {
-            display: block;
-            margin-top: 10px;
-            color: #111820;
-            font-size: 28px;
-        }
-
-        .section {
-            margin-top: 28px;
-        }
-
-        .section-head {
-            display: flex;
-            align-items: end;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 14px;
-        }
-
-        h2 {
-            margin: 0;
-            color: #111820;
-            font-size: 24px;
-        }
-
-        .section-head p {
-            margin: 6px 0 0;
-            color: #687785;
-        }
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 14px;
-        }
-
-        .content-card,
-        .platform-card {
-            border: 1px solid #dce3e9;
-            border-radius: 8px;
-            background: #ffffff;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(27, 39, 51, 0.06);
-        }
-
-        .poster {
-            display: grid;
-            place-items: center;
-            width: 100%;
-            aspect-ratio: 2 / 3;
-            padding: 18px;
-            background: #dfe7ec;
-            color: #44515e;
-            text-align: center;
-            font-weight: 800;
-        }
-
-        .content-info,
-        .platform-card {
-            padding: 13px;
-        }
-
-        .content-info strong {
-            display: block;
-            color: #17202a;
-            line-height: 1.35;
-        }
-
-        .tag-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .tag {
-            padding: 4px 7px;
-            border-radius: 999px;
-            background: #e7edf1;
-            color: #4c5b68;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
-            gap: 18px;
-        }
-
-        .platform-list {
-            display: grid;
-            gap: 12px;
-        }
-
-        .platform-card {
-            display: grid;
-            grid-template-columns: 48px minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .platform-logo {
-            display: grid;
-            place-items: center;
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            color: #ffffff;
-            font-weight: 800;
-        }
-
-        .platform-main strong,
-        .platform-main span {
-            display: block;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .platform-main span {
-            margin-top: 4px;
-            color: #687785;
-            font-size: 13px;
-        }
-
-        .price {
-            color: #111820;
-            font-weight: 800;
-            text-align: right;
-        }
-
-        .timeline {
-            display: grid;
-            gap: 10px;
-            padding: 16px;
-            border: 1px solid #dce3e9;
-            border-radius: 8px;
-            background: #ffffff;
-        }
-
-        .timeline-item {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #edf1f4;
-        }
-
-        .timeline-item:last-child {
-            border-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .timeline-item strong {
-            color: #17202a;
-        }
-
-        .timeline-item span {
-            color: #687785;
-            font-size: 13px;
-        }
-
-        @media (max-width: 1549px) {
-            .nav-open {
-                position: fixed;
-                top: 16px;
-                left: 16px;
-                z-index: 13;
-                display: grid;
-                place-items: center;
-                width: 44px;
-                height: 44px;
-                border: 1px solid #c8d1da;
-                border-radius: 8px;
-                background: #ffffff;
-                color: #26323d;
-                font-size: 22px;
-                font-weight: 800;
-                cursor: pointer;
-                box-shadow: 0 10px 28px rgba(27, 39, 51, 0.14);
-            }
-
-            .sidebar {
-                width: min(280px, calc(100vw - 48px));
-                padding: 72px 18px 18px;
-                transform: translateX(-110%);
-                transition: transform 180ms ease;
-                z-index: 14;
-            }
-
-            .main {
-                width: min(1180px, calc(100% - 36px));
-                margin: 0 auto;
-            }
-
-            .nav-backdrop {
-                position: fixed;
-                inset: 0;
-                z-index: 12;
-                background: rgba(17, 24, 32, 0.34);
-                backdrop-filter: blur(4px);
-                cursor: pointer;
-            }
-
-            .nav-toggle:checked ~ .sidebar {
-                transform: translateX(0);
-            }
-
-            .nav-toggle:checked ~ .nav-backdrop {
-                display: block;
-            }
-
-            .nav-toggle:checked ~ .shell {
-                filter: blur(2px);
-            }
-
-            .profile-hero,
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-
-            .account-card {
-                min-width: 0;
-            }
-
-            .metrics {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 560px) {
-            .main {
-                width: min(100% - 20px, 1180px);
-                padding-top: 22px;
-            }
-
-            h1 {
-                font-size: 32px;
-            }
-
-            .metrics {
-                grid-template-columns: 1fr;
-            }
-        }
+        .brand { margin: 0 0 28px; color: #111820; font-size: 22px; font-weight: 800; }
+        .nav { display: grid; gap: 8px; }
+        .nav a { padding: 11px 12px; border-radius: 8px; color: #4c5b68; font-weight: 700; }
+        .nav a.active { background: #2f6f73; color: #fff; }
+        .nav .logout { margin-top: 12px; border: 1px solid #c8d1da; }
+        .main { width: min(1100px, calc(100% - 36px)); margin: 0 auto 0 260px; padding: 34px 0 54px; }
+        .hero { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 26px; }
+        .eyebrow { margin: 0 0 8px; color: #5e6d7a; font-size: 13px; font-weight: 800; text-transform: uppercase; }
+        h1 { margin: 0; color: #111820; font-size: 38px; }
+        .add-btn { padding: 12px 18px; border-radius: 8px; background: #2f6f73; color: #fff; font-weight: 800; white-space: nowrap; }
+        .add-btn:hover { background: #275c5f; }
+        .account { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #dce3e9; border-radius: 10px; background: #fff; margin-bottom: 22px; }
+        .avatar { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 8px; background: #26323d; color: #fff; font-size: 20px; font-weight: 800; }
+        .account span { color: #687785; font-size: 13px; }
+        .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 30px; }
+        .metric { padding: 18px; border: 1px solid #dce3e9; border-radius: 10px; background: #fff; }
+        .metric span { display: block; color: #687785; font-size: 13px; font-weight: 700; }
+        .metric strong { display: block; margin-top: 10px; color: #111820; font-size: 28px; }
+        .dashboard { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr); gap: 18px; }
+        h2 { margin: 0 0 14px; font-size: 22px; color: #111820; }
+        .sub-card { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 13px; border: 1px solid #dce3e9; border-radius: 10px; background: #fff; margin-bottom: 10px; }
+        .logo { width: 46px; height: 46px; border-radius: 8px; object-fit: contain; background: #f0f3f5; border: 1px solid #e7edf1; }
+        .logo-fallback { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 8px; background: #26323d; color: #fff; font-weight: 800; }
+        .sub-main strong { display: block; }
+        .sub-main span { color: #687785; font-size: 13px; }
+        .price { font-weight: 800; text-align: right; }
+        .price small { display: block; color: #93a0ab; font-weight: 600; }
+        .del { color: #c0392b; font-size: 18px; padding: 4px 8px; }
+        .empty { padding: 30px; border: 1px dashed #c8d1da; border-radius: 12px; background: #fff; text-align: center; color: #687785; }
+        .empty a { color: #2f6f73; font-weight: 700; }
+        .timeline { display: grid; gap: 10px; padding: 16px; border: 1px solid #dce3e9; border-radius: 10px; background: #fff; }
+        .tl-item { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #edf1f4; }
+        .tl-item:last-child { border-bottom: 0; padding-bottom: 0; }
+        .tl-item span { color: #687785; font-size: 13px; }
+        .toast { margin-bottom: 18px; padding: 12px 16px; border-radius: 8px; background: #e7f5ec; color: #1e6b3a; font-weight: 600; }
+        @media (max-width: 980px) { .sidebar { display: none; } .main { margin: 0 auto; } .metrics { grid-template-columns: 1fr; } .dashboard { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <input class="nav-toggle" id="navToggle" type="checkbox">
-    <label class="nav-open" for="navToggle" aria-label="메뉴 열기">☰</label>
     <aside class="sidebar">
         <p class="brand">WhatSub</p>
-        <nav class="nav" aria-label="프로필 메뉴">
-            <a class="active" href="/accounts/profile/">프로필</a>
+        <nav class="nav">
+            <a class="active" href="{% url 'accounts:profile' %}">프로필</a>
             <a href="/contents/movies/">영화</a>
             <a href="/contents/shows/">드라마</a>
-            <a class="login-link" href="/accounts/google/login/">로그인</a>
+            <a href="{% url 'accounts:onboarding' %}">구독 추가</a>
+            <a class="logout" href="{% url 'accounts:logout' %}">로그아웃</a>
         </nav>
     </aside>
-    <label class="nav-backdrop" for="navToggle" aria-label="메뉴 닫기"></label>
 
-    <div class="shell">
-        <main class="main">
-            <section class="profile-hero">
-                <div>
-                    <p class="eyebrow">Google Account Profile</p>
-                    <h1>내 구독과 컬렉션</h1>
-                </div>
-                <div class="account-card">
-                    <div class="avatar">{{ request.user.email|default:request.user.username|default:"U"|first|upper }}</div>
-                    <div>
-                        <strong>
-                            {% if request.user.is_authenticated %}
-                                {{ request.user.nickname|default:request.user.username }}
+    <main class="main">
+        {% if messages %}
+            {% for message in messages %}<div class="toast">{{ message }}</div>{% endfor %}
+        {% endif %}
+
+        <section class="hero">
+            <div>
+                <p class="eyebrow">My Subscriptions</p>
+                <h1>내 구독 대시보드</h1>
+            </div>
+            <a class="add-btn" href="{% url 'accounts:onboarding' %}">+ 구독 추가</a>
+        </section>
+
+        <div class="account">
+            <div class="avatar">{{ request.user.email|default:request.user.username|first|upper }}</div>
+            <div>
+                <strong>{{ request.user.nickname|default:request.user.username }}</strong>
+                <span>{{ request.user.email|default:"이메일 정보 없음" }}</span>
+            </div>
+        </div>
+
+        <section class="metrics">
+            <article class="metric"><span>활성 구독</span><strong>{{ subscription_count }}</strong></article>
+            <article class="metric"><span>구독 플랫폼</span><strong>{{ platform_count }}</strong></article>
+            <article class="metric"><span>월 예상 지출</span><strong>{{ monthly_total|intcomma }}원</strong></article>
+        </section>
+
+        <section class="dashboard">
+            <div>
+                <h2>구독중인 플랫폼</h2>
+                {% if subscriptions %}
+                    {% for sub in subscriptions %}
+                        <article class="sub-card">
+                            {% if sub.icon_url %}
+                                <img class="logo" src="{{ sub.icon_url }}" alt="{{ sub.platform.name }}">
                             {% else %}
-                                Google 계정 연결 예정
+                                <div class="logo-fallback">{{ sub.platform.name|first|upper }}</div>
                             {% endif %}
-                        </strong>
-                        <span>
-                            {% if request.user.is_authenticated %}
-                                {{ request.user.email|default:"이메일 정보 없음" }}
-                            {% else %}
-                                로그인 구현 전 프론트 미리보기
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="metrics" aria-label="프로필 요약">
-                <article class="metric">
-                    <span>내 컬렉션</span>
-                    <strong>18</strong>
-                </article>
-                <article class="metric">
-                    <span>좋아요</span>
-                    <strong>42</strong>
-                </article>
-                <article class="metric">
-                    <span>구독 플랫폼</span>
-                    <strong>4</strong>
-                </article>
-                <article class="metric">
-                    <span>월 예상 지출</span>
-                    <strong>45,400원</strong>
-                </article>
-            </section>
-
-            <section class="section">
-                <div class="section-head">
-                    <div>
-                        <h2>내 컬렉션</h2>
-                        <p>추가하거나 좋아요한 작품을 한 곳에서 확인합니다.</p>
-                    </div>
-                </div>
-                <div class="content-grid">
-                    <article class="content-card">
-                        <div class="poster">더 보이즈</div>
-                        <div class="content-info">
-                            <strong>더 보이즈</strong>
-                            <div class="tag-row">
-                                <span class="tag">컬렉션</span>
-                                <span class="tag">Prime Video</span>
+                            <div class="sub-main">
+                                <strong>{{ sub.platform.name }}</strong>
+                                <span>{{ sub.plan_name }} · 갱신 {{ sub.renewal_date|date:"m.d" }}</span>
                             </div>
-                        </div>
-                    </article>
-                    <article class="content-card">
-                        <div class="poster">악마는 프라다를 입는다</div>
-                        <div class="content-info">
-                            <strong>악마는 프라다를 입는다</strong>
-                            <div class="tag-row">
-                                <span class="tag">좋아요</span>
-                                <span class="tag">Disney+</span>
+                            <div class="price">
+                                {{ sub.payment_amount|intcomma }}원
+                                <small>{{ sub.get_billing_cycle_display }}</small>
                             </div>
-                        </div>
-                    </article>
-                    <article class="content-card">
-                        <div class="poster">프롬</div>
-                        <div class="content-info">
-                            <strong>프롬</strong>
-                            <div class="tag-row">
-                                <span class="tag">컬렉션</span>
-                                <span class="tag">시즌 추적</span>
-                            </div>
-                        </div>
-                    </article>
-                    <article class="content-card">
-                        <div class="poster">유포리아</div>
-                        <div class="content-info">
-                            <strong>유포리아</strong>
-                            <div class="tag-row">
-                                <span class="tag">좋아요</span>
-                                <span class="tag">HBO</span>
-                            </div>
-                        </div>
-                    </article>
-                </div>
-            </section>
-
-            <section class="section dashboard">
-                <div>
-                    <div class="section-head">
-                        <div>
-                            <h2>구독중인 플랫폼</h2>
-                            <p>현재 활성화된 구독과 다음 결제 정보를 요약합니다.</p>
-                        </div>
-                    </div>
-                    <div class="platform-list">
-                        <article class="platform-card">
-                            <div class="platform-logo" style="background:#01137c;">D</div>
-                            <div class="platform-main">
-                                <strong>Disney+</strong>
-                                <span>Premium · 다음 결제 06.15</span>
-                            </div>
-                            <div class="price">13,900원</div>
+                            <a class="del" href="{% url 'accounts:delete_subscription' sub.pk %}" title="삭제"
+                               onclick="return confirm('이 구독을 삭제할까요?');">×</a>
                         </article>
-                        <article class="platform-card">
-                            <div class="platform-logo" style="background:#00a8e1;">P</div>
-                            <div class="platform-main">
-                                <strong>Prime Video</strong>
-                                <span>Monthly · 다음 결제 06.21</span>
-                            </div>
-                            <div class="price">7,900원</div>
-                        </article>
-                        <article class="platform-card">
-                            <div class="platform-logo" style="background:#e50914;">N</div>
-                            <div class="platform-main">
-                                <strong>Netflix</strong>
-                                <span>Standard · 다음 결제 06.27</span>
-                            </div>
-                            <div class="price">13,500원</div>
-                        </article>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">
+                        아직 등록된 구독이 없습니다.<br>
+                        <a href="{% url 'accounts:onboarding' %}">구독을 추가</a>해 보세요.
                     </div>
-                </div>
+                {% endif %}
+            </div>
 
-                <aside>
-                    <div class="section-head">
-                        <div>
-                            <h2>결제 일정</h2>
-                            <p>다가오는 갱신일을 빠르게 확인합니다.</p>
-                        </div>
-                    </div>
+            <aside>
+                <h2>결제 일정</h2>
+                {% if timeline %}
                     <div class="timeline">
-                        <div class="timeline-item">
-                            <strong>Disney+</strong>
-                            <span>D-17</span>
-                        </div>
-                        <div class="timeline-item">
-                            <strong>Prime Video</strong>
-                            <span>D-23</span>
-                        </div>
-                        <div class="timeline-item">
-                            <strong>Netflix</strong>
-                            <span>D-29</span>
-                        </div>
+                        {% for item in timeline %}
+                            <div class="tl-item">
+                                <strong>{{ item.name }}</strong>
+                                <span>{% if item.days >= 0 %}D-{{ item.days }}{% else %}지남{% endif %}</span>
+                            </div>
+                        {% endfor %}
                     </div>
-                </aside>
-            </section>
-        </main>
-    </div>
+                {% else %}
+                    <div class="empty">예정된 결제가 없습니다.</div>
+                {% endif %}
+            </aside>
+        </section>
+    </main>
 </body>
 </html>

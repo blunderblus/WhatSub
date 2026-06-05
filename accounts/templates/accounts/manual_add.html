@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구독 직접 추가 · WhatSub</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: grid; place-items: start center;
+            background: #f5f7f9; color: #17202a; padding: 40px 0;
+            font-family: "Pretendard", "Segoe UI", system-ui, sans-serif;
+        }
+        .card {
+            width: min(560px, calc(100% - 32px)); padding: 32px;
+            border: 1px solid #dce3e9; border-radius: 14px; background: #fff;
+            box-shadow: 0 18px 48px rgba(27, 39, 51, 0.08);
+        }
+        h1 { margin: 0 0 4px; font-size: 26px; color: #111820; }
+        .sub { margin: 0 0 24px; color: #687785; font-size: 14px; }
+        label { display: block; margin: 14px 0 6px; font-size: 13px; font-weight: 700; color: #45525e; }
+        input, select, textarea {
+            width: 100%; min-height: 44px; padding: 8px 12px;
+            border: 1px solid #c8d1da; border-radius: 8px; font: inherit; background: #fff;
+        }
+        textarea { min-height: auto; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+        .checkbox input { width: auto; min-height: auto; }
+        .actions { display: flex; gap: 12px; margin-top: 26px; }
+        button { flex: 1; min-height: 46px; border: 0; border-radius: 8px; background: #2f6f73; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; }
+        button:hover { background: #275c5f; }
+        .cancel { flex: 1; display: grid; place-items: center; min-height: 46px; border: 1px solid #c8d1da; border-radius: 8px; color: #45525e; text-decoration: none; font-weight: 700; }
+        .field-errors { margin-top: 4px; color: #b3261e; font-size: 12px; }
+        .hint { margin-top: 6px; color: #93a0ab; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>구독 직접 추가</h1>
+        <p class="sub">플랜을 선택하면 금액·결제주기가 자동으로 채워집니다.</p>
+
+        <form method="post" action="{% url 'accounts:manual_add' %}">
+            {% csrf_token %}
+
+            <label for="{{ form.platform.id_for_label }}">플랫폼</label>
+            {{ form.platform }}
+            {% if form.platform.errors %}<div class="field-errors">{{ form.platform.errors|striptags }}</div>{% endif %}
+
+            <label for="{{ form.plan.id_for_label }}">플랜 (선택)</label>
+            {{ form.plan }}
+            <p class="hint">플랜을 고르면 아래 항목이 자동 입력됩니다. 비워두면 직접 입력하세요.</p>
+
+            <div class="row">
+                <div>
+                    <label for="{{ form.plan_name.id_for_label }}">플랜 이름</label>
+                    {{ form.plan_name }}
+                </div>
+                <div>
+                    <label for="{{ form.payment_amount.id_for_label }}">결제 금액 (원)</label>
+                    {{ form.payment_amount }}
+                    {% if form.payment_amount.errors %}<div class="field-errors">{{ form.payment_amount.errors|striptags }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="{{ form.billing_cycle.id_for_label }}">결제 주기</label>
+                    {{ form.billing_cycle }}
+                </div>
+                <div>
+                    <label for="{{ form.payment_method.id_for_label }}">결제 수단</label>
+                    {{ form.payment_method }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="{{ form.start_date.id_for_label }}">시작일</label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}<div class="field-errors">{{ form.start_date.errors|striptags }}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.renewal_date.id_for_label }}">갱신일</label>
+                    {{ form.renewal_date }}
+                    {% if form.renewal_date.errors %}<div class="field-errors">{{ form.renewal_date.errors|striptags }}</div>{% endif %}
+                </div>
+            </div>
+
+            <label for="{{ form.memo.id_for_label }}">메모 (선택)</label>
+            {{ form.memo }}
+
+            <div class="checkbox">
+                {{ form.auto_renew }}
+                <label for="{{ form.auto_renew.id_for_label }}" style="margin:0;">자동 갱신</label>
+            </div>
+
+            <div class="actions">
+                <a class="cancel" href="{% url 'accounts:profile' %}">취소</a>
+                <button type="submit">구독 추가</button>
+            </div>
+        </form>
+    </main>
+</body>
+</html>

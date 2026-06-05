@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.humanize',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -128,12 +129,20 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (platform/provider icons live under subscriptions/media)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'subscriptions' / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.User'
+
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/accounts/profile/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 SITE_ID = 1
 
@@ -159,8 +168,14 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# Send the user straight to Google on click (skip allauth's intermediate page),
+# and don't gate local signups behind email verification in development.
+SOCIALACCOUNT_LOGIN_ON_GET = True
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
+    'http://localhost:8000',
 ]
 
 ALLOWED_HOSTS = [
@@ -183,5 +198,19 @@ DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
 
 # 우리가 사용할 API 키들
-TMDB_API_KEY = env('TMDB_API_KEY')
-RAPIDAPI_KEY = env('RAPIDAPI_KEY')
+TMDB_API_KEY = env('TMDB_API_KEY', default='')
+WATCHMODE_API_KEY = env('WATCHMODE_API_KEY', default='')
+# RapidAPI streaming-availability key. Accept both spellings (RAPID_API_KEY / RAPIDAPI_KEY).
+RAPIDAPI_KEY = env('RAPID_API_KEY', default=env('RAPIDAPI_KEY', default=''))
+AI_API_KEY = env('AI_API_KEY', default='')
+
+# Google OAuth credentials (from Google Cloud Console). When present, configure
+# the allauth Google provider directly from settings so no DB SocialApp is needed.
+GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
+GOOGLE_CLIENT_SECRET = env('GOOGLE_CLIENT_SECRET', default='')
+if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+    SOCIALACCOUNT_PROVIDERS['google']['APP'] = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'secret': GOOGLE_CLIENT_SECRET,
+        'key': '',
+    }
