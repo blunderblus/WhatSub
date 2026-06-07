@@ -144,13 +144,13 @@ Platform
 
 - [x] 프로젝트 설계 및 데이터 모델 확정
 - [x] 플랫폼 요금제 시드 데이터 (Netflix, Disney+, TVING, Wavve, Watcha, Coupang Play, Apple TV+, Laftel, SPOTV)
-- [ ] Google OAuth 로그인
-- [ ] Gmail 구독 감지 파이프라인
-- [ ] TMDB 콘텐츠 검색
-- [ ] Watchmode 스트리밍 가용 조회 + 캐싱
-- [ ] 플랫폼 벤치마크 & 리더보드
+- [x] Google OAuth 로그인
+- [x] Gmail 구독 감지 파이프라인
+- [x] TMDB 콘텐츠 검색
+- [x] Watchmode 스트리밍 가용 조회 + 캐싱
+- [x] 플랫폼 벤치마크 & 리더보드
 - [ ] Personal Score
-- [ ] 구독 대시보드
+- [x] 구독 대시보드
 
 ---
 
