@@ -1,0 +1,5 @@
+# Vue / Node (when scaffolded)
+node_modules/
+dist/
+.vite/
+*.local

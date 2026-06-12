@@ -12,8 +12,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# backend/ is the Django app root; 10-pjt/ is the monorepo root (frontend, .env).
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BACKEND_DIR.parent
+BASE_DIR = BACKEND_DIR
 
 
 # Quick-start development settings - unsuitable for production
@@ -67,7 +69,7 @@ ROOT_URLCONF = 'whatsub.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [PROJECT_ROOT / 'frontend' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -129,7 +131,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',
+    PROJECT_ROOT / 'frontend' / 'static',
 ]
 
 # Media files (platform/provider icons live under subscriptions/media)
@@ -195,7 +197,7 @@ env = environ.Env(
 )
 
 # .env 파일을 읽어옵니다
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(PROJECT_ROOT / '.env')
 
 DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
