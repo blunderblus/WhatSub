@@ -3,11 +3,6 @@ from . import views
 
 app_name = 'contents'
 urlpatterns = [
-    path('search/', views.search_page, name='search'),
-    path('movies/', views.movie_list_page, name='movie_list'),
-    path('movies/<int:tmdb_id>/', views.movie_detail_page, name='movie_detail'),
-    path('shows/', views.show_list_page, name='show_list'),
-    path('shows/<int:tmdb_id>/', views.show_detail_page, name='show_detail'),
     path('genres/', views.tmdb_genres, name='tmdb_genres'),
     path('show_genres/', views.tmdb_show_genres, name='tmdb_show_genres'),
     path('movie_list/', views.tmdb_movie_list, name='tmdb_movie_list'),

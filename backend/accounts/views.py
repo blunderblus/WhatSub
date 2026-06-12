@@ -1,16 +1,18 @@
 from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView
-from django.shortcuts import redirect, render
+from django.middleware.csrf import get_token
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from subscriptions.models import UserSubscription
-from .forms import ManualSubscriptionForm, SignUpForm
+from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
+from subscriptions.serializers import UserSubscriptionSerializer
+from .forms import SignUpForm
 
-# Platform name -> local icon file under MEDIA_ROOT (subscriptions/media).
 _PLATFORM_LOGOS = {
     'netflix': 'Netflix_icon.png',
     'disney+': 'DisneyPlus_icon.png',
@@ -29,140 +31,203 @@ def _platform_icon(name):
     return f'{settings.MEDIA_URL}{filename}' if filename else ''
 
 
-class AppLoginView(LoginView):
-    template_name = 'accounts/login.html'
-    redirect_authenticated_user = True
+def _monthly_amount(subscription):
+    amount = subscription.payment_amount or 0
+    if subscription.billing_cycle == 'annual':
+        return round(amount / 12)
+    if subscription.billing_cycle == 'weekly':
+        return round(amount * 52 / 12)
+    return amount
 
 
+def _subscription_payload(subscription):
+    data = UserSubscriptionSerializer(subscription).data
+    data['icon_url'] = _platform_icon(subscription.platform.name)
+    data['billing_cycle_label'] = subscription.get_billing_cycle_display()
+    data['monthly_amount'] = _monthly_amount(subscription)
+    return data
+
+
+def _dashboard_payload(user):
+    today = timezone.now().date()
+    subscriptions = list(
+        UserSubscription.objects
+        .filter(user=user, is_active=True)
+        .select_related('platform', 'plan')
+        .order_by('renewal_date')
+    )
+    monthly_total = sum(_monthly_amount(sub) for sub in subscriptions)
+    platform_ids = {sub.platform_id for sub in subscriptions}
+    timeline = [
+        {
+            'name': sub.platform.name,
+            'date': sub.renewal_date,
+            'days': (sub.renewal_date - today).days if sub.renewal_date else None,
+        }
+        for sub in subscriptions
+        if sub.renewal_date
+    ]
+
+    return {
+        'subscription_count': len(subscriptions),
+        'monthly_total': monthly_total,
+        'platform_count': len(platform_ids),
+        'plan_count': SubscriptionPlan.objects.count(),
+        'next_payment': timeline[0] if timeline else None,
+        'timeline': sorted(timeline, key=lambda item: item['days']),
+        'subscriptions': [_subscription_payload(sub) for sub in subscriptions],
+    }
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def csrf_token(request):
+    return Response({'csrfToken': get_token(request)})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def me(request):
+    if not request.user.is_authenticated:
+        return Response({'isAuthenticated': False})
+
+    user = request.user
+    return Response({
+        'isAuthenticated': True,
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'nickname': user.nickname,
+            'email': user.email,
+            'profile_image': user.profile_image,
+        },
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def signup_view(request):
     if request.user.is_authenticated:
-        return redirect('accounts:profile')
+        return Response({'detail': 'Already authenticated'})
 
-    if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            # allauth adds extra auth backends, so login() needs an explicit one.
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            messages.success(request, '가입을 환영합니다! 구독을 추가해 보세요.')
-            return redirect('accounts:onboarding')
-    else:
-        form = SignUpForm()
+    form = SignUpForm(request.data)
+    if not form.is_valid():
+        return Response({'errors': form.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    return render(request, 'accounts/signup.html', {'form': form})
+    user = form.save()
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    return Response({'detail': 'Signed up successfully'})
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    username = request.data.get('username', '')
+    password = request.data.get('password', '')
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return Response(
+            {'detail': '아이디 또는 비밀번호가 올바르지 않습니다.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    login(request, user)
+    return Response({'detail': 'Logged in successfully'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def logout_view(request):
     logout(request)
-    return redirect('accounts:login')
+    return Response({'detail': 'Logged out successfully'})
 
 
-@login_required
-def onboarding(request):
-    """Entry point: choose manual add or Gmail scan."""
-    return render(request, 'accounts/onboarding.html')
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard(request):
+    return Response(_dashboard_payload(request.user))
 
 
-@login_required
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def manual_add(request):
-    if request.method == 'POST':
-        form = ManualSubscriptionForm(request.POST)
-        if form.is_valid():
-            subscription = form.save(commit=False)
-            subscription.user = request.user
-            subscription.save()
-            messages.success(request, f'{subscription.platform.name} 구독을 추가했습니다.')
-            return redirect('accounts:profile')
-    else:
-        form = ManualSubscriptionForm(initial={
-            'start_date': timezone.now().date(),
-            'payment_method': '',
-        })
+    data = request.data.copy()
+    platform_id = data.get('platform')
+    plan_id = data.get('plan') or None
 
-    return render(request, 'accounts/manual_add.html', {'form': form})
+    try:
+        platform = Platform.objects.get(pk=platform_id)
+    except Platform.DoesNotExist:
+        return Response({'platform': ['플랫폼을 선택해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    plan = None
+    if plan_id:
+        plan = SubscriptionPlan.objects.filter(pk=plan_id, platform=platform).first()
+        if plan is None:
+            return Response({'plan': ['선택한 플랫폼의 요금제가 아닙니다.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    start_date = data.get('start_date') or timezone.now().date().isoformat()
+    renewal_date = data.get('renewal_date') or start_date
+    plan_name = data.get('plan_name') or (plan.plan_name if plan else '미정')
+    billing_cycle = data.get('billing_cycle') or (plan.billing_period if plan else 'monthly')
+    payment_method = data.get('payment_method') or ''
+
+    try:
+        payment_amount = int(data.get('payment_amount') or (plan.price if plan else 0))
+    except (TypeError, ValueError):
+        payment_amount = 0
+    if payment_amount <= 0:
+        return Response({'payment_amount': ['결제 금액을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    subscription = UserSubscription.objects.create(
+        user=request.user,
+        platform=platform,
+        plan=plan,
+        plan_name=plan_name,
+        payment_amount=payment_amount,
+        billing_cycle=billing_cycle,
+        payment_method=payment_method,
+        start_date=start_date,
+        renewal_date=renewal_date,
+        auto_renew=bool(data.get('auto_renew', True)),
+        memo=data.get('memo') or '',
+    )
+    return Response(_subscription_payload(subscription), status=status.HTTP_201_CREATED)
 
 
-@login_required
-def gmail_scan(request):
-    """Render the Gmail-scan onboarding page (data fetched via detector AJAX)."""
-    return render(request, 'accounts/gmail_scan.html')
-
-
-@login_required
-@require_http_methods(['POST'])
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def save_from_gmail(request):
-    """Create a UserSubscription from a detected Gmail subscription record."""
-    from subscriptions.models import Platform
-
-    platform_name = (request.POST.get('platform') or '').strip()
-    plan_name = (request.POST.get('plan_name') or '').strip() or '미정'
-    amount = request.POST.get('payment_amount') or 0
+    platform_name = (request.data.get('platform') or '').strip()
+    plan_name = (request.data.get('plan_name') or '').strip() or '미정'
+    amount = request.data.get('payment_amount') or 0
     try:
         amount = int(float(amount))
     except (TypeError, ValueError):
         amount = 0
 
-    platform = Platform.objects.filter(name__iexact=platform_name).first()
-    if not platform:
-        platform = Platform.objects.create(name=platform_name or '기타')
-
+    platform, _ = Platform.objects.get_or_create(name__iexact=platform_name, defaults={
+        'name': platform_name or '기타',
+    })
     today = timezone.now().date()
-    UserSubscription.objects.create(
+    subscription = UserSubscription.objects.create(
         user=request.user,
         platform=platform,
         plan_name=plan_name,
         payment_amount=amount,
-        billing_cycle='monthly',
+        billing_cycle=request.data.get('billing_cycle') or 'monthly',
         payment_method='Gmail 감지',
-        start_date=today,
-        renewal_date=today,
+        start_date=request.data.get('start_date') or today,
+        renewal_date=request.data.get('renewal_date') or today,
         memo='Gmail 받은편지함에서 자동 감지됨',
     )
-    messages.success(request, f'{platform.name} 구독을 추가했습니다.')
-    return redirect('accounts:profile')
+    return Response(_subscription_payload(subscription), status=status.HTTP_201_CREATED)
 
 
-@login_required
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
 def delete_subscription(request, pk):
-    UserSubscription.objects.filter(pk=pk, user=request.user).delete()
-    return redirect('accounts:profile')
-
-
-@login_required
-def profile_page(request):
-    subscriptions = list(
-        UserSubscription.objects
-        .filter(user=request.user, is_active=True)
-        .select_related('platform', 'plan')
-        .order_by('renewal_date')
-    )
-
-    monthly_total = 0
-    platform_ids = set()
-    for sub in subscriptions:
-        sub.icon_url = _platform_icon(sub.platform.name)
-        platform_ids.add(sub.platform_id)
-        if sub.billing_cycle == 'annual':
-            monthly_total += round((sub.payment_amount or 0) / 12)
-        elif sub.billing_cycle == 'weekly':
-            monthly_total += round((sub.payment_amount or 0) * 52 / 12)
-        else:
-            monthly_total += sub.payment_amount or 0
-
-    today = timezone.now().date()
-    timeline = []
-    for sub in subscriptions:
-        if sub.renewal_date:
-            timeline.append({
-                'name': sub.platform.name,
-                'days': (sub.renewal_date - today).days,
-            })
-
-    context = {
-        'subscriptions': subscriptions,
-        'subscription_count': len(subscriptions),
-        'monthly_total': monthly_total,
-        'platform_count': len(platform_ids),
-        'timeline': sorted(timeline, key=lambda x: x['days']),
-    }
-    return render(request, 'accounts/profile.html', context)
+    deleted, _ = UserSubscription.objects.filter(pk=pk, user=request.user).delete()
+    if not deleted:
+        return Response({'detail': '구독을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+    return Response(status=status.HTTP_204_NO_CONTENT)

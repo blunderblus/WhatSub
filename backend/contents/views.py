@@ -1,9 +1,8 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 
 import requests
 from django.conf import settings
 from django.http import JsonResponse
-from django.shortcuts import render
 from django.utils import timezone
 
 from subscriptions.models import Platform
@@ -39,55 +38,7 @@ _PLATFORM_ICONS = {
     'spotvnow': ('SPOTV', 'SpotvNow_icon.png'),
 }
 
-# 1. 검색 화면 렌더링 뷰
-def search_page(request):
-    return render(request, 'contents/search_page.html')
-
-
-def movie_list_page(request):
-    return render(request, 'contents/movie_list.html', {
-        'media_type': 'movie',
-        'content_label': '영화',
-        'content_label_en': 'Movies',
-        'list_api_url': '/contents/movie_list/',
-        'genres_api_url': '/contents/genres/',
-        'detail_base_url': '/contents/movies/',
-    })
-
-
-def movie_detail_page(request, tmdb_id):
-    return render(request, 'contents/movie_detail.html', {
-        'tmdb_id': tmdb_id,
-        'media_type': 'movie',
-        'content_label': '영화',
-        'content_label_en': 'Movies',
-        'detail_api_url': f'/contents/movie_detail/{tmdb_id}/',
-        'list_url': '/contents/movies/',
-    })
-
-
-def show_list_page(request):
-    return render(request, 'contents/movie_list.html', {
-        'media_type': 'tv',
-        'content_label': '드라마',
-        'content_label_en': 'Shows',
-        'list_api_url': '/contents/show_list/',
-        'genres_api_url': '/contents/show_genres/',
-        'detail_base_url': '/contents/shows/',
-    })
-
-
-def show_detail_page(request, tmdb_id):
-    return render(request, 'contents/movie_detail.html', {
-        'tmdb_id': tmdb_id,
-        'media_type': 'tv',
-        'content_label': '드라마',
-        'content_label_en': 'Shows',
-        'detail_api_url': f'/contents/show_detail/{tmdb_id}/',
-        'list_url': '/contents/shows/',
-    })
-
-
+# TMDB genre APIs
 def tmdb_genres(request):
     return _tmdb_genres('movie')
 
@@ -151,7 +102,7 @@ def _tmdb_discover(request, media_type):
                 'release_date': item.get('release_date') or item.get('first_air_date') or '',
                 'rating': item.get('vote_average') or 0,
                 'poster_url': (
-                    f"https://image.tmdb.org/t/p/w300{item.get('poster_path')}"
+                    f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}"
                     if item.get('poster_path')
                     else None
                 ),
@@ -214,7 +165,7 @@ def _tmdb_content_detail(request, tmdb_id, media_type):
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except requests.exceptions.HTTPError as err:
         status_code = err.response.status_code if err.response is not None else 500
-        return JsonResponse({'error': f'TMDB API HTTP 에러: {err}'}, status=status_code)
+        return JsonResponse({'error': f'TMDB API HTTP 오류: {err}'}, status=status_code)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -311,7 +262,7 @@ def get_streaming_providers(tmdb_id, media_type, allow_watchmode=True, force_ref
 
     RapidAPI streaming-availability is the primary source. Watchmode is only
     queried (to fill KR gaps: TVING/Watcha/Wavve or missing titles) when
-    ``allow_watchmode`` is True — reserved for detail-page views so that
+    ``allow_watchmode`` is True ??reserved for detail-page views so that
     hovering across a list does not burn the Watchmode free-tier budget.
     """
     content, _ = Content.objects.get_or_create(
@@ -385,7 +336,7 @@ def _fetch_streaming_availability(tmdb_id, media_type):
     response.raise_for_status()
 
     data = response.json()
-    print("=== Streaming Availability 원본 JSON ===")
+    print("=== Streaming Availability original JSON ===")
     print(data, flush=True)
     return data
 
@@ -462,7 +413,7 @@ def _find_image_url(value):
                 return found
     return None
 
-# 2. 영화/TV 검색 API (TMDB)
+# TMDB movie/show search API
 def tmdb_search(request):
     query = request.GET.get('query')
     if not query:
@@ -495,14 +446,14 @@ def tmdb_search(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-# 3. 스트리밍 정보 및 만료일 API (RapidAPI)
+# Streaming availability API
 def api_streaming_info(request):
     tmdb_id = request.GET.get('tmdb_id')
-    # TMDB에서 넘어오는 'movie' 또는 'tv' 
+    # media_type is either "movie" or "tv" from TMDB.
     media_type = request.GET.get('media_type')
     
     if not tmdb_id or not media_type:
-        return JsonResponse({'error': '파라미터 누락'}, status=400)
+        return JsonResponse({'error': '필수 파라미터가 없습니다.'}, status=400)
 
     try:
         # List-grid hover: RapidAPI only (cheap). Watchmode enrichment is
@@ -512,4 +463,4 @@ def api_streaming_info(request):
         }
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
-        return JsonResponse({'error': f"서버 에러: {str(e)}"}, status=500)
+        return JsonResponse({'error': f"서버 오류: {str(e)}"}, status=500)

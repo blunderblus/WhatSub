@@ -53,7 +53,8 @@
 ├── frontend/          # UI (Django 템플릿 → Vue SPA 이전 예정)
 │   ├── templates/     # HTML 템플릿
 │   ├── static/        # 이미지·파비콘
-│   └── vue/           # 향후 Vite + Vue 3 SPA
+│   ├── public/        # Vue 정적 파일
+│   └── src/           # Vue 3 SPA 소스
 ├── .env               # 환경 변수 (프로젝트 루트)
 ├── SETUP.md           # 상세 설치 가이드
 └── PROJECT_CONTEXT.md # 기능·아키텍처 상세 문서

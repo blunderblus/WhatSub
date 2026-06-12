@@ -19,17 +19,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
-from . import views
-
 urlpatterns = [
-    path('', views.index, name='index'),
     path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls')),
+    path('api/accounts/', include('accounts.urls')),
     path('accounts/', include('allauth.urls')),
-    path('detector/', include('detector.urls')),
-    path('contents/', include('contents.urls')),
-    # path('notifications/', include('notifications.urls')),
-    path('subscriptions/', include('subscriptions.urls')),
+    path('api/detector/', include('detector.urls')),
+    path('api/contents/', include('contents.urls')),
+    path('api/subscriptions/', include('subscriptions.urls')),
 ]
 
 if settings.DEBUG:

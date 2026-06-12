@@ -1,26 +1,29 @@
 # WhatSub Frontend
 
-Django 템플릿 기반 UI와 향후 Vue SPA가 분리된 프론트엔드 영역입니다.
+Vue 3 + Vite SPA입니다. 이 폴더에서 바로 npm 명령을 실행합니다.
+
+```bash
+cd ~/Desktop/Coding/WhatSub/frontend
+npm i
+npm run dev
+```
 
 ## 구조
 
-```
+```text
 frontend/
-├── templates/     # Django가 렌더링하는 HTML (전환기)
-│   ├── index.html
-│   ├── accounts/  # 로그인, 온보딩, 프로필
-│   └── contents/  # 콘텐츠 탐색 (일부 Vue CDN 사용)
-├── static/        # 이미지, 파비콘 등 정적 자산
-└── vue/           # 향후 Vite + Vue 3 SPA (미구현)
+  public/img/
+  src/
+    api/         # fetch/CSRF 공통 처리
+    components/  # 재사용 컴포넌트
+    router/      # Vue Router
+    stores/      # Pinia
+    views/       # 페이지 화면
+    App.vue
+    main.js
+    styles.css
 ```
 
-## 현재 상태
+Django는 화면을 렌더링하지 않고 `/api/...` JSON API와 OAuth 콜백만 담당합니다.
 
-- **운영 중**: `templates/` + `static/` — Django `runserver`가 직접 서빙
-- **예정**: `vue/` — API 전용 백엔드와 분리된 SPA로 점진 이전
-
-## 개발 시 참고
-
-- Django 템플릿 경로: `backend/whatsub/settings.py` → `frontend/templates`
-- 정적 파일 경로: `frontend/static` (`{% static 'img/...' %}`)
-- 콘텐츠 목록·상세(`movie_list.html`, `movie_detail.html`)는 Vue 3 CDN을 사용합니다. SPA 이전 시 `vue/`로 로직을 옮기면 됩니다.
+협업 규칙상 `npm audit fix`는 실행하지 않습니다.
