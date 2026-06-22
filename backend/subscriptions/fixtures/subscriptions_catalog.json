@@ -1,0 +1,1287 @@
+[
+{
+  "model": "subscriptions.category",
+  "pk": 1,
+  "fields": {
+    "name": "스트리밍"
+  }
+},
+{
+  "model": "subscriptions.category",
+  "pk": 2,
+  "fields": {
+    "name": "쇼핑/멤버십"
+  }
+},
+{
+  "model": "subscriptions.category",
+  "pk": 3,
+  "fields": {
+    "name": "음악"
+  }
+},
+{
+  "model": "subscriptions.category",
+  "pk": 4,
+  "fields": {
+    "name": "게임/기타"
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 1,
+  "fields": {
+    "category": 1,
+    "name": "Netflix",
+    "logo_url": "",
+    "website_url": "https://www.netflix.com",
+    "country": "GLOBAL",
+    "tmdb_provider_id": 8,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 2,
+  "fields": {
+    "category": 1,
+    "name": "Disney+",
+    "logo_url": "",
+    "website_url": "https://www.disneyplus.com",
+    "country": "GLOBAL",
+    "tmdb_provider_id": 337,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 3,
+  "fields": {
+    "category": 1,
+    "name": "Apple TV+",
+    "logo_url": "",
+    "website_url": "https://tv.apple.com",
+    "country": "GLOBAL",
+    "tmdb_provider_id": 350,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 4,
+  "fields": {
+    "category": 1,
+    "name": "TVING",
+    "logo_url": "",
+    "website_url": "https://www.tving.com",
+    "country": "KR",
+    "tmdb_provider_id": 200,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 5,
+  "fields": {
+    "category": 1,
+    "name": "Wavve",
+    "logo_url": "",
+    "website_url": "https://www.wavve.com",
+    "country": "KR",
+    "tmdb_provider_id": 356,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 6,
+  "fields": {
+    "category": 1,
+    "name": "Watcha",
+    "logo_url": "",
+    "website_url": "https://watcha.com",
+    "country": "KR",
+    "tmdb_provider_id": 97,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 7,
+  "fields": {
+    "category": 1,
+    "name": "Coupang Play",
+    "logo_url": "",
+    "website_url": "https://www.coupangplay.com",
+    "country": "KR",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 8,
+  "fields": {
+    "category": 2,
+    "name": "Coupang",
+    "logo_url": "",
+    "website_url": "https://www.coupang.com",
+    "country": "KR",
+    "tmdb_provider_id": null,
+    "description": "Coupang WOW membership host"
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 9,
+  "fields": {
+    "category": 1,
+    "name": "Amazon Prime Video",
+    "logo_url": "",
+    "website_url": "https://www.primevideo.com",
+    "country": "GLOBAL",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 10,
+  "fields": {
+    "category": 1,
+    "name": "SPOTV",
+    "logo_url": "",
+    "website_url": "https://www.spotvnow.co.kr",
+    "country": "KR",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 11,
+  "fields": {
+    "category": 1,
+    "name": "Laftel",
+    "logo_url": "",
+    "website_url": "https://laftel.net",
+    "country": "KR",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 12,
+  "fields": {
+    "category": 1,
+    "name": "Apple One",
+    "logo_url": "",
+    "website_url": "https://www.apple.com/apple-one",
+    "country": "GLOBAL",
+    "tmdb_provider_id": null,
+    "description": "Apple bundle: TV+, Music, Arcade, iCloud+"
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 13,
+  "fields": {
+    "category": 3,
+    "name": "Apple Music",
+    "logo_url": "",
+    "website_url": "https://music.apple.com",
+    "country": "GLOBAL",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 14,
+  "fields": {
+    "category": 4,
+    "name": "Apple Arcade",
+    "logo_url": "",
+    "website_url": "https://www.apple.com/apple-arcade",
+    "country": "GLOBAL",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 15,
+  "fields": {
+    "category": 2,
+    "name": "iCloud+",
+    "logo_url": "",
+    "website_url": "https://www.apple.com/icloud",
+    "country": "GLOBAL",
+    "tmdb_provider_id": null,
+    "description": ""
+  }
+},
+{
+  "model": "subscriptions.platform",
+  "pk": 16,
+  "fields": {
+    "category": 1,
+    "name": "OTT 번들",
+    "logo_url": "",
+    "website_url": "",
+    "country": "KR",
+    "tmdb_provider_id": null,
+    "description": "Cross-platform OTT bundle virtual platform"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 1,
+  "fields": {
+    "platform": 8,
+    "plan_name": "와우 멤버십",
+    "price": 7890,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "HD",
+    "has_download": false,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 2,
+  "fields": {
+    "platform": 1,
+    "plan_name": "광고형 스탠다드",
+    "price": 5500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": false,
+    "has_ads": true,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 3,
+  "fields": {
+    "platform": 1,
+    "plan_name": "스탠다드",
+    "price": 13500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 4,
+  "fields": {
+    "platform": 1,
+    "plan_name": "프리미엄",
+    "price": 17000,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 5,
+  "fields": {
+    "platform": 2,
+    "plan_name": "스탠다드",
+    "price": 9900,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 6,
+  "fields": {
+    "platform": 2,
+    "plan_name": "프리미엄",
+    "price": 13900,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 7,
+  "fields": {
+    "platform": 3,
+    "plan_name": "단독",
+    "price": 6500,
+    "billing_period": "monthly",
+    "max_streams": 6,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "free_trial_days=7"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 8,
+  "fields": {
+    "platform": 4,
+    "plan_name": "광고형 스탠다드",
+    "price": 5500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": true,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=6300, download_limit=15, google_cast=False, affiliate_T우주=4500, affiliate_유독=4950, affiliate_롯데카드=4400"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 9,
+  "fields": {
+    "platform": 4,
+    "plan_name": "베이직",
+    "price": 9500,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "HD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=10900, download_limit=200, google_cast=True, affiliate_유독=9025"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 10,
+  "fields": {
+    "platform": 4,
+    "plan_name": "스탠다드",
+    "price": 13500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=15500, download_limit=300, google_cast=True, pip=True, affiliate_T우주=12500, affiliate_유독=12825, affiliate_롯데카드=11000"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 11,
+  "fields": {
+    "platform": 4,
+    "plan_name": "프리미엄",
+    "price": 17000,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=19500, download_limit=400, google_cast=True, pip=True, includes_apple_tv_plus=True, affiliate_T우주=16000, affiliate_유독=16150, affiliate_롯데카드=14000"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 12,
+  "fields": {
+    "platform": 5,
+    "plan_name": "베이직",
+    "price": 7900,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "HD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=9000, supported_devices=mobile,PC"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 13,
+  "fields": {
+    "platform": 5,
+    "plan_name": "스탠다드",
+    "price": 10900,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=12500, supported_devices=mobile,PC,TV"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 14,
+  "fields": {
+    "platform": 5,
+    "plan_name": "프리미엄",
+    "price": 13900,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=16000, supported_devices=mobile,PC,TV"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 15,
+  "fields": {
+    "platform": 6,
+    "plan_name": "베이직",
+    "price": 7900,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=5, supported_devices=mobile,PC,smart_TV,Android_TV,Apple_TV,Chromecast"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 16,
+  "fields": {
+    "platform": 6,
+    "plan_name": "프리미엄",
+    "price": 12900,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=100, supported_devices=mobile,PC,smart_TV,Android_TV,Apple_TV,Chromecast"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 17,
+  "fields": {
+    "platform": 7,
+    "plan_name": "일반",
+    "price": 0,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "FHD",
+    "has_download": false,
+    "has_ads": true,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "content_access=limited"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 18,
+  "fields": {
+    "platform": 7,
+    "plan_name": "와우",
+    "price": 7890,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": 1,
+    "is_bundle": false,
+    "notes": "content_access=full_excluding_purchases_and_passes"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 19,
+  "fields": {
+    "platform": 9,
+    "plan_name": "기본",
+    "price": 8700,
+    "billing_period": "monthly",
+    "max_streams": 3,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "USD_PRICE=6"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 20,
+  "fields": {
+    "platform": 10,
+    "plan_name": "베이직",
+    "price": 9900,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "HD",
+    "has_download": false,
+    "has_ads": true,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "supported_devices=mobile,PC"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 21,
+  "fields": {
+    "platform": 10,
+    "plan_name": "프리미엄",
+    "price": 19900,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "FHD",
+    "has_download": false,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "supported_devices=mobile,PC,smart_TV"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 22,
+  "fields": {
+    "platform": 11,
+    "plan_name": "베이직",
+    "price": 9900,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "FHD",
+    "has_download": false,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=11650"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 23,
+  "fields": {
+    "platform": 11,
+    "plan_name": "프리미엄",
+    "price": 14900,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": false,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=17530"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 24,
+  "fields": {
+    "platform": 5,
+    "plan_name": "광고형 스탠다드",
+    "price": 5500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": false,
+    "has_ads": true,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "app_price=6300, supported_devices=mobile,PC,TV"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 25,
+  "fields": {
+    "platform": 12,
+    "plan_name": "개인",
+    "price": 14900,
+    "billing_period": "monthly",
+    "max_streams": 1,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "included: Apple TV+, Apple Music, Apple Arcade, iCloud+ 50GB"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 26,
+  "fields": {
+    "platform": 12,
+    "plan_name": "가족",
+    "price": 20900,
+    "billing_period": "monthly",
+    "max_streams": 5,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "included: Apple TV+, Apple Music, Apple Arcade, iCloud+ 200GB, family_sharing=True"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 27,
+  "fields": {
+    "platform": 16,
+    "plan_name": "TVING×Wavve 광고형 스탠다드",
+    "price": 7000,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": true,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "affiliate_T우주=6500"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 28,
+  "fields": {
+    "platform": 16,
+    "plan_name": "TVING×Wavve 슬림",
+    "price": 9500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "HD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 29,
+  "fields": {
+    "platform": 16,
+    "plan_name": "TVING×Wavve 베이직",
+    "price": 13500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "HD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": ""
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 30,
+  "fields": {
+    "platform": 16,
+    "plan_name": "TVING×Wavve 스탠다드",
+    "price": 15000,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "affiliate_T우주=13900"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 31,
+  "fields": {
+    "platform": 16,
+    "plan_name": "TVING×Wavve 프리미엄",
+    "price": 19500,
+    "billing_period": "monthly",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "affiliate_T우주=17900"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 32,
+  "fields": {
+    "platform": 16,
+    "plan_name": "Disney+×TVING×Wavve 3PACK",
+    "price": 21500,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "Disney+ 스탠다드(FHD,2streams)+TVING 스탠다드(FHD,2streams)+Wavve 스탠다드(FHD,2streams)"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 33,
+  "fields": {
+    "platform": 16,
+    "plan_name": "Disney+×TVING 더블",
+    "price": 18000,
+    "billing_period": "monthly",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": true,
+    "notes": "Disney+ 스탠다드(FHD,2streams)+TVING 스탠다드(FHD,2streams)"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 34,
+  "fields": {
+    "platform": 4,
+    "plan_name": "베이직",
+    "price": 95000,
+    "billing_period": "annual",
+    "max_streams": 1,
+    "max_quality": "HD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=200, google_cast=True"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 35,
+  "fields": {
+    "platform": 4,
+    "plan_name": "스탠다드",
+    "price": 135000,
+    "billing_period": "annual",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=300, google_cast=True, pip=True"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 36,
+  "fields": {
+    "platform": 4,
+    "plan_name": "프리미엄",
+    "price": 169000,
+    "billing_period": "annual",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=400, google_cast=True, pip=True, includes_apple_tv_plus=True"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 37,
+  "fields": {
+    "platform": 5,
+    "plan_name": "베이직",
+    "price": 79000,
+    "billing_period": "annual",
+    "max_streams": 1,
+    "max_quality": "HD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "supported_devices=mobile,PC"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 38,
+  "fields": {
+    "platform": 5,
+    "plan_name": "스탠다드",
+    "price": 109000,
+    "billing_period": "annual",
+    "max_streams": 2,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "supported_devices=mobile,PC,TV"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 39,
+  "fields": {
+    "platform": 5,
+    "plan_name": "프리미엄",
+    "price": 139000,
+    "billing_period": "annual",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "supported_devices=mobile,PC,TV"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 40,
+  "fields": {
+    "platform": 6,
+    "plan_name": "베이직",
+    "price": 79900,
+    "billing_period": "annual",
+    "max_streams": 1,
+    "max_quality": "FHD",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=5"
+  }
+},
+{
+  "model": "subscriptions.subscriptionplan",
+  "pk": 41,
+  "fields": {
+    "platform": 6,
+    "plan_name": "프리미엄",
+    "price": 129900,
+    "billing_period": "annual",
+    "max_streams": 4,
+    "max_quality": "4K",
+    "has_download": true,
+    "has_ads": false,
+    "requires_membership": null,
+    "is_bundle": false,
+    "notes": "download_limit=100"
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 1,
+  "fields": {
+    "plan": 25,
+    "included_platform": 3
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 2,
+  "fields": {
+    "plan": 25,
+    "included_platform": 13
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 3,
+  "fields": {
+    "plan": 25,
+    "included_platform": 14
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 4,
+  "fields": {
+    "plan": 25,
+    "included_platform": 15
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 5,
+  "fields": {
+    "plan": 26,
+    "included_platform": 3
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 6,
+  "fields": {
+    "plan": 26,
+    "included_platform": 13
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 7,
+  "fields": {
+    "plan": 26,
+    "included_platform": 14
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 8,
+  "fields": {
+    "plan": 26,
+    "included_platform": 15
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 9,
+  "fields": {
+    "plan": 27,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 10,
+  "fields": {
+    "plan": 27,
+    "included_platform": 5
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 11,
+  "fields": {
+    "plan": 28,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 12,
+  "fields": {
+    "plan": 28,
+    "included_platform": 5
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 13,
+  "fields": {
+    "plan": 29,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 14,
+  "fields": {
+    "plan": 29,
+    "included_platform": 5
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 15,
+  "fields": {
+    "plan": 30,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 16,
+  "fields": {
+    "plan": 30,
+    "included_platform": 5
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 17,
+  "fields": {
+    "plan": 31,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 18,
+  "fields": {
+    "plan": 31,
+    "included_platform": 5
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 19,
+  "fields": {
+    "plan": 32,
+    "included_platform": 2
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 20,
+  "fields": {
+    "plan": 32,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 21,
+  "fields": {
+    "plan": 32,
+    "included_platform": 5
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 22,
+  "fields": {
+    "plan": 33,
+    "included_platform": 2
+  }
+},
+{
+  "model": "subscriptions.bundlecontent",
+  "pk": 23,
+  "fields": {
+    "plan": 33,
+    "included_platform": 4
+  }
+},
+{
+  "model": "subscriptions.addonpass",
+  "pk": 1,
+  "fields": {
+    "platform": 7,
+    "pass_name": "스포츠 패스"
+  }
+},
+{
+  "model": "subscriptions.addonpass",
+  "pk": 2,
+  "fields": {
+    "platform": 7,
+    "pass_name": "J PLUS 패스"
+  }
+},
+{
+  "model": "subscriptions.addonpass",
+  "pk": 3,
+  "fields": {
+    "platform": 7,
+    "pass_name": "파라마운트+ 패스"
+  }
+},
+{
+  "model": "subscriptions.addonpass",
+  "pk": 4,
+  "fields": {
+    "platform": 7,
+    "pass_name": "MOA 패스"
+  }
+},
+{
+  "model": "subscriptions.addonpass",
+  "pk": 5,
+  "fields": {
+    "platform": 7,
+    "pass_name": "EBS 패스"
+  }
+},
+{
+  "model": "subscriptions.addonpass",
+  "pk": 6,
+  "fields": {
+    "platform": 7,
+    "pass_name": "소니 픽처스 패스"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 1,
+  "fields": {
+    "addon_pass": 1,
+    "base_plan": 17,
+    "price": 16600,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 2,
+  "fields": {
+    "addon_pass": 1,
+    "base_plan": 18,
+    "price": 9900,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 3,
+  "fields": {
+    "addon_pass": 2,
+    "base_plan": 17,
+    "price": 6900,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 4,
+  "fields": {
+    "addon_pass": 2,
+    "base_plan": 18,
+    "price": 5500,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 5,
+  "fields": {
+    "addon_pass": 3,
+    "base_plan": 17,
+    "price": 4900,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 6,
+  "fields": {
+    "addon_pass": 3,
+    "base_plan": 18,
+    "price": 3300,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 7,
+  "fields": {
+    "addon_pass": 4,
+    "base_plan": 17,
+    "price": 6900,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 8,
+  "fields": {
+    "addon_pass": 4,
+    "base_plan": 18,
+    "price": 5500,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 9,
+  "fields": {
+    "addon_pass": 5,
+    "base_plan": 17,
+    "price": 5900,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 10,
+  "fields": {
+    "addon_pass": 5,
+    "base_plan": 18,
+    "price": 4900,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 11,
+  "fields": {
+    "addon_pass": 6,
+    "base_plan": 17,
+    "price": 4300,
+    "billing_period": "monthly"
+  }
+},
+{
+  "model": "subscriptions.addonpasspricing",
+  "pk": 12,
+  "fields": {
+    "addon_pass": 6,
+    "base_plan": 18,
+    "price": 2900,
+    "billing_period": "monthly"
+  }
+}
+]

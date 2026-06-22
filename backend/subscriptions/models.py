@@ -150,3 +150,27 @@ class UserSubscription(models.Model):
 
     def __str__(self):
         return f'{self.user} - {self.plan_name}'
+
+
+class CustomPlatformSubmission(models.Model):
+    """User-reported subscription platforms not yet in our official catalog."""
+    class Source(models.TextChoices):
+        GMAIL_ONBOARDING = 'gmail_onboarding', 'Gmail onboarding'
+        MANUAL_ONBOARDING = 'manual_onboarding', 'Manual onboarding'
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='custom_platform_submissions',
+    )
+    platform_name = models.CharField(max_length=100)
+    plan_name = models.CharField(max_length=100, blank=True, default='')
+    payment_amount = models.PositiveIntegerField()
+    billing_cycle = models.CharField(max_length=10, choices=BillingPeriod.choices)
+    renewal_date = models.DateField(null=True, blank=True)
+    memo = models.TextField(blank=True, default='')
+    source = models.CharField(
+        max_length=30, choices=Source.choices, default=Source.GMAIL_ONBOARDING,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.platform_name} ({self.user})'

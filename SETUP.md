@@ -29,7 +29,7 @@ source venv/Scripts/activate
 ## 3. 패키지 설치
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ## 4. `.env` 파일 만들기
@@ -49,13 +49,14 @@ GOOGLE_CLIENT_SECRET=''
 
 주의: `.env`는 커밋하지 않습니다.
 
-Google 로그인 테스트 전에 `whatsub/urls.py`에서 위 라우팅이 활성화되어 있는지 확인합니다.
+Google 로그인 테스트 전에 `backend/whatsub/urls.py`에서 위 라우팅이 활성화되어 있는지 확인합니다.
 
 ## 6. 데이터베이스 생성
 
 SQLite DB는 clone 시 없을 수 있으므로 마이그레이션을 실행합니다.
 
 ```bash
+cd backend
 python manage.py makemigrations
 python manage.py migrate
 ```
@@ -69,6 +70,7 @@ python manage.py loaddata subscriptions/fixtures/platform_seed.json
 ## 7. 서버 실행
 
 ```bash
+cd backend
 python manage.py runserver
 ```
 
@@ -92,6 +94,7 @@ http://127.0.0.1:8000/
 ## 8. 실행 전 체크
 
 ```bash
+cd backend
 python manage.py check
 ```
 

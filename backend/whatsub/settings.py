@@ -12,8 +12,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# backend/ is the Django app root; 10-pjt/ is the monorepo root (frontend, .env).
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BACKEND_DIR.parent
+BASE_DIR = BACKEND_DIR
 
 
 # Quick-start development settings - unsuitable for production
@@ -32,6 +34,8 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.sites',
+
+    'rest_framework',
 
     'allauth',
     'allauth.account',
@@ -67,7 +71,7 @@ ROOT_URLCONF = 'whatsub.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [PROJECT_ROOT / 'frontend' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -129,7 +133,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',
+    PROJECT_ROOT / 'frontend' / 'static',
 ]
 
 # Media files (platform/provider icons live under subscriptions/media)
@@ -195,7 +199,7 @@ env = environ.Env(
 )
 
 # .env 파일을 읽어옵니다
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(PROJECT_ROOT / '.env')
 
 DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
@@ -206,6 +210,25 @@ WATCHMODE_API_KEY = env('WATCHMODE_API_KEY', default='')
 # RapidAPI streaming-availability key. Accept both spellings (RAPID_API_KEY / RAPIDAPI_KEY).
 RAPIDAPI_KEY = env('RAPID_API_KEY', default=env('RAPIDAPI_KEY', default=''))
 AI_API_KEY = env('AI_API_KEY', default='')
+AI_API_BASE = env('AI_API_BASE', default='https://gms.ssafy.io/gmsapi/api.openai.com/v1')
+AI_MODEL = env('AI_MODEL', default='gpt-4o-mini')
+GMAIL_PIPELINE_LOG = env.bool('GMAIL_PIPELINE_LOG', default=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'detector.gmail': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 # Google OAuth credentials (from Google Cloud Console). When present, configure
 # the allauth Google provider directly from settings so no DB SocialApp is needed.

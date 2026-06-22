@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail 구독 찾기 · WhatSub</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f5f7f9; color: #17202a; font-family: "Pretendard", "Segoe UI", system-ui, sans-serif; }
+        .wrap { width: min(860px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 80px; }
+        .back { color: #2f6f73; font-weight: 700; text-decoration: none; }
+        h1 { margin: 8px 0; font-size: 30px; }
+        .lead { color: #687785; margin-bottom: 20px; }
+        .panel { padding: 16px 18px; border: 1px solid #dce3e9; border-radius: 12px; background: #fff; margin-bottom: 16px; }
+        .scan-meta { font-size: 14px; color: #45525e; line-height: 1.6; }
+        .scan-meta strong { color: #111820; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; align-items: center; }
+        .btn { padding: 10px 16px; border: 0; border-radius: 8px; background: #2f6f73; color: #fff; font-weight: 700; cursor: pointer; font: inherit; }
+        .btn:hover { background: #275c5f; }
+        .btn.secondary { background: #fff; color: #2f6f73; border: 1px solid #c8d1da; }
+        .btn.secondary:hover { border-color: #2f6f73; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .item {
+            display: grid; grid-template-columns: minmax(0,1fr) auto auto auto;
+            gap: 10px; align-items: center; padding: 14px;
+            border: 1px solid #dce3e9; border-radius: 12px; background: #fff; margin-bottom: 10px;
+        }
+        .item input, .item select { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #c8d1da; border-radius: 8px; font: inherit; }
+        .item-title { font-weight: 800; font-size: 15px; }
+        .item-sub { font-size: 12px; color: #8a97a2; margin-top: 4px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; margin-left: 6px; }
+        .badge.ai { background: #e7f1f1; color: #2f6f73; }
+        .badge.custom { background: #fff3e0; color: #b45309; }
+        .badge.official { background: #e8f5e9; color: #2e7d32; }
+        .icon-btn { width: 38px; height: 38px; border: 1px solid #dce3e9; border-radius: 8px; background: #fff; cursor: pointer; font-size: 18px; color: #c0392b; }
+        .icon-btn:hover { background: #fdecea; }
+        .add-card {
+            display: flex; align-items: center; justify-content: center; min-height: 72px;
+            border: 2px dashed #b8c4ce; border-radius: 12px; background: #fafbfc;
+            color: #687785; font-size: 28px; cursor: pointer; margin-bottom: 10px;
+        }
+        .add-card:hover { border-color: #2f6f73; color: #2f6f73; background: #f0f7f7; }
+        .footer { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .spinner { display: inline-block; width: 16px; height: 16px; margin-right: 8px; border: 2px solid #c8d1da; border-top-color: #2f6f73; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal-bg { position: fixed; inset: 0; background: rgba(17,24,32,0.45); z-index: 100; display: none; place-items: center; padding: 20px; }
+        .modal-bg.open { display: grid; }
+        .modal { width: min(480px,100%); max-height: 90vh; overflow: auto; background: #fff; border-radius: 14px; padding: 24px; }
+        .modal h3 { margin: 0 0 16px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { padding: 8px 12px; border: 1px solid #dce3e9; border-radius: 8px; background: #fff; cursor: pointer; font: inherit; }
+        .tab.active { background: #2f6f73; color: #fff; border-color: #2f6f73; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; color: #45525e; }
+        .field input, .field select { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #c8d1da; border-radius: 8px; font: inherit; }
+        .search-results { max-height: 160px; overflow: auto; border: 1px solid #dce3e9; border-radius: 8px; }
+        .search-results button { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; border-bottom: 1px solid #edf1f4; background: #fff; cursor: pointer; font: inherit; }
+        .search-results button:hover { background: #f5f7f9; }
+        .hidden { display: none !important; }
+        @media (max-width: 720px) {
+            .item { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <a class="back" href="{% url 'accounts:onboarding' %}">← 뒤로</a>
+        <p style="margin:0;color:#5e6d7a;font-size:13px;font-weight:800;">Gmail Onboarding</p>
+        <h1>구독 확인 및 추가</h1>
+        <p class="lead">AI가 찾은 구독을 확인하고, 빠진 항목은 직접 추가하세요.</p>
+
+        <div id="status" class="panel"><span class="spinner"></span>받은편지함을 분석하고 있어요…</div>
+        <div id="scanMeta" class="panel scan-meta hidden"></div>
+
+        <div class="toolbar">
+            <button type="button" id="btnScanOlder" class="btn secondary hidden">이전 메일 더 불러오기</button>
+            <button type="button" id="btnUndo" class="btn secondary" disabled>삭제 되돌리기</button>
+        </div>
+
+        <div id="itemList"></div>
+        <div id="addCard" class="add-card hidden" title="구독 추가">+</div>
+
+        <div class="footer hidden" id="footer">
+            <button type="button" id="btnComplete" class="btn">온보딩 완료 · 구독 저장</button>
+            <span id="completeHint" style="color:#687785;font-size:14px;align-self:center;"></span>
+        </div>
+    </main>
+
+    <div id="modalBg" class="modal-bg">
+        <div class="modal">
+            <h3>구독 추가</h3>
+            <div class="tabs">
+                <button type="button" class="tab active" data-tab="search">공식 서비스 검색</button>
+                <button type="button" class="tab" data-tab="category">카테고리 선택</button>
+            </div>
+
+            <div id="tabSearch">
+                <div class="field">
+                    <label>서비스 검색</label>
+                    <input type="text" id="searchInput" placeholder="Netflix, TVING…">
+                </div>
+                <div id="searchResults" class="search-results"></div>
+                <div id="searchPlanWrap" class="field hidden">
+                    <label>플랜 선택</label>
+                    <select id="searchPlanSelect"></select>
+                </div>
+            </div>
+
+            <div id="tabCategory" class="hidden">
+                <div class="field"><label>카테고리</label><select id="catSelect"></select></div>
+                <div class="field"><label>서비스</label><select id="platSelect"></select></div>
+                <div class="field"><label>플랜</label><select id="planSelect"></select></div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="button" class="btn secondary" id="modalCancel" style="flex:1;">취소</button>
+                <button type="button" class="btn" id="modalAdd" style="flex:1;">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CYCLES = { monthly: '월간', annual: '연간', weekly: '주간' };
+        let items = [];
+        let removedStack = [];
+        let scanMeta = null;
+        let scanning = false;
+        let catalog = [];
+        let modalContext = { tab: 'search', selectedPlatform: null, selectedPlan: null };
+
+        function getCookie(n) {
+            const m = document.cookie.match('(^|;)\\s*' + n + '\\s*=\\s*([^;]+)');
+            return m ? m.pop() : '';
+        }
+        function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function uid() { return 'i' + Date.now() + Math.random().toString(36).slice(2, 7); }
+
+        function mergeSubscriptions(newSubs) {
+            for (const s of newSubs) {
+                if (!s.is_official || !s.platform_id) continue;
+                const key = `${(s.platform||'').toLowerCase()}|${(s.plan_name||'').toLowerCase()}`;
+                if (items.some(i => `${i.platform.toLowerCase()}|${(i.plan_name||'').toLowerCase()}` === key)) continue;
+                items.push({
+                    id: uid(), source: 'ai',
+                    platform: s.platform || '', plan_name: s.plan_name || '',
+                    payment_amount: s.payment_amount ?? '', billing_cycle: s.billing_cycle || 'monthly',
+                    renewal_date: s.renewal_date || '', platform_id: s.platform_id,
+                    plan_id: null, is_official: true,
+                });
+            }
+        }
+
+        function mergeScanMeta(incoming) {
+            if (!incoming) return;
+            if (!scanMeta) {
+                scanMeta = { ...incoming };
+                return;
+            }
+            const pickMin = (a, b) => (!a ? b : !b ? a : (a < b ? a : b));
+            const pickMax = (a, b) => (!a ? b : !b ? a : (a > b ? a : b));
+            scanMeta = {
+                ...incoming,
+                oldest_email_date: pickMin(scanMeta.oldest_email_date, incoming.oldest_email_date),
+                newest_email_date: pickMax(scanMeta.newest_email_date, incoming.newest_email_date),
+                emails_parsed: (scanMeta.emails_parsed || 0) + (incoming.emails_parsed || 0),
+            };
+            const winStart = scanMeta.window_start;
+            scanMeta.can_scan_older = !!(scanMeta.oldest_email_date && winStart && scanMeta.oldest_email_date > winStart);
+            scanMeta.next_before = scanMeta.can_scan_older ? scanMeta.oldest_email_date : null;
+        }
+
+        function renderScanMeta() {
+            const el = document.getElementById('scanMeta');
+            if (!scanMeta) { el.classList.add('hidden'); return; }
+            el.classList.remove('hidden');
+            const oldest = scanMeta.oldest_email_date || '—';
+            const newest = scanMeta.newest_email_date || '—';
+            const winStart = scanMeta.window_start;
+            const winEnd = scanMeta.window_end;
+            el.innerHTML = `
+                <strong>스캔 범위:</strong> ${winStart} ~ ${winEnd} (최대 1개월)<br>
+                <strong>이번에 분석한 메일:</strong> ${scanMeta.emails_parsed}건
+                · 가장 오래된 메일: <strong>${oldest}</strong>
+                · 가장 최근 메일: <strong>${newest}</strong><br>
+                <span style="color:#687785;font-size:13px;">이메일 본문은 분석 후 서버에 저장되지 않습니다.</span>`;
+            const btn = document.getElementById('btnScanOlder');
+            if (scanMeta.can_scan_older && scanMeta.next_before) {
+                btn.classList.remove('hidden');
+                btn.textContent = `이전 메일 더 불러오기 (${scanMeta.next_before} 이전)`;
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        function renderItems() {
+            const list = document.getElementById('itemList');
+            const addCard = document.getElementById('addCard');
+            const footer = document.getElementById('footer');
+            if (scanning) return;
+
+            document.getElementById('status').classList.add('hidden');
+            addCard.classList.remove('hidden');
+            footer.classList.remove('hidden');
+            document.getElementById('completeHint').textContent = `${items.length}개 항목`;
+
+            list.innerHTML = items.map((it, idx) => {
+                return `
+                <div class="item" data-id="${it.id}">
+                    <div>
+                        <div class="item-title">${esc(it.platform || '서비스')} <span class="badge official">공식</span></div>
+                        <div class="item-sub">${esc(it.plan_name || '플랜 미상')}${it.renewal_date ? ' · 갱신 ' + esc(it.renewal_date) : ''}</div>
+                    </div>
+                    <input type="number" value="${it.payment_amount !== '' ? it.payment_amount : ''}" data-field="payment_amount" data-idx="${idx}" placeholder="금액*" min="1">
+                    <select data-field="billing_cycle" data-idx="${idx}">
+                        ${Object.entries(CYCLES).map(([v,l]) => `<option value="${v}"${it.billing_cycle===v?' selected':''}>${l}</option>`).join('')}
+                    </select>
+                    <button type="button" class="icon-btn" data-remove="${idx}" title="삭제">×</button>
+                </div>`;
+            }).join('');
+
+            list.querySelectorAll('[data-field]').forEach(el => {
+                el.addEventListener('change', e => {
+                    const i = +e.target.dataset.idx;
+                    items[i][e.target.dataset.field] = e.target.value;
+                });
+            });
+            list.querySelectorAll('[data-remove]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const i = +btn.dataset.remove;
+                    removedStack.push(items.splice(i, 1)[0]);
+                    document.getElementById('btnUndo').disabled = removedStack.length === 0;
+                    renderItems();
+                });
+            });
+        }
+
+        async function fetchAnalyze(before) {
+            scanning = true;
+            const status = document.getElementById('status');
+            status.classList.remove('hidden');
+            status.innerHTML = '<span class="spinner"></span>' + (before ? '이전 메일을 추가로 분석하고 있어요…' : '받은편지함을 분석하고 있어요…');
+            let url = '/detector/gmail_analyze/';
+            if (before) url += '?before=' + encodeURIComponent(before);
+            const res = await fetch(url);
+            const data = await res.json();
+            scanning = false;
+            if (data.error === 'social token not found' || data.error === 'login required') {
+                status.innerHTML = 'Google 계정 연결이 필요합니다. <a href="/accounts/google/login/">연결하기</a>';
+                return;
+            }
+            if (data.error) { status.textContent = '오류: ' + data.error; return; }
+            mergeScanMeta(data.scan_meta);
+            mergeSubscriptions(data.subscriptions || []);
+            const found = (data.subscriptions || []).length;
+            const skipped = data.skipped_unofficial || 0;
+            let msg = found
+                ? `공식 지원 서비스 ${found}건 발견 · 총 ${items.length}개 항목`
+                : '공식 지원 구독을 찾지 못했어요';
+            if (skipped) msg += ` (${skipped}건은 지원 목록 외라 제외됨)`;
+            if (!found && !items.length) msg += ' · + 버튼으로 공식 서비스를 추가할 수 있어요';
+            status.textContent = msg;
+            if (items.length) status.classList.add('hidden');
+            renderScanMeta();
+            renderItems();
+        }
+
+        async function loadCatalog() {
+            const res = await fetch('/subscriptions/catalog/');
+            catalog = await res.json();
+            const catSel = document.getElementById('catSelect');
+            catSel.innerHTML = catalog.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+            updatePlatformSelect();
+        }
+
+        function updatePlatformSelect() {
+            const catId = +document.getElementById('catSelect').value;
+            const cat = catalog.find(c => c.id === catId);
+            const plats = cat ? cat.platforms : [];
+            document.getElementById('platSelect').innerHTML = plats.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+            loadPlansForPlatform(+document.getElementById('platSelect').value);
+        }
+
+        async function loadPlansForPlatform(platformId) {
+            const res = await fetch('/subscriptions/plans/?platform=' + platformId);
+            const plans = await res.json();
+            document.getElementById('planSelect').innerHTML = plans.map(p =>
+                `<option value="${p.id}" data-price="${p.price}" data-cycle="${p.billing_period}" data-name="${esc(p.plan_name)}">${esc(p.plan_name)} · ${p.price.toLocaleString()}원/${CYCLES[p.billing_period]||p.billing_period}</option>`
+            ).join('');
+        }
+
+        function openModal() {
+            document.getElementById('modalBg').classList.add('open');
+            modalContext = { tab: 'search', selectedPlatform: null, selectedPlan: null };
+        }
+        function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+
+        document.getElementById('addCard').addEventListener('click', openModal);
+        document.getElementById('modalCancel').addEventListener('click', closeModal);
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                modalContext.tab = tab.dataset.tab;
+                ['tabSearch','tabCategory'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                document.getElementById('tab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.remove('hidden');
+            });
+        });
+
+        let searchTimer;
+        document.getElementById('searchInput').addEventListener('input', e => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(async () => {
+                const q = e.target.value.trim();
+                const box = document.getElementById('searchResults');
+                if (q.length < 2) { box.innerHTML = ''; return; }
+                const res = await fetch('/subscriptions/platforms/?q=' + encodeURIComponent(q));
+                const plats = await res.json();
+                box.innerHTML = plats.map(p =>
+                    `<button type="button" data-pid="${p.id}" data-pname="${esc(p.name)}">${esc(p.name)}${p.category_name ? ' · '+esc(p.category_name) : ''}</button>`
+                ).join('') || '<div style="padding:10px;color:#888;">검색 결과 없음</div>';
+                box.querySelectorAll('button[data-pid]').forEach(b => {
+                    b.addEventListener('click', async () => {
+                        modalContext.selectedPlatform = { id: +b.dataset.pid, name: b.dataset.pname };
+                        document.getElementById('searchPlanWrap').classList.remove('hidden');
+                        const res = await fetch('/subscriptions/plans/?platform=' + b.dataset.pid);
+                        const plans = await res.json();
+                        document.getElementById('searchPlanSelect').innerHTML = plans.map(p =>
+                            `<option value="${p.id}" data-price="${p.price}" data-cycle="${p.billing_period}" data-name="${esc(p.plan_name)}">${esc(p.plan_name)} · ${p.price.toLocaleString()}원</option>`
+                        ).join('');
+                    });
+                });
+            }, 300);
+        });
+
+        document.getElementById('catSelect').addEventListener('change', updatePlatformSelect);
+        document.getElementById('platSelect').addEventListener('change', e => loadPlansForPlatform(+e.target.value));
+
+        document.getElementById('modalAdd').addEventListener('click', () => {
+            let item = { id: uid(), source: 'manual', renewal_date: '', is_official: true };
+            if (modalContext.tab === 'category') {
+                const platOpt = document.getElementById('platSelect').selectedOptions[0];
+                const planOpt = document.getElementById('planSelect').selectedOptions[0];
+                item.platform_id = +document.getElementById('platSelect').value;
+                item.platform = platOpt.text.split(' · ')[0] || platOpt.text;
+                item.plan_id = +planOpt.value;
+                item.plan_name = planOpt.dataset.name || planOpt.text;
+                item.payment_amount = planOpt.dataset.price;
+                item.billing_cycle = planOpt.dataset.cycle || 'monthly';
+                item.is_official = true;
+            } else {
+                if (!modalContext.selectedPlatform) { alert('서비스를 선택하세요.'); return; }
+                const planOpt = document.getElementById('searchPlanSelect').selectedOptions[0];
+                item.platform_id = modalContext.selectedPlatform.id;
+                item.platform = modalContext.selectedPlatform.name;
+                if (planOpt) {
+                    item.plan_id = +planOpt.value;
+                    item.plan_name = planOpt.dataset.name;
+                    item.payment_amount = planOpt.dataset.price;
+                    item.billing_cycle = planOpt.dataset.cycle || 'monthly';
+                }
+                item.is_official = true;
+            }
+            items.push(item);
+            closeModal();
+            renderItems();
+        });
+
+        document.getElementById('btnUndo').addEventListener('click', () => {
+            if (removedStack.length) {
+                items.push(removedStack.pop());
+                document.getElementById('btnUndo').disabled = removedStack.length === 0;
+                renderItems();
+            }
+        });
+
+        document.getElementById('btnScanOlder').addEventListener('click', () => {
+            if (scanMeta && scanMeta.next_before) fetchAnalyze(scanMeta.next_before);
+        });
+
+        document.getElementById('btnComplete').addEventListener('click', async () => {
+            if (!items.length) { alert('저장할 구독이 없습니다.'); return; }
+            for (const it of items) {
+                if (!it.platform_id || !it.is_official) {
+                    alert(`${it.platform || '항목'}: 공식 지원 서비스만 저장할 수 있습니다.`); return;
+                }
+                if (!it.payment_amount || +it.payment_amount <= 0) {
+                    alert(`${it.platform || '항목'}: 결제 금액은 필수입니다.`); return;
+                }
+                if (!it.billing_cycle) { alert(`${it.platform}: 결제 주기는 필수입니다.`); return; }
+            }
+            const btn = document.getElementById('btnComplete');
+            btn.disabled = true;
+            btn.textContent = '저장 중…';
+            const res = await fetch('{% url "accounts:onboarding_submit" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ subscriptions: items }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.href = data.redirect || '{% url "accounts:onboarding_complete" %}';
+            } else {
+                alert(data.error || '저장 실패');
+                btn.disabled = false;
+                btn.textContent = '온보딩 완료 · 구독 저장';
+            }
+        });
+
+        loadCatalog();
+        fetchAnalyze();
+    </script>
+</body>
+</html>
