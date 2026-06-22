@@ -11,14 +11,14 @@ cd ~/Desktop/Coding/WhatSub
 ## 2. Python 가상환경
 
 ```bash
-py -m venv venv
+python -m venv venv
 source venv/Scripts/activate
 ```
 
 ## 3. 백엔드 패키지 설치
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
 
 ## 4. `.env` 만들기
@@ -40,15 +40,15 @@ GOOGLE_CLIENT_SECRET=''
 ## 5. 데이터베이스 준비
 
 ```bash
-py backend/manage.py makemigrations
-py backend/manage.py migrate
-py backend/manage.py loaddata subscriptions/fixtures/platform_seed.json
+python manage.py makemigrations
+python manage.py migrate
+python manage.py loaddata platform_seed.json
 ```
 
 ## 6. 백엔드 실행
 
 ```bash
-py backend/manage.py runserver
+python manage.py runserver
 ```
 
 백엔드는 API 서버입니다.

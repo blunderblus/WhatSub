@@ -225,3 +225,9 @@ frontend/vue/
 frontend/static/
 frontend/templates/
 /static/
+
+# Vue / Node (when scaffolded)
+node_modules/
+dist/
+.vite/
+*.local
