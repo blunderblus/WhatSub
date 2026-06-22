@@ -35,6 +35,8 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'django.contrib.sites',
 
+    'rest_framework',
+
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -208,6 +210,25 @@ WATCHMODE_API_KEY = env('WATCHMODE_API_KEY', default='')
 # RapidAPI streaming-availability key. Accept both spellings (RAPID_API_KEY / RAPIDAPI_KEY).
 RAPIDAPI_KEY = env('RAPID_API_KEY', default=env('RAPIDAPI_KEY', default=''))
 AI_API_KEY = env('AI_API_KEY', default='')
+AI_API_BASE = env('AI_API_BASE', default='https://gms.ssafy.io/gmsapi/api.openai.com/v1')
+AI_MODEL = env('AI_MODEL', default='gpt-4o-mini')
+GMAIL_PIPELINE_LOG = env.bool('GMAIL_PIPELINE_LOG', default=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'detector.gmail': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 # Google OAuth credentials (from Google Cloud Console). When present, configure
 # the allauth Google provider directly from settings so no DB SocialApp is needed.

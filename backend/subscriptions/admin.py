@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Category, Platform, SubscriptionPlan, BundleContent,
-    AddOnPass, AddOnPassPricing, UserSubscription,
+    AddOnPass, AddOnPassPricing, UserSubscription, CustomPlatformSubmission,
 )
 
 
@@ -68,3 +68,13 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
     )
     list_filter = ('is_active', 'auto_renew', 'billing_cycle', 'platform')
     search_fields = ('user__username', 'plan_name', 'platform__name')
+
+
+@admin.register(CustomPlatformSubmission)
+class CustomPlatformSubmissionAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'user', 'platform_name', 'plan_name', 'payment_amount',
+        'billing_cycle', 'source', 'created_at',
+    )
+    list_filter = ('source', 'billing_cycle')
+    search_fields = ('platform_name', 'plan_name', 'user__username')
