@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { apiRequest } from '../api/http';
+import { fetchCommunityBoards, fetchCommunityPosts } from '../api/community';
 import { useSessionStore } from '../stores/session';
 import PageHeader from '../components/PageHeader.vue';
 
@@ -38,12 +38,11 @@ function goWrite() {
 }
 
 async function loadBoards() {
-  const data = await apiRequest('/api/community/boards/');
-  boards.value = data.boards || [];
+  boards.value = await fetchCommunityBoards();
 }
 
 async function loadNotices() {
-  const data = await apiRequest('/api/community/posts/?board=notice');
+  const data = await fetchCommunityPosts({ board: 'notice' });
   notices.value = data.results || [];
 }
 
@@ -52,7 +51,7 @@ async function loadPosts(board = selectedBoard.value) {
   loading.value = true;
   error.value = '';
   try {
-    const data = await apiRequest(`/api/community/posts/?board=${encodeURIComponent(board)}`);
+    const data = await fetchCommunityPosts({ board });
     posts.value = data.results || [];
   } catch (err) {
     posts.value = [];

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { apiRequest } from '../api/http';
 import { useSessionStore } from '../stores/session';
+import { subscriptionsMonthlyTotal } from '../utils/billing';
 
 const BACKEND_URL = 'http://127.0.0.1:8000';
 const session = useSessionStore();
@@ -14,6 +15,11 @@ const previewItems = computed(() => [
   ...movies.value.slice(0, 3).map((item) => ({ ...item, type: 'movies' })),
   ...shows.value.slice(0, 3).map((item) => ({ ...item, type: 'shows' })),
 ]);
+const monthlyTotal = computed(() => {
+  const subscriptions = dashboard.value?.subscriptions;
+  if (subscriptions?.length) return subscriptionsMonthlyTotal(subscriptions);
+  return dashboard.value?.monthly_total || 0;
+});
 
 function money(value) {
   return Number(value || 0).toLocaleString('ko-KR');
@@ -69,7 +75,7 @@ onMounted(async () => {
 
       <aside v-if="session.isAuthenticated && dashboard" class="summary-panel">
         <p class="summary-label">이번 달 예상 지출</p>
-        <strong class="summary-amount">{{ money(dashboard.monthly_total) }}<small>원</small></strong>
+        <strong class="summary-amount">{{ money(monthlyTotal) }}<small>원</small></strong>
         <div class="summary-metrics">
           <div><span>구독</span><strong>{{ dashboard.subscription_count }}개</strong></div>
           <div><span>플랫폼</span><strong>{{ dashboard.platform_count }}개</strong></div>

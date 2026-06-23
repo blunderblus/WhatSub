@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { apiRequest } from '../api/http';
 import { useSessionStore } from '../stores/session';
@@ -35,6 +35,10 @@ function togglePanel() {
   if (open.value) loadNotifications();
 }
 
+function closePanel() {
+  open.value = false;
+}
+
 function markRead(id) {
   readIds.value = new Set([...readIds.value, id]);
   localStorage.setItem('ws-notif-read', JSON.stringify([...readIds.value]));
@@ -46,7 +50,7 @@ function markAllRead() {
 }
 
 function onClickOutside(event) {
-  if (!event.target.closest('.notif-wrap')) open.value = false;
+  if (!event.target.closest('.notif-wrap')) closePanel();
 }
 
 function typeIcon(type) {
@@ -58,6 +62,10 @@ watch(() => session.isAuthenticated, loadNotifications);
 onMounted(() => {
   loadNotifications();
   document.addEventListener('click', onClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside);
 });
 
 defineExpose({ loadNotifications, notifications });
@@ -81,7 +89,10 @@ defineExpose({ loadNotifications, notifications });
     <div v-if="open" class="notif-panel" @click.stop>
       <div class="panel-head">
         <strong>알림</strong>
-        <button v-if="unreadCount" type="button" class="mark-all" @click="markAllRead">모두 읽음</button>
+        <div class="panel-actions">
+          <button v-if="unreadCount" type="button" class="mark-all" @click="markAllRead">모두 읽음</button>
+          <button type="button" class="panel-close" aria-label="알림 닫기" @click="closePanel">×</button>
+        </div>
       </div>
       <div v-if="loading" class="panel-empty">불러오는 중...</div>
       <ul v-else-if="notifications.length" class="notif-list">
@@ -171,6 +182,12 @@ defineExpose({ loadNotifications, notifications });
   border-bottom: 1px solid var(--ws-border);
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .mark-all {
   border: none;
   background: none;
@@ -178,6 +195,26 @@ defineExpose({ loadNotifications, notifications });
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.panel-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.panel-close:hover {
+  border-color: var(--ws-primary);
+  color: var(--ws-primary);
 }
 
 .notif-list {

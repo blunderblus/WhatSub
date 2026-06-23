@@ -1,4 +1,8 @@
 import { apiRequest } from './http';
+import { createTtlCache } from '../utils/ttlCache';
+
+const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
+const catalogCache = createTtlCache(CATALOG_CACHE_TTL_MS);
 
 const CONTENT_ENDPOINTS = {
   movies: {
@@ -24,12 +28,16 @@ export function mediaTypeForKind(kind) {
 }
 
 export async function fetchContentGenres(kind) {
-  const data = await apiRequest(endpointFor(kind).genres);
+  const data = await catalogCache.getOrSet(`genres:${normalizeContentKind(kind)}`, () => (
+    apiRequest(endpointFor(kind).genres)
+  ));
   return data.genres || [];
 }
 
 export async function fetchStreamingPlatforms(mediaType) {
-  const data = await apiRequest(`/api/contents/streaming_platforms/?media_type=${mediaType}`);
+  const data = await catalogCache.getOrSet(`platforms:${mediaType}`, () => (
+    apiRequest(`/api/contents/streaming_platforms/?media_type=${mediaType}`)
+  ));
   return data.platforms || [];
 }
 
@@ -40,7 +48,10 @@ export async function fetchContentList({ kind, page = 1, genre = '', platformIds
     params.append('platform_id', platformId);
   }
 
-  const data = await apiRequest(`${endpointFor(kind).list}?${params.toString()}`);
+  const normalizedKind = normalizeContentKind(kind);
+  const data = await catalogCache.getOrSet(`list:${normalizedKind}:${params.toString()}`, () => (
+    apiRequest(`${endpointFor(normalizedKind).list}?${params.toString()}`)
+  ));
   return {
     items: data.results || [],
     page: data.page || page,

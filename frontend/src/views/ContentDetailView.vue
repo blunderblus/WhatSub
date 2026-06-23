@@ -116,7 +116,6 @@ onMounted(load);
 
       <section class="panel" style="margin-top: 24px">
         <h2>이용 가능한 서비스</h2>
-        <br>
         <template v-if="providers.length">
           <div v-if="subscriptionProviders.length" class="provider-section">
             <h3>구독 · 무료</h3>
@@ -133,12 +132,14 @@ onMounted(load);
               >
                 <img v-if="provider.icon_url" :src="provider.icon_url" :alt="formatProviderName(provider)" />
                 <span v-else class="provider-fallback">{{ providerInitial(provider) }}</span>
-            <strong>{{ formatProviderName(provider) }}</strong>
-            <span>
-              {{ formatProviderTypes(provider) }}
-              <template v-if="formatProviderExpiry(provider)"> · {{ formatProviderExpiry(provider) }}</template>
-              <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
-            </span>
+                <span class="provider-copy">
+                  <strong>{{ formatProviderName(provider) }}</strong>
+                  <span>
+                    {{ formatProviderTypes(provider) }}
+                    <template v-if="formatProviderExpiry(provider)"> · {{ formatProviderExpiry(provider) }}</template>
+                    <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
+                  </span>
+                </span>
               </a>
             </div>
           </div>
@@ -158,12 +159,14 @@ onMounted(load);
               >
                 <img v-if="provider.icon_url" :src="provider.icon_url" :alt="formatProviderName(provider)" />
                 <span v-else class="provider-fallback">{{ providerInitial(provider) }}</span>
-            <strong>{{ formatProviderName(provider) }}</strong>
-            <span>
-              {{ formatProviderTypes(provider) }}
-              <template v-if="formatProviderExpiry(provider)"> · {{ formatProviderExpiry(provider) }}</template>
-              <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
-            </span>
+                <span class="provider-copy">
+                  <strong>{{ formatProviderName(provider) }}</strong>
+                  <span>
+                    {{ formatProviderTypes(provider) }}
+                    <template v-if="formatProviderExpiry(provider)"> · {{ formatProviderExpiry(provider) }}</template>
+                    <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
+                  </span>
+                </span>
               </a>
             </div>
           </div>
@@ -280,7 +283,7 @@ onMounted(load);
 
 .provider-link {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-height: 58px;
@@ -293,6 +296,25 @@ onMounted(load);
 
 .provider-link.no-link {
   opacity: 0.72;
+}
+
+.provider-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.provider-copy strong,
+.provider-copy span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.provider-copy span {
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .provider-link img,

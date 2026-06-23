@@ -1,8 +1,23 @@
-export function planMonthlyPrice(plan) {
-  const price = Number(plan?.price || 0);
-  if (plan?.billing_period === 'annual') return Math.round(price / 12);
-  if (plan?.billing_period === 'weekly') return Math.round(price * 52 / 12);
+export function normalizeMonthlyAmount(amount, billingPeriod) {
+  const price = Number(amount || 0);
+  if (billingPeriod === 'annual') return Math.round(price / 12);
+  if (billingPeriod === 'weekly') return Math.round((price * 52) / 12);
   return price;
+}
+
+export function planMonthlyPrice(plan) {
+  return normalizeMonthlyAmount(plan?.price, plan?.billing_period);
+}
+
+export function subscriptionMonthlyAmount(subscription) {
+  if (subscription?.monthly_amount != null) return Number(subscription.monthly_amount || 0);
+  return normalizeMonthlyAmount(subscription?.payment_amount, subscription?.billing_cycle);
+}
+
+export function subscriptionsMonthlyTotal(subscriptions) {
+  return (subscriptions || []).reduce((sum, subscription) => (
+    sum + subscriptionMonthlyAmount(subscription)
+  ), 0);
 }
 
 export function billingLabel(period) {

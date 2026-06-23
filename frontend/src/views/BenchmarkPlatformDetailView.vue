@@ -1,7 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { apiRequest } from '../api/http';
+import {
+  fetchBenchmarkPlatformInsight,
+  fetchBenchmarkPlatformPage,
+  fetchPlatformCatalog,
+  saveBenchmarkPlatformReview,
+} from '../api/benchmark';
+import { createCommunityPost } from '../api/community';
 import PieChart from '../components/PieChart.vue';
 import PlanCatalogPickers from '../components/PlanCatalogPickers.vue';
 import { billingLabel, formatWon, parsePromoNotes, planMonthlyPrice } from '../utils/billing';
@@ -67,7 +73,7 @@ function applyReviewsBlock(block) {
 
 async function loadCatalog() {
   try {
-    platformCatalog.value = await apiRequest(`/api/subscriptions/platforms/${platformId.value}/catalog/`);
+    platformCatalog.value = await fetchPlatformCatalog(platformId.value);
   } catch {
     platformCatalog.value = null;
   }
@@ -77,9 +83,7 @@ async function loadPage() {
   loading.value = true;
   error.value = '';
   try {
-    page.value = await apiRequest(
-      `/api/contents/benchmark/platforms/${platformId.value}/page/?use_llm=0`,
-    );
+    page.value = await fetchBenchmarkPlatformPage(platformId.value, { useLlm: false });
     resetReviewForm();
     loadInsight();
     loadCatalog();
@@ -95,9 +99,7 @@ async function loadInsight() {
   if (!page.value || insightLoading.value) return;
   insightLoading.value = true;
   try {
-    const data = await apiRequest(
-      `/api/contents/benchmark/platforms/${platformId.value}/insight/`,
-    );
+    const data = await fetchBenchmarkPlatformInsight(platformId.value);
     if (page.value && data.platform_id === page.value.platform_id) {
       page.value.llm_insight = data.llm_insight;
       page.value.llm_insight_month = data.llm_insight_month;
@@ -121,9 +123,9 @@ async function submitReview() {
   reviewSaving.value = true;
   reviewSaved.value = false;
   try {
-    const data = await apiRequest(`/api/contents/benchmark/platforms/${platformId.value}/reviews/`, {
-      method: 'POST',
-      body: { score: reviewScore.value, body: reviewBody.value },
+    const data = await saveBenchmarkPlatformReview(platformId.value, {
+      score: reviewScore.value,
+      body: reviewBody.value,
     });
     applyReviewsBlock(data);
     resetReviewForm();
@@ -142,14 +144,11 @@ async function submitThread() {
   }
   threadSaving.value = true;
   try {
-    const post = await apiRequest('/api/community/posts/', {
-      method: 'POST',
-      body: {
-        board: 'ott',
-        platform_id: platformId.value,
-        title: threadTitle.value,
-        content: threadBody.value,
-      },
+    const post = await createCommunityPost({
+      board: 'ott',
+      platform_id: platformId.value,
+      title: threadTitle.value,
+      content: threadBody.value,
     });
     threadTitle.value = '';
     threadBody.value = '';

@@ -14,6 +14,7 @@ from subscriptions.models import Platform
 from . import watchmode as wm
 from .models import Content, ContentPlatform, ContentReaction, StreamingCache, TitleGenres, TitleMeta, WatchmodeUsage
 from .title_display import get_title_display_map
+from .tmdb_response_cache import TMDB_DISCOVER_CACHE_TTL, TMDB_GENRE_CACHE_TTL, get_or_fetch_tmdb_json
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +67,17 @@ def tmdb_show_genres(request):
 def _tmdb_genres(media_type):
     url = f'https://api.themoviedb.org/3/genre/{media_type}/list'
     params = {
-        'api_key': settings.TMDB_API_KEY,
         'language': 'ko-KR',
     }
 
     try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
+        data = get_or_fetch_tmdb_json(
+            'genres',
+            url,
+            params,
+            lambda: _tmdb_get(url, params),
+            TMDB_GENRE_CACHE_TTL,
+        )
         return JsonResponse({'genres': data.get('genres', [])}, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -198,10 +202,18 @@ def _filled_discover_response(media_type, params, requested_page, first_page_dat
 
 
 def _tmdb_discover_page(media_type, params, page):
-    return _tmdb_get(f'https://api.themoviedb.org/3/discover/{media_type}', {
+    url = f'https://api.themoviedb.org/3/discover/{media_type}'
+    request_params = {
         **params,
         'page': page,
-    })
+    }
+    return get_or_fetch_tmdb_json(
+        'discover',
+        url,
+        request_params,
+        lambda: _tmdb_get(url, request_params),
+        TMDB_DISCOVER_CACHE_TTL,
+    )
 
 
 def _format_discover_response(data, media_type):
