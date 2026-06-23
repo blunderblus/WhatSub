@@ -58,6 +58,7 @@ onMounted(async () => {
           <RouterLink v-if="!session.isAuthenticated" class="button primary" to="/signup">시작하기</RouterLink>
           <RouterLink v-if="!session.isAuthenticated" class="button" to="/login">로그인</RouterLink>
           <RouterLink class="button" to="/contents/search">작품 검색</RouterLink>
+          <RouterLink class="button" to="/benchmark">OTT 가성비 랭킹</RouterLink>
         </div>
         <div class="hero-stats">
           <div><span>자동 스캔</span><strong>Gmail</strong></div>

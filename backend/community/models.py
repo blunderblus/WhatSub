@@ -14,6 +14,13 @@ class CommunityPost(models.Model):
         FREE = 'free', 'Free'
 
     board = models.CharField(max_length=10, choices=Board.choices, db_index=True)
+    platform = models.ForeignKey(
+        'subscriptions.Platform',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='community_posts',
+    )
     title = models.CharField(max_length=120)
     content = models.TextField()
     author = models.ForeignKey(

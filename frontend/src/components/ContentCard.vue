@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { apiRequest } from '../api/http';
 import { useSessionStore } from '../stores/session';
 
@@ -27,6 +27,7 @@ const providerError = ref('');
 const reactions = ref({ like_count: 0, dislike_count: 0, my_reaction: null });
 const reactionLoading = ref(false);
 const reactionMessage = ref('');
+const hoverTimer = ref(null);
 
 const resolvedMediaType = computed(() => props.mediaType || props.item.media_type || 'movie');
 const visibleProviders = computed(() => providers.value.slice(0, 6));
@@ -55,6 +56,24 @@ async function loadProviders() {
   }
 }
 
+function scheduleProviderLoad() {
+  if (providersLoaded.value || providersLoading.value) return;
+  if (hoverTimer.value) clearTimeout(hoverTimer.value);
+  hoverTimer.value = setTimeout(() => {
+    hoverTimer.value = null;
+    loadProviders();
+  }, 450);
+}
+
+function cancelProviderLoad() {
+  if (hoverTimer.value) {
+    clearTimeout(hoverTimer.value);
+    hoverTimer.value = null;
+  }
+}
+
+onBeforeUnmount(cancelProviderLoad);
+
 async function toggleReaction(reaction) {
   reactionMessage.value = '';
   if (!session.isAuthenticated) {
@@ -69,6 +88,8 @@ async function toggleReaction(reaction) {
       body: {
         media_type: resolvedMediaType.value,
         reaction,
+        title: props.item.title || '',
+        poster_url: props.item.poster_url || '',
       },
     });
   } catch (err) {
@@ -89,8 +110,10 @@ function providerInitial(name) {
     tabindex="0"
     @click="emit('open', item)"
     @keydown.enter="emit('open', item)"
-    @mouseenter="loadProviders"
-    @focusin="loadProviders"
+    @mouseenter="scheduleProviderLoad"
+    @mouseleave="cancelProviderLoad"
+    @focusin="scheduleProviderLoad"
+    @focusout="cancelProviderLoad"
   >
     <div class="poster-wrap">
       <img v-if="item.poster_url" class="poster" :src="item.poster_url" :alt="item.title" loading="lazy" />

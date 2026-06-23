@@ -1,17 +1,26 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
+import SubscriptionCalendar from '../components/SubscriptionCalendar.vue';
 import { useSessionStore } from '../stores/session';
 
 const session = useSessionStore();
 
 const dashboard = ref(null);
 const error = ref('');
+const selectedCalendarSubId = ref(null);
+
+const standaloneSubs = computed(() => dashboard.value?.standalone_subscriptions || []);
+const bundleSubs = computed(() => dashboard.value?.bundle_subscriptions || []);
 
 function money(value) {
   return Number(value || 0).toLocaleString('ko-KR');
+}
+
+function selectCalendarSub(subId) {
+  selectedCalendarSubId.value = subId;
 }
 
 async function load() {
@@ -21,6 +30,9 @@ async function load() {
 async function removeSubscription(id) {
   if (!confirm('이 구독을 삭제할까요?')) return;
   await apiRequest(`/api/accounts/subscriptions/${id}/delete/`, { method: 'DELETE' });
+  if (selectedCalendarSubId.value === id) {
+    selectedCalendarSubId.value = null;
+  }
   await load();
 }
 
@@ -62,25 +74,88 @@ onMounted(async () => {
         <article class="metric"><span>월 예상 지출</span><strong>{{ money(dashboard.monthly_total) }}원</strong></article>
       </section>
 
+      <section class="panel calendar-panel" style="margin-top: 18px">
+        <h2>결제 캘린더</h2>
+        <p class="muted small">결제일·만료일과 구독 기간을 확인하세요.</p>
+        <SubscriptionCalendar
+          :schedule-items="dashboard.schedule_items || []"
+          :subscriptions="dashboard.calendar_events || []"
+          :highlight-subscription-id="selectedCalendarSubId"
+          @select-subscription="selectCalendarSub"
+        />
+      </section>
+
       <section class="grid-2" style="margin-top: 18px">
         <div class="panel">
           <h2>구독 중인 플랫폼</h2>
-          <div v-if="dashboard.subscriptions.length" class="subscription-list">
-            <article v-for="sub in dashboard.subscriptions" :key="sub.id" class="subscription-row">
+
+          <div v-if="standaloneSubs.length" class="subscription-list">
+            <RouterLink
+              v-for="sub in standaloneSubs"
+              :key="sub.id"
+              class="subscription-row"
+              :to="`/benchmark/platforms/${sub.platform}`"
+            >
               <img v-if="sub.icon_url" class="sub-logo" :src="sub.icon_url" :alt="sub.platform_name" />
               <div v-else class="sub-logo fallback">{{ sub.platform_name.charAt(0) }}</div>
               <div class="sub-main">
                 <strong>{{ sub.platform_name }}</strong>
-                <span>{{ sub.plan_name }} · 갱신 {{ sub.renewal_date }}</span>
+                <span>{{ sub.plan_name }}</span>
+                <span v-if="sub.period_start && sub.period_end" class="period">
+                  구독 {{ sub.period_start }} ~ {{ sub.period_end }}
+                </span>
               </div>
               <div class="price">
                 {{ money(sub.payment_amount) }}원
                 <small>{{ sub.billing_cycle_label }}</small>
               </div>
-              <button class="delete-button" type="button" @click="removeSubscription(sub.id)">삭제</button>
-            </article>
+              <button
+                class="delete-button"
+                type="button"
+                @click.prevent.stop="removeSubscription(sub.id)"
+              >
+                삭제
+              </button>
+            </RouterLink>
           </div>
-          <div v-else class="empty">
+
+          <section v-if="bundleSubs.length" class="bundle-section">
+            <h3>번들</h3>
+            <article v-for="bundle in bundleSubs" :key="bundle.id" class="bundle-card">
+              <div class="bundle-head">
+                <div class="sub-main">
+                  <strong>{{ bundle.plan_name }}</strong>
+                  <span>{{ bundle.platform_name }}</span>
+                  <span v-if="bundle.period_start && bundle.period_end" class="period">
+                    {{ bundle.period_start }} ~ {{ bundle.period_end }}
+                  </span>
+                </div>
+                <div class="price">
+                  {{ money(bundle.payment_amount) }}원
+                  <small>{{ bundle.billing_cycle_label }}</small>
+                </div>
+                <button
+                  class="delete-button"
+                  type="button"
+                  @click.stop="removeSubscription(bundle.id)"
+                >
+                  삭제
+                </button>
+              </div>
+              <ul v-if="bundle.included_platforms?.length" class="bundle-platforms">
+                <li v-for="p in bundle.included_platforms" :key="`${bundle.id}-${p.platform_id}`">
+                  <RouterLink :to="`/benchmark/platforms/${p.platform_id}`">
+                    <img v-if="p.icon_url" class="sub-logo sm" :src="p.icon_url" :alt="p.platform_name" />
+                    <span v-else class="sub-logo sm fallback">{{ p.platform_name.charAt(0) }}</span>
+                    <span>{{ p.platform_name }}</span>
+                  </RouterLink>
+                </li>
+              </ul>
+              <p v-else class="muted small">포함 플랫폼 정보가 없습니다.</p>
+            </article>
+          </section>
+
+          <div v-if="!standaloneSubs.length && !bundleSubs.length" class="empty">
             아직 등록된 구독이 없습니다.
             <RouterLink class="button primary" to="/subscriptions/new">첫 구독 추가</RouterLink>
           </div>
@@ -130,11 +205,78 @@ onMounted(async () => {
   font-weight: 700;
 }
 
+.calendar-panel {
+  background: #0b1220;
+}
+
+.calendar-panel h2,
+.calendar-panel .muted {
+  color: #e2e8f0;
+}
+
+.calendar-panel h2 {
+  margin: 0 0 4px;
+}
+
+.calendar-panel .muted {
+  margin-bottom: 14px;
+}
+
 .subscription-list,
-.timeline {
+.timeline,
+.bundle-platforms {
   display: grid;
   gap: 10px;
   margin-top: 14px;
+}
+
+.bundle-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ws-border);
+}
+
+.bundle-section h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.bundle-card {
+  padding: 12px;
+  border: 1px solid var(--ws-border);
+  border-radius: 10px;
+  background: var(--ws-surface-2);
+}
+
+.bundle-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.bundle-platforms {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.bundle-platforms li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-surface);
+  color: inherit;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.bundle-platforms li a:hover {
+  border-color: var(--ws-primary);
 }
 
 .subscription-row {
@@ -146,6 +288,19 @@ onMounted(async () => {
   border: 1px solid var(--ws-border);
   border-radius: 8px;
   background: var(--ws-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.subscription-row:hover {
+  border-color: var(--ws-primary);
+  background: var(--ws-surface-2);
+}
+
+.sub-main .period {
+  color: var(--ws-text);
+  font-weight: 600;
 }
 
 .sub-logo {
@@ -155,6 +310,11 @@ onMounted(async () => {
   border-radius: 8px;
   object-fit: contain;
   background: var(--ws-surface-2);
+}
+
+.sub-logo.sm {
+  width: 32px;
+  height: 32px;
 }
 
 .sub-logo.fallback {
@@ -189,7 +349,8 @@ onMounted(async () => {
 }
 
 @media (max-width: 620px) {
-  .subscription-row {
+  .subscription-row,
+  .bundle-head {
     grid-template-columns: 46px minmax(0, 1fr);
   }
 

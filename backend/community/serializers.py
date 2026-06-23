@@ -89,7 +89,7 @@ class CommunityPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityPost
         fields = [
-            'id', 'board', 'board_label', 'title', 'content', 'author',
+            'id', 'board', 'board_label', 'platform_id', 'title', 'content', 'author',
             'view_count', 'comment_count', 'created_at', 'updated_at', 'is_owner', 'reactions', 'reports',
         ]
 

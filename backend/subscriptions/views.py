@@ -3,11 +3,59 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Platform, SubscriptionPlan, AddOnPass, Category
+from .models import Platform, SubscriptionPlan, AddOnPass, Category, BundleContent
 from .serializers import (
     CategorySerializer, PlatformSerializer, PlatformDetailSerializer,
     SubscriptionPlanSerializer, AddOnPassSerializer,
 )
+
+
+@api_view(['GET'])
+def platform_catalog(request, pk):
+    """Plans, bundles, add-on passes, and cross-platform bundles for a platform."""
+    platform = get_object_or_404(
+        Platform.objects.select_related('category'),
+        pk=pk,
+    )
+    plans_qs = (
+        SubscriptionPlan.objects
+        .filter(platform=platform)
+        .select_related('platform', 'requires_membership__platform')
+        .prefetch_related('bundle_contents__included_platform')
+        .order_by('price')
+    )
+    regular = plans_qs.filter(is_bundle=False)
+    bundles = plans_qs.filter(is_bundle=True)
+
+    related_bundle_ids = (
+        BundleContent.objects
+        .filter(included_platform=platform)
+        .values_list('plan_id', flat=True)
+        .distinct()
+    )
+    related_bundles = (
+        SubscriptionPlan.objects
+        .filter(id__in=related_bundle_ids, is_bundle=True)
+        .select_related('platform')
+        .prefetch_related('bundle_contents__included_platform')
+        .order_by('price')
+    )
+
+    passes = (
+        AddOnPass.objects
+        .filter(platform=platform)
+        .prefetch_related('pricings__base_plan__platform')
+        .order_by('pass_name')
+    )
+
+    return Response({
+        'platform_id': platform.id,
+        'platform_name': platform.name,
+        'plans': SubscriptionPlanSerializer(regular, many=True).data,
+        'bundles': SubscriptionPlanSerializer(bundles, many=True).data,
+        'related_bundles': SubscriptionPlanSerializer(related_bundles, many=True).data,
+        'addon_passes': AddOnPassSerializer(passes, many=True).data,
+    })
 
 
 @api_view(['GET'])

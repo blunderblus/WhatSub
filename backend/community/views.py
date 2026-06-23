@@ -36,6 +36,9 @@ def posts(request):
             .annotate(comment_count=Count('comments'))
             .order_by('-created_at')
         )
+        platform_id = request.GET.get('platform_id')
+        if platform_id:
+            queryset = queryset.filter(platform_id=platform_id)
         return Response({'board': BOARD_META[board], 'results': CommunityPostSerializer(queryset, many=True, context={'request': request}).data})
 
     if not request.user.is_authenticated:
@@ -44,6 +47,7 @@ def posts(request):
     board = request.data.get('board')
     title = (request.data.get('title') or '').strip()
     content = (request.data.get('content') or '').strip()
+    platform_id = request.data.get('platform_id')
     if board not in BOARD_META:
         return Response({'board': ['게시판을 선택해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if board == CommunityPost.Board.NOTICE and not request.user.is_staff:
@@ -52,7 +56,10 @@ def posts(request):
         return Response({'title': ['제목을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if not content:
         return Response({'content': ['내용을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
-    post = CommunityPost.objects.create(board=board, title=title, content=content, author=request.user)
+    post = CommunityPost.objects.create(
+        board=board, title=title, content=content, author=request.user,
+        platform_id=platform_id if platform_id else None,
+    )
     post.comment_count = 0
     return Response(CommunityPostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 

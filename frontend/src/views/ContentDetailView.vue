@@ -8,11 +8,61 @@ const movie = ref(null);
 const providers = ref([]);
 const loading = ref(true);
 const error = ref('');
+
 const isMovie = computed(() => route.params.type === 'movies');
 const detailUrl = computed(() => `/api/contents/${isMovie.value ? 'movie_detail' : 'show_detail'}/${route.params.id}/`);
 
+const SUBSCRIPTION_TYPES = new Set(['subscription', 'free', 'ads']);
+const TRANSACTION_TYPES = new Set(['rent', 'buy']);
+
+const PLATFORM_HOME = {
+  tving: 'https://www.tving.com',
+  wavve: 'https://www.wavve.com',
+  watcha: 'https://watcha.com',
+  netflix: 'https://www.netflix.com',
+  'disney+': 'https://www.disneyplus.com',
+  'prime video': 'https://www.primevideo.com',
+  'amazon prime video': 'https://www.primevideo.com',
+};
+
+const subscriptionProviders = computed(() =>
+  providers.value.filter((p) => SUBSCRIPTION_TYPES.has(p.type)),
+);
+const transactionProviders = computed(() =>
+  providers.value.filter((p) => TRANSACTION_TYPES.has(p.type)),
+);
+
 function providerInitial(name) {
   return (name || '?').trim().charAt(0).toUpperCase();
+}
+
+function resolveProviderHref(provider) {
+  const link = (provider?.link || '').trim();
+  if (link) return link;
+  const key = (provider?.service || provider?.display_name || '').toLowerCase().trim();
+  return PLATFORM_HOME[key] || '';
+}
+
+function openProvider(event, provider) {
+  const href = resolveProviderHref(provider);
+  if (!href) {
+    event.preventDefault();
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  window.open(href, '_blank', 'noopener,noreferrer');
+}
+
+function hasDeepLink(provider) {
+  return Boolean((provider?.link || '').trim());
+}
+
+function formatLicenseExpiry(expiresOn) {
+  if (!expiresOn) return '';
+  const parsed = new Date(expiresOn);
+  if (Number.isNaN(parsed.getTime())) return `라이선스 ~${expiresOn}까지`;
+  return `라이선스 ~${parsed.toLocaleDateString('ko-KR')}까지`;
 }
 
 async function load() {
@@ -57,14 +107,57 @@ onMounted(load);
 
       <section class="panel" style="margin-top: 24px">
         <h2>이용 가능한 서비스</h2>
-        <div v-if="providers.length" class="provider-grid">
-          <a v-for="provider in providers" :key="`${provider.service}-${provider.type}-${provider.link}`" class="provider-link" :href="provider.link" target="_blank" rel="noopener noreferrer">
-            <img v-if="provider.icon_url" :src="provider.icon_url" :alt="provider.display_name || provider.service" />
-            <span v-else class="provider-fallback">{{ providerInitial(provider.display_name || provider.service) }}</span>
+        <template v-if="providers.length">
+          <div v-if="subscriptionProviders.length" class="provider-section">
+            <h3>구독 · 무료</h3>
+            <div class="provider-grid">
+              <a
+                v-for="(provider, index) in subscriptionProviders"
+                :key="`sub-${index}-${provider.service}-${provider.type}`"
+                class="provider-link"
+                :class="{ 'no-link': !hasDeepLink(provider) }"
+                :href="resolveProviderHref(provider) || '#'"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click="openProvider($event, provider)"
+              >
+                <img v-if="provider.icon_url" :src="provider.icon_url" :alt="provider.display_name || provider.service" />
+                <span v-else class="provider-fallback">{{ providerInitial(provider.display_name || provider.service) }}</span>
             <strong>{{ provider.display_name || provider.service }}</strong>
-            <span>{{ provider.type_label }}</span>
-          </a>
-        </div>
+            <span>
+              {{ provider.type_label }}
+              <template v-if="formatLicenseExpiry(provider.expires_on)"> · {{ formatLicenseExpiry(provider.expires_on) }}</template>
+              <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
+            </span>
+              </a>
+            </div>
+          </div>
+
+          <div v-if="transactionProviders.length" class="provider-section">
+            <h3>대여 · 구매</h3>
+            <div class="provider-grid">
+              <a
+                v-for="(provider, index) in transactionProviders"
+                :key="`txn-${index}-${provider.service}-${provider.type}`"
+                class="provider-link"
+                :class="{ 'no-link': !hasDeepLink(provider) }"
+                :href="resolveProviderHref(provider) || '#'"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click="openProvider($event, provider)"
+              >
+                <img v-if="provider.icon_url" :src="provider.icon_url" :alt="provider.display_name || provider.service" />
+                <span v-else class="provider-fallback">{{ providerInitial(provider.display_name || provider.service) }}</span>
+            <strong>{{ provider.display_name || provider.service }}</strong>
+            <span>
+              {{ provider.type_label }}
+              <template v-if="formatLicenseExpiry(provider.expires_on)"> · {{ formatLicenseExpiry(provider.expires_on) }}</template>
+              <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
+            </span>
+              </a>
+            </div>
+          </div>
+        </template>
         <p v-else class="empty">현재 한국에서 이용 가능한 서비스 정보가 없습니다.</p>
       </section>
 
@@ -157,11 +250,22 @@ onMounted(load);
   font-weight: 800;
 }
 
+.provider-section + .provider-section {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ws-border);
+}
+
+.provider-section h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--ws-muted);
+}
+
 .provider-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 12px;
-  margin-top: 14px;
 }
 
 .provider-link {
@@ -174,6 +278,11 @@ onMounted(load);
   border: 1px solid var(--ws-border);
   border-radius: 8px;
   background: var(--ws-surface);
+  cursor: pointer;
+}
+
+.provider-link.no-link {
+  opacity: 0.72;
 }
 
 .provider-link img,

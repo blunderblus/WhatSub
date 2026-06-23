@@ -2,6 +2,8 @@
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { useSessionStore } from './stores/session';
 import WLogo from './components/WLogo.vue';
+import NotificationBell from './components/NotificationBell.vue';
+import UrgentNotificationToast from './components/UrgentNotificationToast.vue';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -23,8 +25,10 @@ async function logout() {
         <RouterLink to="/contents/movies">영화</RouterLink>
         <RouterLink to="/contents/shows">시리즈</RouterLink>
         <RouterLink to="/contents/search">작품 검색</RouterLink>
+        <RouterLink to="/benchmark">가성비 랭킹</RouterLink>
         <RouterLink to="/community">커뮤니티</RouterLink>
         <RouterLink v-if="session.isAuthenticated" to="/subscriptions">내 구독</RouterLink>
+        <NotificationBell v-if="session.isAuthenticated" />
         <RouterLink v-if="session.isAuthenticated" class="profile-link" to="/profile" aria-label="내 프로필">
           <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
           <span v-else class="nav-avatar" aria-hidden="true">
@@ -39,6 +43,7 @@ async function logout() {
     </header>
 
     <RouterView />
+    <UrgentNotificationToast v-if="session.isAuthenticated" />
   </div>
 </template>
 

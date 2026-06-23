@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -14,6 +16,7 @@ from allauth.socialaccount.models import SocialToken
 
 from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
 from subscriptions.serializers import UserSubscriptionSerializer
+from .billing_dates import build_schedule_items, default_renewal_date, subscription_period
 from .forms import SignUpForm
 
 _PLATFORM_LOGOS = {
@@ -43,11 +46,36 @@ def _monthly_amount(subscription):
     return amount
 
 
-def _subscription_payload(subscription):
+def _is_bundle_subscription(subscription):
+    if subscription.plan and subscription.plan.is_bundle:
+        return True
+    name = (subscription.platform.name or '').lower()
+    return '번들' in name or 'bundle' in name
+
+
+def _bundle_included_platforms(subscription):
+    if not subscription.plan:
+        return []
+    return [
+        {
+            'platform_id': bc.included_platform_id,
+            'platform_name': bc.included_platform.name,
+            'icon_url': _platform_icon(bc.included_platform.name),
+        }
+        for bc in subscription.plan.bundle_contents.all()
+    ]
+
+
+def _subscription_payload(subscription, today=None):
+    if today is None:
+        today = timezone.now().date()
     data = UserSubscriptionSerializer(subscription).data
     data['icon_url'] = _platform_icon(subscription.platform.name)
     data['billing_cycle_label'] = subscription.get_billing_cycle_display()
     data['monthly_amount'] = _monthly_amount(subscription)
+    data.update(subscription_period(subscription, today))
+    data['is_bundle'] = _is_bundle_subscription(subscription)
+    data['included_platforms'] = _bundle_included_platforms(subscription) if data['is_bundle'] else []
     return data
 
 
@@ -57,6 +85,7 @@ def _dashboard_payload(user):
         UserSubscription.objects
         .filter(user=user, is_active=True)
         .select_related('platform', 'plan')
+        .prefetch_related('plan__bundle_contents__included_platform')
         .order_by('renewal_date')
     )
     monthly_total = sum(_monthly_amount(sub) for sub in subscriptions)
@@ -71,6 +100,34 @@ def _dashboard_payload(user):
         if sub.renewal_date
     ]
 
+    calendar_events = []
+    schedule_items = []
+    for sub in subscriptions:
+        period = subscription_period(sub, today)
+
+        base = {
+            'subscription_id': sub.id,
+            'platform_id': sub.platform_id,
+            'platform_name': sub.platform.name,
+            'plan_name': sub.plan_name,
+            'amount': sub.payment_amount,
+            'start_date': sub.start_date.isoformat() if sub.start_date else None,
+            'renewal_date': sub.renewal_date.isoformat() if sub.renewal_date else None,
+        }
+        calendar_events.append({
+            'id': sub.id,
+            **base,
+            **period,
+            'billing_cycle': sub.billing_cycle,
+            'monthly_amount': _monthly_amount(sub),
+            'icon_url': _platform_icon(sub.platform.name),
+        })
+        schedule_items.extend(build_schedule_items(sub, today))
+
+    all_subscriptions = [_subscription_payload(sub, today) for sub in subscriptions]
+    standalone_subscriptions = [s for s in all_subscriptions if not s['is_bundle']]
+    bundle_subscriptions = [s for s in all_subscriptions if s['is_bundle']]
+
     return {
         'subscription_count': len(subscriptions),
         'monthly_total': monthly_total,
@@ -78,7 +135,11 @@ def _dashboard_payload(user):
         'plan_count': SubscriptionPlan.objects.count(),
         'next_payment': timeline[0] if timeline else None,
         'timeline': sorted(timeline, key=lambda item: item['days']),
-        'subscriptions': [_subscription_payload(sub) for sub in subscriptions],
+        'calendar_events': calendar_events,
+        'schedule_items': schedule_items,
+        'subscriptions': all_subscriptions,
+        'standalone_subscriptions': standalone_subscriptions,
+        'bundle_subscriptions': bundle_subscriptions,
     }
 
 
@@ -182,6 +243,126 @@ def dashboard(request):
     return Response(_dashboard_payload(request.user))
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def renewal_notifications(request):
+    """Upcoming subscription renewal alerts (default: next 14 days)."""
+    today = timezone.now().date()
+    try:
+        days = int(request.GET.get('days', 14))
+    except (TypeError, ValueError):
+        days = 14
+    days = max(1, min(days, 60))
+    horizon = today + timedelta(days=days)
+
+    subs = (
+        UserSubscription.objects
+        .filter(
+            user=request.user,
+            is_active=True,
+            renewal_date__gte=today,
+            renewal_date__lte=horizon,
+        )
+        .select_related('platform')
+        .order_by('renewal_date')
+    )
+    notifications = [
+        {
+            'id': sub.id,
+            'platform_name': sub.platform.name,
+            'plan_name': sub.plan_name or (sub.plan.plan_name if sub.plan else ''),
+            'renewal_date': sub.renewal_date.isoformat(),
+            'days_until': (sub.renewal_date - today).days,
+            'monthly_amount': _monthly_amount(sub),
+            'icon_url': _platform_icon(sub.platform.name),
+        }
+        for sub in subs
+    ]
+    return Response({
+        'today': today.isoformat(),
+        'horizon_days': days,
+        'notifications': notifications,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notifications_feed(request):
+    """Unified notifications: renewals, budget warnings, promos."""
+    from accounts.models import UserPreferenceProfile
+
+    today = timezone.now().date()
+    try:
+        horizon = int(request.GET.get('days', 14))
+    except (TypeError, ValueError):
+        horizon = 14
+    horizon = max(1, min(horizon, 60))
+    horizon_date = today + timedelta(days=horizon)
+
+    items = []
+    subs = (
+        UserSubscription.objects
+        .filter(
+            user=request.user,
+            is_active=True,
+            renewal_date__gte=today,
+            renewal_date__lte=horizon_date,
+        )
+        .select_related('platform')
+        .order_by('renewal_date')
+    )
+    for sub in subs:
+        days_until = (sub.renewal_date - today).days
+        urgency = 'high' if days_until <= 3 else 'normal'
+        items.append({
+            'id': f'renewal-{sub.id}',
+            'type': 'renewal',
+            'urgency': urgency,
+            'title': f'{sub.platform.name} 재결제 예정',
+            'body': f'{sub.plan_name} · {sub.renewal_date.isoformat()} (D-{days_until})',
+            'link': '/subscriptions',
+            'created_at': today.isoformat(),
+            'read': False,
+        })
+
+    pref = UserPreferenceProfile.objects.filter(user=request.user).first()
+    cap = pref.monthly_spend_cap if pref else None
+    if cap and cap > 0:
+        monthly_total = sum(_monthly_amount(s) for s in UserSubscription.objects.filter(
+            user=request.user, is_active=True,
+        ))
+        if monthly_total > cap:
+            items.append({
+                'id': 'budget-over',
+                'type': 'budget',
+                'urgency': 'high',
+                'title': '월 OTT 예산 초과',
+                'body': f'현재 구독 {monthly_total:,}원 / 예산 {cap:,}원',
+                'link': '/benchmark?tab=personal',
+                'created_at': today.isoformat(),
+                'read': False,
+            })
+        elif monthly_total > cap * 0.85:
+            items.append({
+                'id': 'budget-warn',
+                'type': 'budget',
+                'urgency': 'normal',
+                'title': '월 OTT 예산 임박',
+                'body': f'현재 구독 {monthly_total:,}원 / 예산 {cap:,}원',
+                'link': '/benchmark?tab=personal',
+                'created_at': today.isoformat(),
+                'read': False,
+            })
+
+    urgent = [n for n in items if n['urgency'] == 'high']
+    return Response({
+        'today': today.isoformat(),
+        'notifications': items,
+        'urgent': urgent,
+        'unread_count': len(items),
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def manual_add(request):
@@ -201,9 +382,14 @@ def manual_add(request):
             return Response({'plan': ['선택한 플랫폼의 요금제가 아닙니다.']}, status=status.HTTP_400_BAD_REQUEST)
 
     start_date = data.get('start_date') or timezone.now().date().isoformat()
-    renewal_date = data.get('renewal_date') or start_date
-    plan_name = data.get('plan_name') or (plan.plan_name if plan else '미정')
     billing_cycle = data.get('billing_cycle') or (plan.billing_period if plan else 'monthly')
+    if isinstance(start_date, str):
+        from datetime import date as date_cls
+        start_dt = date_cls.fromisoformat(start_date)
+    else:
+        start_dt = start_date
+    renewal_date = data.get('renewal_date') or default_renewal_date(start_dt, billing_cycle).isoformat()
+    plan_name = data.get('plan_name') or (plan.plan_name if plan else '미정')
     payment_method = data.get('payment_method') or ''
 
     try:

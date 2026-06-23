@@ -1,7 +1,7 @@
-from django.db import models
 from django.conf import settings
-from subscriptions.models import Platform
+from django.db import models
 
+from subscriptions.models import Platform
 
 class Content(models.Model):
     tmdb_id = models.IntegerField(unique=True)  # TMDB API id
@@ -117,3 +117,162 @@ class WatchmodeUsage(models.Model):
         month = cls._current_month()
         row, _ = cls.objects.get_or_create(month=month)
         cls.objects.filter(pk=row.pk).update(count=F('count') + n)
+
+
+class MediaType(models.TextChoices):
+    MOVIE = 'movie', 'Movie'
+    TV = 'tv', 'TV'
+
+
+class StreamingCache(models.Model):
+    """Per-title streaming availability for benchmark aggregation."""
+    tmdb_id = models.IntegerField(db_index=True)
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    platform = models.ForeignKey(
+        Platform, on_delete=models.CASCADE, related_name='streaming_cache_entries',
+    )
+    available = models.BooleanField(default=True)
+    checked_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tmdb_id', 'media_type', 'platform')
+        indexes = [
+            models.Index(fields=['platform', 'available']),
+            models.Index(fields=['tmdb_id', 'media_type']),
+        ]
+
+    def __str__(self):
+        status = 'available' if self.available else 'unavailable'
+        return f'{self.media_type}/{self.tmdb_id} @ {self.platform.name} ({status})'
+
+
+class TitleMeta(models.Model):
+    """TMDB metadata cache for benchmark scoring (separate from StreamingCache)."""
+    tmdb_id = models.IntegerField(db_index=True)
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    title = models.CharField(max_length=255, blank=True)
+    poster_url = models.URLField(blank=True)
+    vote_average = models.FloatField(default=0)
+    vote_count = models.PositiveIntegerField(default=0)
+    popularity = models.FloatField(default=0)
+
+    class Meta:
+        unique_together = ('tmdb_id', 'media_type')
+        indexes = [
+            models.Index(fields=['media_type', 'vote_average']),
+        ]
+
+    def __str__(self):
+        return f'{self.media_type}/{self.tmdb_id} (★{self.vote_average})'
+
+
+class TitleGenres(models.Model):
+    """Genre membership per title (TMDB genre IDs as canonical taxonomy)."""
+    tmdb_id = models.IntegerField(db_index=True)
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    genre_id = models.PositiveIntegerField(db_index=True)
+
+    class Meta:
+        unique_together = ('tmdb_id', 'media_type', 'genre_id')
+        indexes = [
+            models.Index(fields=['genre_id']),
+        ]
+
+    def __str__(self):
+        return f'{self.media_type}/{self.tmdb_id} genre={self.genre_id}'
+
+
+class PlatformGenreStats(models.Model):
+    """Aggregated genre distribution per platform (pie charts + Personal Score)."""
+    platform = models.ForeignKey(
+        Platform, on_delete=models.CASCADE, related_name='genre_stats',
+    )
+    genre_id = models.PositiveIntegerField(db_index=True)
+    title_count = models.PositiveIntegerField(default=0)
+    snapshot_date = models.DateField(db_index=True)
+
+    class Meta:
+        unique_together = ('platform', 'genre_id', 'snapshot_date')
+        indexes = [
+            models.Index(fields=['platform', 'snapshot_date']),
+        ]
+
+    def __str__(self):
+        return f'{self.platform.name} genre={self.genre_id} ({self.title_count})'
+
+
+class PlatformBenchmarkSnapshot(models.Model):
+    """Final benchmark snapshot served to users (written by weekly batch)."""
+    class ConfidenceLevel(models.TextChoices):
+        LOW = 'low', 'Low'
+        MEDIUM = 'medium', 'Medium'
+        HIGH = 'high', 'High'
+
+    platform = models.ForeignKey(
+        Platform, on_delete=models.CASCADE, related_name='benchmark_snapshots',
+    )
+    snapshot_date = models.DateField(db_index=True)
+    availability_score = models.FloatField(null=True, blank=True)
+    exclusivity_score = models.FloatField(null=True, blank=True)
+    quality_score = models.FloatField(null=True, blank=True)
+    price_score = models.FloatField(null=True, blank=True)
+    accessibility_score = models.FloatField(null=True, blank=True)
+    confidence_level = models.CharField(
+        max_length=10, choices=ConfidenceLevel.choices, default=ConfidenceLevel.LOW,
+    )
+    value_score = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('platform', 'snapshot_date')
+        ordering = ['-snapshot_date', 'platform__name']
+
+    def __str__(self):
+        return f'{self.platform.name} @ {self.snapshot_date}'
+
+
+class LLMJudgmentCache(models.Model):
+    """Cached LLM judgments for exclusivity trending weight and price scoring."""
+    class JudgmentType(models.TextChoices):
+        EXCLUSIVITY_WEIGHT = 'exclusivity_weight', 'Exclusivity weight'
+        PRICE_BENEFICIAL = 'price_beneficial', 'Price beneficial'
+        USER_TASTE = 'user_taste', 'User taste analysis'
+        ONBOARDING_PARSE = 'onboarding_parse', 'Onboarding preference parse'
+        PLATFORM_INSIGHT = 'platform_insight', 'Platform benchmark insight'
+
+    cache_key = models.CharField(max_length=255, unique=True)
+    judgment_type = models.CharField(max_length=30, choices=JudgmentType.choices)
+    target_id = models.CharField(
+        max_length=64,
+        help_text='tmdb_id or plan_id depending on judgment_type',
+    )
+    result_json = models.JSONField(default=dict)
+    snapshot_date = models.DateField(db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['judgment_type', 'snapshot_date']),
+        ]
+
+    def __str__(self):
+        return f'{self.judgment_type}:{self.target_id} ({self.snapshot_date})'
+
+
+class PlatformUserReview(models.Model):
+    """User score + opinion for a streaming platform (1-5)."""
+    platform = models.ForeignKey(
+        Platform, on_delete=models.CASCADE, related_name='user_reviews',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='platform_reviews',
+    )
+    score = models.PositiveSmallIntegerField(help_text='1-5 user rating')
+    body = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('platform', 'user')
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'{self.user_id} → {self.platform.name} ({self.score})'

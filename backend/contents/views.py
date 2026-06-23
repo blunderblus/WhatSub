@@ -1,4 +1,6 @@
 ﻿from datetime import timedelta
+import logging
+import time
 
 import requests
 from django.conf import settings
@@ -10,9 +12,15 @@ from rest_framework.permissions import IsAuthenticated
 
 from subscriptions.models import Platform
 from . import watchmode as wm
-from .models import Content, ContentPlatform, ContentReaction, WatchmodeUsage
+from .models import Content, ContentPlatform, ContentReaction, StreamingCache, TitleGenres, TitleMeta, WatchmodeUsage
+from .title_display import get_title_display_map
+
+logger = logging.getLogger(__name__)
 
 SOURCES_CACHE_TTL = timedelta(hours=24)
+RAPIDAPI_MIN_INTERVAL_SEC = 0.35
+RAPIDAPI_429_MAX_RETRIES = 4
+_last_rapidapi_request_at = 0.0
 _PROVIDER_PRIORITY = {'subscription': 0, 'free': 1, 'ads': 2, 'rent': 3, 'buy': 4, 'addon': 5}
 _TYPE_TO_SOURCE = {'subscription': 'sub', 'free': 'free', 'rent': 'rent', 'buy': 'buy'}
 
@@ -40,6 +48,10 @@ _PLATFORM_ICONS = {
     'spotv now': ('SPOTV', 'SpotvNow_icon.png'),
     'spotvnow': ('SPOTV', 'SpotvNow_icon.png'),
 }
+
+# TMDB discover returns empty for these KR providers — use StreamingCache instead.
+_KR_UNRELIABLE_TMDB_PROVIDER_IDS = {200, 356, 97}  # TVING, Wavve, Watcha
+_SUBSCRIPTION_TYPES = {'subscription', 'free', 'ads'}
 
 # TMDB genre APIs
 def tmdb_genres(request):
@@ -74,9 +86,76 @@ def tmdb_show_list(request):
     return _tmdb_discover(request, 'tv')
 
 
+def _parse_platform_ids(request):
+    ids = []
+    for raw in request.GET.getlist('platform_id'):
+        text = str(raw).strip()
+        if text.isdigit():
+            ids.append(int(text))
+    extra = request.GET.get('platform_ids', '')
+    if extra:
+        for raw in extra.split(','):
+            text = str(raw).strip()
+            if text.isdigit():
+                ids.append(int(text))
+    return list(dict.fromkeys(ids))
+
+
+def _platform_prefers_streaming_cache(platform):
+    if not platform.tmdb_provider_id:
+        return True
+    if platform.tmdb_provider_id in _KR_UNRELIABLE_TMDB_PROVIDER_IDS:
+        return True
+    if platform.name in {'TVING', 'Wavve', 'Watcha', 'Coupang Play', 'SPOTV'}:
+        return True
+    return False
+
+
 def _tmdb_discover(request, media_type):
     genre_id = request.GET.get('genre')
+    platform_ids = _parse_platform_ids(request)
     page = request.GET.get('page', 1)
+
+    if platform_ids:
+        platforms = list(Platform.objects.filter(pk__in=platform_ids))
+        if not platforms:
+            return JsonResponse({'page': 1, 'total_pages': 1, 'results': []}, json_dumps_params={'ensure_ascii': False})
+
+        use_cache = any(_platform_prefers_streaming_cache(p) for p in platforms)
+        if not use_cache:
+            cache_count = StreamingCache.objects.filter(
+                platform_id__in=platform_ids, media_type=media_type, available=True,
+            ).count()
+            use_cache = cache_count > 0
+
+        if use_cache:
+            return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
+
+        provider_ids = [p.tmdb_provider_id for p in platforms if p.tmdb_provider_id]
+        if not provider_ids:
+            return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
+
+        url = f'https://api.themoviedb.org/3/discover/{media_type}'
+        params = {
+            'api_key': settings.TMDB_API_KEY,
+            'language': 'ko-KR',
+            'include_adult': 'false',
+            'sort_by': 'popularity.desc',
+            'watch_region': 'KR',
+            'page': page,
+            'with_watch_providers': '|'.join(str(pid) for pid in provider_ids),
+        }
+        if genre_id:
+            params['with_genres'] = genre_id
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            if not data.get('results') and len(platform_ids) == 1:
+                return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
+            return _format_discover_response(data, media_type)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
     url = f'https://api.themoviedb.org/3/discover/{media_type}'
     params = {
@@ -95,29 +174,112 @@ def _tmdb_discover(request, media_type):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-
-        movies = []
-        for item in data.get('results', []):
-            movies.append({
-                'tmdb_id': item.get('id'),
-                'title': item.get('title') or item.get('name') or item.get('original_title') or item.get('original_name'),
-                'overview': item.get('overview') or '줄거리 정보가 아직 없습니다.',
-                'release_date': item.get('release_date') or item.get('first_air_date') or '',
-                'rating': item.get('vote_average') or 0,
-                'poster_url': (
-                    f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}"
-                    if item.get('poster_path')
-                    else None
-                ),
-            })
-
-        return JsonResponse({
-            'page': data.get('page', 1),
-            'total_pages': data.get('total_pages', 1),
-            'results': movies,
-        }, json_dumps_params={'ensure_ascii': False})
+        return _format_discover_response(data, media_type)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def _format_discover_response(data, media_type):
+    movies = []
+    for item in data.get('results', []):
+        movies.append({
+            'tmdb_id': item.get('id'),
+            'media_type': media_type,
+            'title': item.get('title') or item.get('name') or item.get('original_title') or item.get('original_name'),
+            'overview': item.get('overview') or '줄거리 정보가 아직 없습니다.',
+            'release_date': item.get('release_date') or item.get('first_air_date') or '',
+            'rating': item.get('vote_average') or 0,
+            'poster_url': (
+                f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}"
+                if item.get('poster_path')
+                else None
+            ),
+        })
+
+    return JsonResponse({
+        'page': data.get('page', 1),
+        'total_pages': data.get('total_pages', 1),
+        'results': movies,
+    }, json_dumps_params={'ensure_ascii': False})
+
+
+def _streaming_cache_list(request, media_type, platform_ids, genre_id=None):
+    """Paginated title list from StreamingCache (supports multi-platform OR)."""
+    from django.core.paginator import Paginator
+
+    if not isinstance(platform_ids, (list, tuple)):
+        platform_ids = [platform_ids]
+
+    page = int(request.GET.get('page', 1))
+    per_page = 20
+    qs = StreamingCache.objects.filter(
+        platform_id__in=platform_ids, media_type=media_type, available=True,
+    )
+    keys = list(qs.values_list('tmdb_id', 'media_type').distinct())
+
+    if genre_id:
+        genre_keys = set(
+            TitleGenres.objects.filter(
+                genre_id=genre_id, media_type=media_type,
+            ).values_list('tmdb_id', 'media_type')
+        )
+        keys = [k for k in keys if k in genre_keys]
+
+    keys.sort(key=lambda row: row[0], reverse=True)
+
+    paginator = Paginator(keys, per_page)
+    page_obj = paginator.get_page(page)
+    display_map = get_title_display_map(page_obj.object_list, max_tmdb_fetches=per_page)
+
+    results = []
+    for tmdb_id, mt in page_obj.object_list:
+        info = display_map.get((tmdb_id, mt), {})
+        meta = TitleMeta.objects.filter(tmdb_id=tmdb_id, media_type=mt).first()
+        results.append({
+            'tmdb_id': tmdb_id,
+            'media_type': mt,
+            'title': info.get('title') or f'작품 #{tmdb_id}',
+            'overview': '',
+            'release_date': '',
+            'rating': meta.vote_average if meta else 0,
+            'poster_url': info.get('poster_url') or '',
+        })
+
+    return JsonResponse({
+        'page': page_obj.number,
+        'total_pages': paginator.num_pages or 1,
+        'results': results,
+        'source': 'streaming_cache',
+    }, json_dumps_params={'ensure_ascii': False})
+
+
+def streaming_platforms_filter(request):
+    """Platforms with cached titles for content list filter."""
+    qs = StreamingCache.objects.filter(available=True)
+    media_type = (request.GET.get('media_type') or '').strip().lower()
+    if media_type in ('movie', 'movies'):
+        qs = qs.filter(media_type='movie')
+    elif media_type in ('tv', 'show', 'shows', 'series'):
+        qs = qs.filter(media_type='tv')
+
+    rows = (
+        qs
+        .values('platform_id', 'platform__name')
+        .annotate(title_count=Count('tmdb_id', distinct=True))
+        .order_by('-title_count')
+    )
+    from .benchmark_constants import platform_icon
+    return JsonResponse({
+        'platforms': [
+            {
+                'platform_id': r['platform_id'],
+                'name': r['platform__name'],
+                'title_count': r['title_count'],
+                'icon_url': platform_icon(r['platform__name']),
+            }
+            for r in rows
+        ],
+    }, json_dumps_params={'ensure_ascii': False})
 
 
 def tmdb_movie_detail(request, tmdb_id):
@@ -163,7 +325,12 @@ def _tmdb_content_detail(request, tmdb_id, media_type):
 
         payload = {
             'movie': movie,
-            'providers': get_streaming_providers(tmdb_id, media_type),
+            'providers': get_streaming_providers(
+                tmdb_id, media_type,
+                allow_watchmode=True,
+                allow_rapidapi_fallback=True,
+                skip_rapidapi=True,
+            ),
         }
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except requests.exceptions.HTTPError as err:
@@ -198,33 +365,187 @@ def _kr_local_present(providers):
     return any((p.get('service') or '').lower() in wm.KR_LOCAL_SERVICES for p in providers)
 
 
+def _should_augment_watchmode(providers):
+    """True when KR locals are missing or present without a deep link."""
+    present = {(p.get('service') or '').lower() for p in providers}
+    if not wm.KR_LOCAL_SERVICES.intersection(present):
+        return True
+    for svc in wm.KR_LOCAL_SERVICES:
+        if svc not in present:
+            continue
+        entries = [p for p in providers if (p.get('service') or '').lower() == svc]
+        if entries and not any(p.get('link') for p in entries):
+            return True
+    return False
+
+
+def _normalized_service(prov):
+    svc = (prov.get('service') or prov.get('display_name') or '').lower().strip()
+    match = _PLATFORM_ICONS.get(svc)
+    return match[0].lower() if match else svc
+
+
+def _provider_key(prov):
+    return (_normalized_service(prov), prov.get('type') or 'subscription')
+
+
+def _collapse_same_platform(providers):
+    """Same platform: drop link-less duplicates when a linked entry exists."""
+    by_service = {}
+    for prov in providers:
+        svc = _normalized_service(prov)
+        by_service.setdefault(svc, []).append(dict(prov))
+
+    collapsed = []
+    for group in by_service.values():
+        linked = [p for p in group if (p.get('link') or '').strip()]
+        pool = linked if linked else group
+        by_type = {}
+        for prov in pool:
+            ptype = prov.get('type') or 'subscription'
+            current = by_type.get(ptype)
+            if not current or ((prov.get('link') or '').strip() and not (current.get('link') or '').strip()):
+                by_type[ptype] = prov
+        collapsed.extend(by_type.values())
+    return collapsed
+
+
+def _dedupe_providers(providers):
+    providers = _collapse_same_platform(providers)
+    return sorted(
+        providers,
+        key=lambda x: (_PROVIDER_PRIORITY.get(x.get('type'), 99), _normalized_service(x)),
+    )
+
+
+def _preserve_deeplinks(new_providers, old_providers):
+    """Keep cached deep links when a refresh drops them."""
+    old_by_key = {}
+    for prov in old_providers or []:
+        if not (prov.get('link') or '').strip():
+            continue
+        old_by_key[_provider_key(prov)] = prov
+
+    if not old_by_key:
+        return new_providers
+
+    merged = []
+    seen_keys = set()
+    for prov in new_providers:
+        prov = dict(prov)
+        key = _provider_key(prov)
+        seen_keys.add(key)
+        if not (prov.get('link') or '').strip() and key in old_by_key:
+            old = old_by_key[key]
+            prov['link'] = old['link']
+            prov['source'] = old.get('source') or prov.get('source')
+            if prov.get('price') is None and old.get('price') is not None:
+                prov['price'] = old['price']
+        merged.append(prov)
+
+    new_keys = {_provider_key(p) for p in merged}
+    for key, old in old_by_key.items():
+        if key not in new_keys:
+            merged.append(dict(old))
+    return merged
+
+
+def _enrich_provider_links(content, providers):
+    """Fill missing links from ContentPlatform rows (survives TMDB-only refresh)."""
+    from subscriptions.platform_utils import resolve_official_platform
+
+    cp_links = {}
+    for row in content.platform_sources.filter(is_available=True).exclude(deeplink_url='').select_related('platform'):
+        cp_links[row.platform.name.lower()] = row.deeplink_url
+
+    enriched = []
+    for prov in providers:
+        prov = dict(prov)
+        if not (prov.get('link') or '').strip():
+            svc = _normalized_service(prov)
+            platform = resolve_official_platform(name=prov.get('service') or prov.get('display_name') or '')
+            if platform and platform.name.lower() in cp_links:
+                prov['link'] = cp_links[platform.name.lower()]
+            elif svc in cp_links:
+                prov['link'] = cp_links[svc]
+        enriched.append(prov)
+    return enriched
+
+
+def _providers_missing_links(providers):
+    return any(not (p.get('link') or '').strip() for p in providers)
+
+
+def _merge_providers_prefer_links(primary, secondary):
+    by_key = {_provider_key(p): dict(p) for p in primary}
+    for prov in secondary:
+        key = _provider_key(prov)
+        if key not in by_key:
+            by_key[key] = dict(prov)
+            continue
+        existing = by_key[key]
+        if (prov.get('link') or '').strip() and not (existing.get('link') or '').strip():
+            existing['link'] = prov['link']
+            existing['source'] = prov.get('source') or existing.get('source')
+        if not existing.get('icon_url') and prov.get('icon_url'):
+            existing['icon_url'] = prov['icon_url']
+        if existing.get('price') is None and prov.get('price') is not None:
+            existing['price'] = prov['price']
+    return sorted(
+        by_key.values(),
+        key=lambda x: (_PROVIDER_PRIORITY.get(x.get('type'), 99), _normalized_service(x)),
+    )
+
+
+def _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers):
+    if not getattr(settings, 'RAPIDAPI_KEY', ''):
+        return providers
+    try:
+        rapid = _parse_streaming_providers(_fetch_streaming_availability(tmdb_id, media_type))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning('RapidAPI link fallback failed for %s/%s: %s', media_type, tmdb_id, exc)
+        return providers
+    if not rapid:
+        return providers
+    merged = _merge_providers_prefer_links(providers, rapid)
+    if merged != providers:
+        merged = _finalize_providers(content, merged)
+        content.sources_cache = merged
+        content.sources_synced_at = timezone.now()
+        content.save(update_fields=['sources_cache', 'sources_synced_at'])
+        _sync_content_platforms(content, merged)
+    return merged
+
+
+def _finalize_providers(content, providers):
+    providers = _dedupe_providers(providers)
+    providers = _enrich_provider_links(content, providers)
+    return providers
+
+
 def _merge_providers(primary, secondary):
     """Merge two provider lists, de-duplicating by (service name, type)."""
-    seen = {((p.get('service') or '').lower(), p.get('type')) for p in primary}
-    merged = list(primary)
-    for prov in secondary:
-        key = ((prov.get('service') or '').lower(), prov.get('type'))
-        if key not in seen:
-            seen.add(key)
-            merged.append(prov)
-    return sorted(merged, key=lambda x: _PROVIDER_PRIORITY.get(x.get('type'), 99))
+    return _merge_providers_prefer_links(primary, secondary)
 
 
 def _sync_content_platforms(content, providers):
     """Persist availability rows for providers that map to a known Platform."""
-    name_map = {p.name.lower(): p for p in Platform.objects.all()}
+    from subscriptions.platform_utils import resolve_official_platform
+
     for prov in providers:
-        platform = name_map.get((prov.get('service') or '').lower())
+        platform = resolve_official_platform(name=prov.get('service') or '')
         source_type = _TYPE_TO_SOURCE.get(prov.get('type'))
         if not platform or not source_type:
             continue
+        defaults = {
+            'price': prov.get('price'),
+            'is_available': True,
+        }
+        if prov.get('link'):
+            defaults['deeplink_url'] = prov['link']
         ContentPlatform.objects.update_or_create(
             content=content, platform=platform, source_type=source_type,
-            defaults={
-                'deeplink_url': prov.get('link') or '',
-                'price': prov.get('price'),
-                'is_available': True,
-            },
+            defaults=defaults,
         )
 
 
@@ -259,14 +580,15 @@ def _augment_with_watchmode(content, tmdb_id, media_type, providers):
     return providers, calls
 
 
-def get_streaming_providers(tmdb_id, media_type, allow_watchmode=True, force_refresh=False):
+def get_streaming_providers(
+    tmdb_id, media_type, allow_watchmode=False, force_refresh=False,
+    skip_rapidapi=True, allow_rapidapi_fallback=False,
+):
     """
     Resolve per-title KR streaming availability with a 24h DB cache.
 
-    RapidAPI streaming-availability is the primary source. Watchmode is only
-    queried (to fill KR gaps: TVING/Watcha/Wavve or missing titles) when
-    ``allow_watchmode`` is True ??reserved for detail-page views so that
-    hovering across a list does not burn the Watchmode free-tier budget.
+    TMDB watch/providers is the default source (fast). Watchmode supplements
+    KR locals (TVING / Wavve / Watcha) with title deep links on detail pages.
     """
     content, _ = Content.objects.get_or_create(
         tmdb_id=tmdb_id,
@@ -279,52 +601,111 @@ def get_streaming_providers(tmdb_id, media_type, allow_watchmode=True, force_ref
     )
 
     if is_fresh:
-        providers = content.sources_cache or []
-        # A title first cached from a list hover (RapidAPI only) can still be
-        # enriched on its detail view without resetting the cache window.
+        providers = _finalize_providers(content, content.sources_cache or [])
         if (
-            allow_watchmode and not content.watchmode_checked
-            and not _kr_local_present(providers)
-            and wm.is_configured() and WatchmodeUsage.can_call()
+            allow_watchmode
+            and wm.is_configured()
+            and WatchmodeUsage.can_call()
+            and _should_augment_watchmode(providers)
         ):
             providers, calls = _augment_with_watchmode(content, tmdb_id, media_type, providers)
             if calls:
                 WatchmodeUsage.increment(calls)
+            providers = _finalize_providers(content, providers)
             content.sources_cache = providers
-            content.watchmode_checked = True
-            content.save(update_fields=['sources_cache', 'watchmode_checked', 'watchmode_id'])
+            content.sources_synced_at = timezone.now()
+            content.save(update_fields=['sources_cache', 'sources_synced_at', 'watchmode_id'])
             _sync_content_platforms(content, providers)
+        if allow_rapidapi_fallback and _providers_missing_links(providers):
+            providers = _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers)
         return _decorate_providers(providers)
 
-    # Cache miss / expired: refresh from RapidAPI (primary).
-    try:
-        providers = _parse_streaming_providers(
-            _fetch_streaming_availability(tmdb_id, media_type)
-        )
-    except Exception as exc:  # noqa: BLE001 - never let availability break the page
-        print(f'RapidAPI availability failed for {media_type}/{tmdb_id}: {exc}', flush=True)
-        providers = []
+    old_providers = list(content.sources_cache or [])
+    rapidapi_failed = False
+    if skip_rapidapi:
+        providers = _providers_from_tmdb_watch(tmdb_id, media_type)
+    else:
+        try:
+            providers = _parse_streaming_providers(
+                _fetch_streaming_availability(tmdb_id, media_type)
+            )
+        except Exception as exc:  # noqa: BLE001 - never let availability break the page
+            rapidapi_failed = True
+            logger.warning(
+                'RapidAPI availability failed for %s/%s: %s', media_type, tmdb_id, exc,
+            )
+            providers = _providers_from_tmdb_watch(tmdb_id, media_type)
 
-    watchmode_checked = False
-    needs_watchmode = not providers or not _kr_local_present(providers)
-    if allow_watchmode and needs_watchmode and wm.is_configured() and WatchmodeUsage.can_call():
+    providers = _preserve_deeplinks(providers, old_providers)
+
+    if (
+        allow_watchmode
+        and wm.is_configured()
+        and WatchmodeUsage.can_call()
+        and _should_augment_watchmode(providers)
+    ):
         providers, calls = _augment_with_watchmode(content, tmdb_id, media_type, providers)
         if calls:
             WatchmodeUsage.increment(calls)
-        watchmode_checked = True
 
-    content.sources_cache = providers
-    content.sources_synced_at = timezone.now()
-    content.watchmode_checked = watchmode_checked
-    content.save(update_fields=[
-        'sources_cache', 'sources_synced_at', 'watchmode_checked', 'watchmode_id',
-    ])
-    _sync_content_platforms(content, providers)
+    providers = _finalize_providers(content, providers)
+
+    should_persist = bool(providers) or skip_rapidapi or not rapidapi_failed
+    if should_persist:
+        content.sources_cache = providers
+        content.sources_synced_at = timezone.now()
+        content.save(update_fields=['sources_cache', 'sources_synced_at', 'watchmode_id'])
+        _sync_content_platforms(content, providers)
+
+    if allow_rapidapi_fallback and _providers_missing_links(providers):
+        providers = _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers)
 
     return _decorate_providers(providers)
 
 
+def _providers_from_tmdb_watch(tmdb_id, media_type):
+    """Build provider dicts from TMDB watch/providers (KR) — no RapidAPI."""
+    try:
+        data = _tmdb_get(
+            f'https://api.themoviedb.org/3/{media_type}/{tmdb_id}/watch/providers',
+            {},
+        )
+    except Exception as exc:
+        logger.warning('TMDB watch/providers failed for %s/%s: %s', media_type, tmdb_id, exc)
+        return []
+
+    region = (data.get('results') or {}).get('KR') or {}
+    type_map = (
+        ('flatrate', 'subscription', '구독'),
+        ('free', 'free', '무료'),
+        ('ads', 'ads', '광고 포함'),
+        ('rent', 'rent', '대여'),
+        ('buy', 'buy', '구매'),
+    )
+    providers = []
+    seen = set()
+    for key, ptype, label in type_map:
+        for item in region.get(key) or []:
+            name = item.get('provider_name') or ''
+            dedupe = (name.lower(), ptype)
+            if not name or dedupe in seen:
+                continue
+            seen.add(dedupe)
+            logo = item.get('logo_path')
+            providers.append({
+                'service': name,
+                'display_name': name,
+                'type': ptype,
+                'type_label': label,
+                'icon_url': _tmdb_image(logo, 'w45') if logo else None,
+                'source': 'tmdb',
+            })
+    return sorted(providers, key=lambda x: _PROVIDER_PRIORITY.get(x.get('type'), 99))
+
+
 def _fetch_streaming_availability(tmdb_id, media_type):
+    global _last_rapidapi_request_at
+
     rapidapi_key = getattr(settings, 'RAPIDAPI_KEY', '')
     formatted_id = f"{media_type}/{tmdb_id}"
     url = f"https://streaming-availability.p.rapidapi.com/shows/{formatted_id}"
@@ -333,15 +714,35 @@ def _fetch_streaming_availability(tmdb_id, media_type):
         "X-RapidAPI-Host": "streaming-availability.p.rapidapi.com"
     }
 
-    response = requests.get(url, headers=headers, params={"country": "kr"})
-    if response.status_code == 404:
-        return {}
-    response.raise_for_status()
+    elapsed = time.monotonic() - _last_rapidapi_request_at
+    if elapsed < RAPIDAPI_MIN_INTERVAL_SEC:
+        time.sleep(RAPIDAPI_MIN_INTERVAL_SEC - elapsed)
 
-    data = response.json()
-    print("=== Streaming Availability original JSON ===")
-    print(data, flush=True)
-    return data
+    last_exc = None
+    for attempt in range(RAPIDAPI_429_MAX_RETRIES):
+        _last_rapidapi_request_at = time.monotonic()
+        response = requests.get(url, headers=headers, params={"country": "kr"}, timeout=30)
+        if response.status_code == 404:
+            return {}
+        if response.status_code == 429:
+            last_exc = requests.HTTPError(
+                f'429 Too Many Requests for {formatted_id}', response=response,
+            )
+            if attempt < RAPIDAPI_429_MAX_RETRIES - 1:
+                backoff = 2 ** (attempt + 1)
+                logger.warning(
+                    'RapidAPI 429 for %s — retry %d/%d in %ds',
+                    formatted_id, attempt + 1, RAPIDAPI_429_MAX_RETRIES - 1, backoff,
+                )
+                time.sleep(backoff)
+                continue
+            response.raise_for_status()
+        response.raise_for_status()
+        return response.json()
+
+    if last_exc:
+        raise last_exc
+    return {}
 
 
 def _parse_streaming_providers(data):
@@ -500,6 +901,20 @@ def content_reaction(request, tmdb_id):
         tmdb_id=tmdb_id,
         defaults={'title': '', 'content_type': media_type},
     )
+    title_hint = (request.data.get('title') or '').strip()
+    poster_hint = (request.data.get('poster_url') or '').strip()
+    if title_hint or poster_hint:
+        from .title_display import upsert_title_display
+        upsert_title_display(tmdb_id, media_type, title_hint, poster_hint)
+    elif media_type and not (content.korean_title or content.title):
+        from . import tmdb_client
+        from .title_display import upsert_title_display
+        try:
+            brief = tmdb_client.fetch_title_brief(tmdb_id, media_type)
+            upsert_title_display(tmdb_id, media_type, brief.get('title', ''), brief.get('poster_url', ''))
+            content.refresh_from_db()
+        except Exception:
+            pass
 
     existing = ContentReaction.objects.filter(content=content, user=request.user).first()
     if not reaction or (existing and existing.reaction == reaction):
