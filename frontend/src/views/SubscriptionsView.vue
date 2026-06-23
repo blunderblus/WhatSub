@@ -39,7 +39,7 @@ onMounted(async () => {
       <template #actions>
         <div class="actions">
           <RouterLink class="button primary" to="/subscriptions/new">구독 추가</RouterLink>
-          <RouterLink class="button" to="/subscriptions/gmail">Gmail에서 찾기</RouterLink>
+          <a class="button" href="http://127.0.0.1:8000/accounts/onboarding/gmail/">Gmail에서 찾기</a>
         </div>
       </template>
     </PageHeader>
@@ -115,8 +115,8 @@ onMounted(async () => {
   width: 46px;
   height: 46px;
   border-radius: 8px;
-  background: #26323d;
-  color: #fff;
+  background: var(--ws-primary);
+  color: var(--ws-primary-fg);
   font-size: 20px;
   font-weight: 800;
 }
@@ -125,7 +125,7 @@ onMounted(async () => {
 .sub-main span,
 .price small {
   display: block;
-  color: #667586;
+  color: var(--ws-muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -143,25 +143,25 @@ onMounted(async () => {
   gap: 12px;
   align-items: center;
   padding: 12px;
-  border: 1px solid #dce3e9;
+  border: 1px solid var(--ws-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .sub-logo {
   width: 46px;
   height: 46px;
-  border: 1px solid #e3e8ee;
+  border: 1px solid var(--ws-border);
   border-radius: 8px;
   object-fit: contain;
-  background: #f0f3f5;
+  background: var(--ws-surface-2);
 }
 
 .sub-logo.fallback {
   display: grid;
   place-items: center;
-  background: #26323d;
-  color: #fff;
+  background: var(--ws-surface-2);
+  color: var(--ws-primary);
   font-weight: 800;
 }
 
@@ -172,10 +172,10 @@ onMounted(async () => {
 
 .delete-button {
   min-height: 36px;
-  border: 1px solid #f0c8ce;
+  border: 1px solid rgba(255, 77, 77, 0.35);
   border-radius: 8px;
-  background: #fff6f7;
-  color: #b3261e;
+  background: rgba(255, 77, 77, 0.08);
+  color: #ffb4b4;
   cursor: pointer;
   font-weight: 800;
 }
@@ -185,7 +185,7 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #edf1f4;
+  border-bottom: 1px solid var(--ws-border);
 }
 
 @media (max-width: 620px) {

@@ -20,9 +20,10 @@ def _pipeline_log(msg):
         logger.info(msg)
 
 _TIMEOUT = 90
-_MAX_EMAILS_PER_BATCH = 20
-_MAX_LLM_BATCHES = 4  # up to 80 emails per scan
+_MAX_EMAILS_PER_BATCH = 5
+_MAX_LLM_BATCHES = 16  # up to 80 emails per scan
 _MAX_BODY_CHARS = 3500
+_PER_EMAIL_LLM_THRESHOLD = 35  # above this, fall back to batching
 
 _SYSTEM_PROMPT = (
     'You are a precise assistant that extracts recurring subscription billing '
@@ -57,7 +58,19 @@ _USER_TEMPLATE = (
     '  "renewal_date": "YYYY-MM-DD" if a next-billing/renewal date is present, '
     'else null.\n\n'
     'If none are subscriptions, return {"subscriptions": []}.\n\n'
+    'CRITICAL: Process EVERY email below. Each email may contain a different '
+    'subscription — return a separate entry for EACH recurring subscription found '
+    'across ALL emails. Do not stop after finding one.\n\n'
     'EMAILS:\n__EMAILS__'
+)
+
+_SINGLE_EMAIL_TEMPLATE = (
+    'Below is ONE billing/receipt email (subject, sender, full body). Extract '
+    'every RECURRING subscription or membership in it. Ignore one-time purchases.\n\n'
+    'Return JSON: {"subscriptions": [ ... ]} with keys platform, plan_name, '
+    'payment_amount (integer KRW or null), billing_cycle, renewal_date '
+    '(YYYY-MM-DD or null).\n\n'
+    'EMAIL:\n__EMAIL__'
 )
 
 _ALLOWED_CYCLES = {'monthly', 'annual', 'weekly'}
@@ -123,21 +136,33 @@ def _parse_content(content):
     return []
 
 
+def _format_email_block(email, idx=1):
+    subject = (email.get('subject') or '').replace('\n', ' ')[:200]
+    sender = (email.get('sender') or '').replace('\n', ' ')[:120]
+    body = (email.get('body') or email.get('snippet') or '').replace('\r', ' ')
+    body = re.sub(r'\s+', ' ', body).strip()[:_MAX_BODY_CHARS]
+    return (
+        f'--- EMAIL {idx} ---\nSUBJECT: {subject}\nFROM: {sender}\nBODY: {body}',
+        subject,
+    )
+
+
 def _extract_batch(emails):
     """Run LLM extraction on a single batch of emails. Returns [] on failure."""
     if not emails:
         return []
 
-    lines = []
-    for idx, email in enumerate(emails, 1):
-        subject = (email.get('subject') or '').replace('\n', ' ')[:200]
-        sender = (email.get('sender') or '').replace('\n', ' ')[:120]
-        body = (email.get('body') or email.get('snippet') or '').replace('\r', ' ')
-        body = re.sub(r'\s+', ' ', body).strip()[:_MAX_BODY_CHARS]
-        lines.append(
-            f'--- EMAIL {idx} ---\nSUBJECT: {subject}\nFROM: {sender}\nBODY: {body}'
-        )
-    prompt = _USER_TEMPLATE.replace('__EMAILS__', '\n\n'.join(lines))
+    if len(emails) == 1:
+        block, subject = _format_email_block(emails[0], 1)
+        prompt = _SINGLE_EMAIL_TEMPLATE.replace('__EMAIL__', block)
+        log_label = f'1 email ({subject[:48]})'
+    else:
+        lines = []
+        for idx, email in enumerate(emails, 1):
+            block, _ = _format_email_block(email, idx)
+            lines.append(block)
+        prompt = _USER_TEMPLATE.replace('__EMAILS__', '\n\n'.join(lines))
+        log_label = f'{len(emails)} email(s)'
 
     url = settings.AI_API_BASE.rstrip('/') + '/chat/completions'
     payload = {
@@ -156,7 +181,7 @@ def _extract_batch(emails):
 
     if getattr(settings, 'GMAIL_PIPELINE_LOG', True):
         _pipeline_log(
-            f'[llm] batch: {len(emails)} email(s) → {settings.AI_MODEL} (~{len(prompt)} chars)'
+            f'[llm] batch: {log_label} → {settings.AI_MODEL} (~{len(prompt)} chars)'
         )
 
     try:
@@ -177,7 +202,7 @@ def _extract_batch(emails):
     return parsed
 
 
-def extract_subscriptions(emails):
+def extract_subscriptions(emails, on_progress=None):
     """
     Given a list of {subject, sender, body} dicts (already priority-sorted),
     return normalized subscription dicts. Processes in batches when there are
@@ -192,12 +217,26 @@ def extract_subscriptions(emails):
         _pipeline_log(f'[llm] capping at {cap} emails ({len(emails) - cap} skipped)')
 
     all_parsed = []
-    for start in range(0, len(to_process), _MAX_EMAILS_PER_BATCH):
-        batch = to_process[start:start + _MAX_EMAILS_PER_BATCH]
-        batch_num = start // _MAX_EMAILS_PER_BATCH + 1
-        if getattr(settings, 'GMAIL_PIPELINE_LOG', True):
-            _pipeline_log(f'[llm] batch {batch_num} emails {start + 1}–{start + len(batch)}')
-        all_parsed.extend(_extract_batch(batch))
+    if len(to_process) <= _PER_EMAIL_LLM_THRESHOLD:
+        for idx, email in enumerate(to_process, 1):
+            if getattr(settings, 'GMAIL_PIPELINE_LOG', True):
+                subj = (email.get('subject') or '')[:56]
+                _pipeline_log(f'[llm] per-email {idx}/{len(to_process)}: {subj}')
+            if on_progress:
+                on_progress(idx, len(to_process), email.get('subject') or '')
+            batch_result = _extract_batch([email])
+            for sub in batch_result:
+                sub['source_subject'] = email.get('source_subject') or email.get('subject') or ''
+            all_parsed.extend(batch_result)
+    else:
+        for start in range(0, len(to_process), _MAX_EMAILS_PER_BATCH):
+            batch = to_process[start:start + _MAX_EMAILS_PER_BATCH]
+            batch_num = start // _MAX_EMAILS_PER_BATCH + 1
+            if getattr(settings, 'GMAIL_PIPELINE_LOG', True):
+                _pipeline_log(f'[llm] batch {batch_num} emails {start + 1}–{start + len(batch)}')
+            if on_progress:
+                on_progress(start + len(batch), len(to_process), batch[0].get('subject') or '')
+            all_parsed.extend(_extract_batch(batch))
 
     if getattr(settings, 'GMAIL_PIPELINE_LOG', True):
         _pipeline_log(f'[llm] total parsed {len(all_parsed)} subscription(s) from all batches')

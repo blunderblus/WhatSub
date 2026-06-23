@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { apiRequest } from '../api/http';
 
 const router = useRouter();
+const route = useRoute();
+const isOnboarding = computed(() => route.path === '/onboarding/manual');
 const platforms = ref([]);
 const plans = ref([]);
 const error = ref('');
@@ -35,7 +37,7 @@ async function submit() {
   error.value = '';
   try {
     await apiRequest('/api/accounts/subscriptions/', { method: 'POST', body: form.value });
-    router.push('/subscriptions');
+    router.push(isOnboarding.value ? '/onboarding/complete' : '/subscriptions');
   } catch (err) {
     error.value = Object.values(err.payload || {}).flat().join(' ') || err.message;
   }

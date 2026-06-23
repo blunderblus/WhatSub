@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'accounts',
     'contents',
+    'community',
+    'detector',
     'notifications',
     'subscriptions',
     'django.contrib.admin',
@@ -146,9 +148,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 FRONTEND_URL = 'http://127.0.0.1:5173'
+BACKEND_URL = 'http://127.0.0.1:8000'
 
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/subscriptions'
+LOGIN_REDIRECT_URL = '/accounts/onboarding/'
 LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
 
 SITE_ID = 1
@@ -171,7 +174,10 @@ SOCIALACCOUNT_PROVIDERS = {
 
         'AUTH_PARAMS': {
             'access_type': 'offline',
-        }
+            'prompt': 'consent',
+            'include_granted_scopes': 'true',
+        },
+        'OAUTH_PKCE_ENABLED': True,
     }
 }
 
@@ -179,6 +185,10 @@ SOCIALACCOUNT_PROVIDERS = {
 # and don't gate local signups behind email verification in development.
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
@@ -221,7 +231,8 @@ environ.Env.read_env(PROJECT_ROOT / '.env')
 DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
 FRONTEND_URL = env('FRONTEND_URL', default=FRONTEND_URL)
-LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/subscriptions'
+BACKEND_URL = env('BACKEND_URL', default=BACKEND_URL)
+LOGIN_REDIRECT_URL = '/accounts/onboarding/'
 LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
 
 # 우리가 사용할 API 키들
@@ -230,6 +241,36 @@ WATCHMODE_API_KEY = env('WATCHMODE_API_KEY', default='')
 # RapidAPI streaming-availability key. Accept both spellings (RAPID_API_KEY / RAPIDAPI_KEY).
 RAPIDAPI_KEY = env('RAPID_API_KEY', default=env('RAPIDAPI_KEY', default=''))
 AI_API_KEY = env('AI_API_KEY', default='')
+AI_API_BASE = env(
+    'AI_API_BASE',
+    default='https://gms.ssafy.io/gmsapi/api.openai.com/v1',
+)
+AI_MODEL = env('AI_MODEL', default='gpt-4o-mini')
+GMAIL_PIPELINE_LOG = env.bool('GMAIL_PIPELINE_LOG', default=True)
+
+if GMAIL_PIPELINE_LOG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'gmail_pipeline': {
+                'format': '[gmail] %(message)s',
+            },
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'gmail_pipeline',
+            },
+        },
+        'loggers': {
+            'detector.gmail': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+        },
+    }
 
 # Google OAuth credentials (from Google Cloud Console). When present, configure
 # the allauth Google provider directly from settings so no DB SocialApp is needed.

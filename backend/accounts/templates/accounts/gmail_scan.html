@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail 구독 찾기 · WhatSub</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'accounts/onboarding-theme.css' %}">
+    <style>
+        .wrap { width: min(860px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 60px; }
+        .state { padding: 20px; color: var(--ws-muted); }
+        .scan-panel { padding: 24px 22px 20px; }
+        .doodle-scene {
+            position: relative;
+            height: 88px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 10px;
+        }
+        .doodle-mascot {
+            font-size: 42px;
+            line-height: 1;
+            animation: bounce 1.6s ease-in-out infinite;
+            filter: drop-shadow(0 4px 0 rgba(198, 243, 73, 0.15));
+        }
+        .doodle-mail { font-size: 28px; animation: float 2.2s ease-in-out infinite; }
+        .doodle-mail.delay { animation-delay: .5s; }
+        .doodle-sparkle {
+            position: absolute;
+            top: 4px;
+            right: calc(50% - 72px);
+            font-size: 20px;
+            animation: twinkle 1.4s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) rotate(-4deg); }
+            50% { transform: translateY(-10px) rotate(4deg); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); opacity: .85; }
+            50% { transform: translateY(-8px); opacity: 1; }
+        }
+        @keyframes twinkle {
+            0%, 100% { transform: scale(.8) rotate(0deg); opacity: .5; }
+            50% { transform: scale(1.15) rotate(20deg); opacity: 1; }
+        }
+        .progress-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .progress-emoji { font-size: 28px; line-height: 1; }
+        .progress-title { margin: 0; font-size: 17px; font-weight: 800; color: var(--ws-text); }
+        .progress-pct { font-size: 14px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+        .progress-detail {
+            margin: 0 0 14px;
+            min-height: 18px;
+            color: var(--ws-muted);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .progress-track {
+            height: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            transition: width .35s ease;
+        }
+        .progress-steps {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .step-pill {
+            text-align: center;
+            padding: 8px 4px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1.25;
+            transition: background .25s, color .25s, transform .25s;
+        }
+        .step-pill .step-icon { display: block; font-size: 16px; margin-bottom: 2px; }
+        .step-pill.active { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(198, 243, 73, 0.12); }
+        .rescan-btn { margin-top: 12px; min-height: 38px; padding: 0 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font: inherit; }
+        .rescan-btn:hover { border-color: var(--ws-primary); }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 12px; }
+        .toolbar button, .toolbar a.btn {
+            min-height: 40px; padding: 0 16px; border-radius: 8px; font-weight: 700; cursor: pointer;
+            text-decoration: none; display: inline-grid; place-items: center; font: inherit;
+        }
+        .sub-card {
+            display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: start;
+            padding: 14px; border: 1px solid var(--ws-border); border-radius: 10px; margin-bottom: 10px;
+        }
+        .sub-card.custom { border-style: dashed; }
+        .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .fields label { display: block; font-size: 11px; font-weight: 800; margin-bottom: 4px; }
+        .fields input, .fields select { min-height: 38px; padding: 0 10px; border-radius: 7px; }
+        .source { grid-column: 1 / -1; margin: 0; color: var(--ws-muted); font-size: 12px; }
+        .trash-btn {
+            width: 38px; height: 38px; border: 1px solid rgba(255, 77, 77, 0.35); border-radius: 7px;
+            background: rgba(255, 77, 77, 0.08); color: #ffb4b4; font-size: 16px; cursor: pointer;
+        }
+        .trash-btn:hover { background: rgba(255, 77, 77, 0.15); }
+        .back { display: inline-block; margin-bottom: 18px; font-weight: 700; text-decoration: none; }
+        @media (max-width: 720px) {
+            .sub-card { grid-template-columns: 1fr; }
+            .fields { grid-template-columns: 1fr; }
+            .progress-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <a class="back" href="{% url 'accounts:onboarding' %}">← 뒤로</a>
+        <p class="eyebrow">Gmail Detection</p>
+        <h1>받은편지함에서 구독 찾기</h1>
+        <p class="lead">
+            최근 1개월 전체 메일을 스캔한 뒤, 제목·발신자·미리보기로 구독·결제 후보를 걸러내고
+            본문을 LLM으로 분석해 구독 정보를 추출합니다.
+        </p>
+
+        {% if not google_connected %}
+        <div class="state" style="margin-bottom:16px">
+            Gmail 스캔을 위해 Google 로그인이 필요합니다.
+            <a class="cta" href="{{ google_auth_url }}">Google 로그인</a>
+        </div>
+        {% endif %}
+
+        <div id="status" class="scan-panel">
+            <div class="doodle-scene" aria-hidden="true">
+                <span class="doodle-mail">📧</span>
+                <span class="doodle-mascot" id="doodle-mascot">🐱</span>
+                <span class="doodle-mail delay">📨</span>
+                <span class="doodle-sparkle" id="doodle-sparkle">✨</span>
+            </div>
+            <div class="progress-head">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span class="progress-emoji" id="progress-emoji">🔌</span>
+                    <p class="progress-title" id="progress-message">
+                        {% if google_connected %}스캔 준비 중…{% else %}Google 로그인 후 스캔할 수 있습니다.{% endif %}
+                    </p>
+                </div>
+                <span class="progress-pct" id="progress-pct">0%</span>
+            </div>
+            <p class="progress-detail" id="progress-detail"></p>
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-steps" id="progress-steps"></div>
+            <button type="button" class="rescan-btn" id="rescan" hidden>🔄 다시 스캔</button>
+        </div>
+        <p id="meta" class="meta" hidden></p>
+
+        <div class="toolbar" id="toolbar" hidden>
+            <button type="button" class="add-btn" id="add-custom">+ 구독 직접 추가</button>
+            <button type="button" class="save-btn" id="save-all">선택 항목 저장</button>
+            <a class="done-btn btn" href="{% url 'accounts:onboarding_complete' %}">완료</a>
+        </div>
+
+        <div id="results"></div>
+    </main>
+
+    <script>
+        const DISMISS_KEY = 'whatsub_sub_dismissed';
+        const SCAN_STEPS = [
+            { step: 1, icon: '📬', label: '메일 목록' },
+            { step: 2, icon: '🔍', label: '후보 선별' },
+            { step: 3, icon: '🧹', label: '중복 정리' },
+            { step: 4, icon: '📖', label: '본문 읽기' },
+            { step: 5, icon: '🤖', label: 'AI 분석' },
+            { step: 6, icon: '✨', label: '결과 정리' },
+        ];
+        const MASCOT_BY_STEP = {
+            0: '🐱', 1: '📬', 2: '🔎', 3: '🧹', 4: '📖', 5: '🤖', 6: '🎉',
+        };
+        let subscriptions = [];
+        let scanSource = null;
+
+        function initProgressSteps() {
+            const el = document.getElementById('progress-steps');
+            el.innerHTML = SCAN_STEPS.map(s => `
+                <div class="step-pill" data-step="${s.step}">
+                    <span class="step-icon">${s.icon}</span>${s.label}
+                </div>`).join('');
+        }
+
+        function updateProgressUI(p) {
+            const pct = p.percent ?? 0;
+            const step = p.step ?? 0;
+            document.getElementById('progress-fill').style.width = pct + '%';
+            document.getElementById('progress-pct').textContent = pct + '%';
+            document.getElementById('progress-emoji').textContent = p.emoji || '⏳';
+            document.getElementById('progress-message').textContent = p.message || '처리 중…';
+            document.getElementById('progress-detail').textContent = p.detail || '';
+
+            const track = document.querySelector('.progress-track');
+            if (track) track.setAttribute('aria-valuenow', String(pct));
+
+            const mascot = MASCOT_BY_STEP[step] || '🐱';
+            const mascotEl = document.getElementById('doodle-mascot');
+            if (mascotEl) mascotEl.textContent = mascot;
+
+            document.querySelectorAll('.step-pill').forEach(pill => {
+                const n = Number(pill.dataset.step);
+                pill.classList.remove('active', 'done');
+                if (n < step) pill.classList.add('done');
+                else if (n === step) pill.classList.add('active');
+            });
+        }
+
+        function showScanComplete(message) {
+            const panel = document.getElementById('status');
+            panel.classList.add('done');
+            updateProgressUI({
+                step: 6,
+                percent: 100,
+                emoji: '🎉',
+                message: message || '스캔 완료!',
+                detail: '아래 목록에서 확인하고 저장해 주세요.',
+            });
+            document.querySelectorAll('.step-pill').forEach(p => p.classList.add('done'));
+            document.getElementById('rescan').hidden = false;
+        }
+
+        function handleScanComplete(data) {
+            const pipe = data.pipeline || {};
+            const metaEl = document.getElementById('meta');
+            metaEl.hidden = false;
+            metaEl.textContent =
+                `전체 ${pipe.scanned || 0}건 스캔 → 후보 ${pipe.prefiltered || 0}건 → LLM ${pipe.llm_candidates || 0}건 → 구독 ${(data.subscriptions || []).length}개`;
+
+            showScanComplete(data.message || '분석 완료');
+            subscriptions = (data.subscriptions || []).map(s => ({ ...s }));
+            sessionStorage.removeItem(DISMISS_KEY);
+            document.getElementById('toolbar').hidden = false;
+            render();
+
+            if (!subscriptions.length) {
+                document.getElementById('results').innerHTML =
+                    '<p style="color:var(--ws-muted);margin-top:12px">「+ 구독 직접 추가」로 수동 입력할 수 있습니다.</p>';
+            }
+        }
+
+        function scanWithStream() {
+            const toolbarEl = document.getElementById('toolbar');
+            const rescanBtn = document.getElementById('rescan');
+            toolbarEl.hidden = true;
+            rescanBtn.hidden = true;
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('meta').hidden = true;
+            document.getElementById('status').classList.remove('done');
+
+            updateProgressUI({
+                step: 0,
+                percent: 2,
+                emoji: '🔌',
+                message: 'Gmail 스캔을 시작할게요…',
+                detail: '잠시만 기다려 주세요.',
+            });
+
+            if (scanSource) {
+                scanSource.close();
+                scanSource = null;
+            }
+
+            scanSource = new EventSource('/api/detector/gmail_scan_stream/');
+
+            scanSource.addEventListener('progress', (e) => {
+                try { updateProgressUI(JSON.parse(e.data)); } catch (_) {}
+            });
+
+            scanSource.addEventListener('complete', (e) => {
+                scanSource.close();
+                scanSource = null;
+                try { handleScanComplete(JSON.parse(e.data)); } catch (err) {
+                    updateProgressUI({ step: 0, percent: 0, emoji: '⚠️', message: '결과 처리 오류', detail: err.message });
+                }
+            });
+
+            scanSource.addEventListener('scan_error', (e) => {
+                scanSource.close();
+                scanSource = null;
+                let payload = {};
+                try { payload = JSON.parse(e.data); } catch (_) {}
+                const err = payload.error || '스캔 중 오류가 발생했습니다.';
+                if (err === 'llm not configured') {
+                    updateProgressUI({ step: 0, percent: 0, emoji: '⚙️', message: 'LLM API 설정이 필요합니다', detail: 'AI_API_KEY, AI_API_BASE를 확인해 주세요.' });
+                } else if (err.includes('token') || err.includes('login')) {
+                    updateProgressUI({ step: 0, percent: 0, emoji: '🔑', message: 'Gmail 연결이 필요합니다', detail: 'Google 로그인 후 다시 시도해 주세요.' });
+                } else {
+                    updateProgressUI({ step: 0, percent: 0, emoji: '⚠️', message: '스캔 실패', detail: err });
+                }
+                rescanBtn.hidden = false;
+            });
+
+            scanSource.onerror = () => {
+                if (!scanSource) return;
+                scanSource.close();
+                scanSource = null;
+                updateProgressUI({ step: 0, percent: 0, emoji: '⚠️', message: '연결이 끊겼습니다', detail: '다시 스캔을 눌러 주세요.' });
+                rescanBtn.hidden = false;
+            };
+        }
+
+        function getCookie(name) {
+            const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return m ? m.pop() : '';
+        }
+
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function loadDismissed() {
+            try { return new Set(JSON.parse(sessionStorage.getItem(DISMISS_KEY) || '[]')); }
+            catch { return new Set(); }
+        }
+
+        function saveDismissed(set) {
+            sessionStorage.setItem(DISMISS_KEY, JSON.stringify([...set]));
+        }
+
+        function cardHtml(sub, key, custom) {
+            return `
+                <article class="sub-card${custom ? ' custom' : ''}" data-key="${escapeHtml(key)}">
+                    <div class="fields">
+                        <div><label>플랫폼</label><input class="f-platform" value="${escapeHtml(sub.platform || '')}" /></div>
+                        <div><label>요금제</label><input class="f-plan" value="${escapeHtml(sub.plan_name || '')}" placeholder="미정" /></div>
+                        <div><label>금액 (원)</label><input class="f-amount" type="number" min="0" value="${sub.payment_amount ?? ''}" /></div>
+                        <div><label>결제 주기</label>
+                            <select class="f-cycle">
+                                <option value="weekly" ${sub.billing_cycle === 'weekly' ? 'selected' : ''}>주간</option>
+                                <option value="monthly" ${!sub.billing_cycle || sub.billing_cycle === 'monthly' ? 'selected' : ''}>월간</option>
+                                <option value="annual" ${sub.billing_cycle === 'annual' ? 'selected' : ''}>연간</option>
+                            </select>
+                        </div>
+                        <div><label>갱신일</label><input class="f-renewal" type="date" value="${escapeHtml(sub.renewal_date || '')}" /></div>
+                        ${sub.source_subject ? `<p class="source">${escapeHtml(sub.source_subject)}</p>` : ''}
+                    </div>
+                    <label style="padding-top:28px"><input type="checkbox" class="f-check" checked /> 저장</label>
+                    <button type="button" class="trash-btn" title="목록에서 제거">🗑</button>
+                </article>`;
+        }
+
+        function subKey(sub) {
+            return [
+                sub.platform || '',
+                sub.plan_name || '',
+                sub.payment_amount ?? '',
+                sub.renewal_date || '',
+                sub.source_subject || '',
+            ].join('\u0001').toLowerCase();
+        }
+
+        function render() {
+            const el = document.getElementById('results');
+            const dismissed = loadDismissed();
+            el.innerHTML = subscriptions
+                .filter((sub) => !dismissed.has(subKey(sub)))
+                .map((sub) => cardHtml(sub, subKey(sub), sub.custom))
+                .join('');
+
+            el.querySelectorAll('.trash-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const card = btn.closest('.sub-card');
+                    const key = card?.dataset.key;
+                    if (key) {
+                        const d = loadDismissed();
+                        d.add(key);
+                        saveDismissed(d);
+                    }
+                    card?.remove();
+                });
+            });
+        }
+
+        function addCustom() {
+            subscriptions.unshift({
+                platform: '', plan_name: '', payment_amount: '',
+                billing_cycle: 'monthly', renewal_date: '', custom: true,
+            });
+            render();
+        }
+
+        function collectSelected() {
+            const items = [];
+            document.querySelectorAll('.sub-card').forEach((card) => {
+                if (!card.querySelector('.f-check')?.checked) return;
+                const platform = card.querySelector('.f-platform')?.value?.trim();
+                if (!platform) return;
+                items.push({
+                    platform,
+                    plan_name: card.querySelector('.f-plan')?.value || '미정',
+                    payment_amount: card.querySelector('.f-amount')?.value || 0,
+                    billing_cycle: card.querySelector('.f-cycle')?.value || 'monthly',
+                    renewal_date: card.querySelector('.f-renewal')?.value || '',
+                });
+            });
+            return items;
+        }
+
+        async function saveAll() {
+            const selected = collectSelected();
+            if (!selected.length) {
+                alert('저장할 구독을 하나 이상 선택해 주세요.');
+                return;
+            }
+            const res = await fetch('/api/accounts/onboarding/gmail/save-bulk/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ subscriptions: selected }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.detail || '저장에 실패했습니다.');
+                return;
+            }
+            window.location.href = '{% url "accounts:onboarding_complete" %}';
+        }
+
+        async function scan() {
+            scanWithStream();
+        }
+
+        initProgressSteps();
+        document.getElementById('add-custom').addEventListener('click', addCustom);
+        document.getElementById('save-all').addEventListener('click', saveAll);
+        document.getElementById('rescan').addEventListener('click', scanWithStream);
+        {% if google_connected %}
+        scanWithStream();
+        {% endif %}
+    </script>
+</body>
+</html>

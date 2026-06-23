@@ -133,8 +133,8 @@ onMounted(load);
 .detail-empty {
   display: grid;
   place-items: center;
-  background: #dfe7ec;
-  color: #44515e;
+  background: var(--ws-surface-2);
+  color: var(--ws-muted);
   font-weight: 800;
 }
 
@@ -171,9 +171,9 @@ onMounted(load);
   gap: 12px;
   min-height: 58px;
   padding: 10px 12px;
-  border: 1px solid #d8e0e6;
+  border: 1px solid var(--ws-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .provider-link img,
@@ -190,8 +190,8 @@ onMounted(load);
 .provider-fallback {
   display: grid;
   place-items: center;
-  background: #26323d;
-  color: #fff;
+  background: var(--ws-surface-2);
+  color: var(--ws-primary);
   font-weight: 800;
 }
 
@@ -204,9 +204,9 @@ onMounted(load);
 
 .cast-card {
   overflow: hidden;
-  border: 1px solid #dce3e9;
+  border: 1px solid var(--ws-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .cast-card img,
@@ -220,8 +220,8 @@ onMounted(load);
   display: grid;
   place-items: center;
   padding: 14px;
-  background: #dfe7ec;
-  color: #44515e;
+  background: var(--ws-surface-2);
+  color: var(--ws-muted);
   text-align: center;
   font-weight: 800;
 }
@@ -234,7 +234,7 @@ onMounted(load);
 
 .cast-card span {
   overflow: hidden;
-  color: #667586;
+  color: var(--ws-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;

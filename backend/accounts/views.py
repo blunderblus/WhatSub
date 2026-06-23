@@ -9,6 +9,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from accounts.google_auth import user_has_google_token
+from allauth.socialaccount.models import SocialToken
+
 from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
 from subscriptions.serializers import UserSubscriptionSerializer
 from .forms import SignUpForm
@@ -92,14 +95,45 @@ def me(request):
         return Response({'isAuthenticated': False})
 
     user = request.user
+    has_gmail = user_has_google_token(user)
     return Response({
         'isAuthenticated': True,
+        'hasGmailConnected': has_gmail,
         'user': {
             'id': user.id,
             'username': user.username,
             'nickname': user.nickname,
             'email': user.email,
             'profile_image': user.profile_image,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+        },
+    })
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def profile(request):
+    nickname = (request.data.get('nickname') or '').strip()
+    profile_image = (request.data.get('profile_image') or '').strip()
+
+    if not nickname:
+        return Response({'nickname': ['닉네임을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+    if len(nickname) > 30:
+        return Response({'nickname': ['닉네임은 30자 이하로 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    request.user.nickname = nickname
+    request.user.profile_image = profile_image or None
+    request.user.save(update_fields=['nickname', 'profile_image'])
+    return Response({
+        'user': {
+            'id': request.user.id,
+            'username': request.user.username,
+            'nickname': request.user.nickname,
+            'email': request.user.email,
+            'profile_image': request.user.profile_image,
+            'is_staff': request.user.is_staff,
+            'is_superuser': request.user.is_superuser,
         },
     })
 
@@ -198,30 +232,71 @@ def manual_add(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_from_gmail(request):
-    platform_name = (request.data.get('platform') or '').strip()
-    plan_name = (request.data.get('plan_name') or '').strip() or '미정'
-    amount = request.data.get('payment_amount') or 0
+    payload = _create_gmail_subscription(request.user, request.data)
+    if not payload:
+        return Response(
+            {'platform': ['플랫폼을 입력해 주세요.']},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return Response(payload, status=status.HTTP_201_CREATED)
+
+
+def _create_gmail_subscription(user, data):
+    platform_name = (data.get('platform') or '').strip()
+    if not platform_name:
+        return None
+
+    plan_name = (data.get('plan_name') or '').strip() or '미정'
+    amount = data.get('payment_amount')
     try:
-        amount = int(float(amount))
+        amount = int(float(amount)) if amount not in (None, '') else 0
     except (TypeError, ValueError):
         amount = 0
 
-    platform, _ = Platform.objects.get_or_create(name__iexact=platform_name, defaults={
-        'name': platform_name or '기타',
-    })
+    platform, _ = Platform.objects.get_or_create(
+        name__iexact=platform_name,
+        defaults={'name': platform_name},
+    )
     today = timezone.now().date()
+    renewal = data.get('renewal_date') or today
+    start = data.get('start_date') or today
+
     subscription = UserSubscription.objects.create(
-        user=request.user,
+        user=user,
         platform=platform,
         plan_name=plan_name,
         payment_amount=amount,
-        billing_cycle=request.data.get('billing_cycle') or 'monthly',
+        billing_cycle=data.get('billing_cycle') or 'monthly',
         payment_method='Gmail 감지',
-        start_date=request.data.get('start_date') or today,
-        renewal_date=request.data.get('renewal_date') or today,
+        start_date=start,
+        renewal_date=renewal,
         memo='Gmail 받은편지함에서 자동 감지됨',
     )
-    return Response(_subscription_payload(subscription), status=status.HTTP_201_CREATED)
+    return _subscription_payload(subscription)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_bulk_from_gmail(request):
+    items = request.data.get('subscriptions') or []
+    if not isinstance(items, list) or not items:
+        return Response(
+            {'detail': '저장할 구독 항목이 없습니다.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    saved = []
+    for item in items:
+        if not item.get('selected', True):
+            continue
+        payload = _create_gmail_subscription(request.user, item)
+        if payload:
+            saved.append(payload)
+
+    return Response({
+        'saved_count': len(saved),
+        'subscriptions': saved,
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['DELETE'])

@@ -1,0 +1,17 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --ws-bg: #000000;
+  --ws-surface: #1c2a43;
+  --ws-surface-2: #14213d;
+  --ws-border: #2a3b54;
+  --ws-text: #ffffff;
+  --ws-muted: #8e9eba;
+  --ws-primary: #c6f349;
+  --ws-primary-fg: #000000;
+  --ws-secondary: #fca311;
+  --ws-destructive: #ff4d4d;
+  --ws-radius: 12px;
+  --ws-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}

@@ -2,12 +2,15 @@
 
 import requests
 from django.conf import settings
+from django.db.models import Count
 from django.http import JsonResponse
 from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 from subscriptions.models import Platform
 from . import watchmode as wm
-from .models import Content, ContentPlatform, WatchmodeUsage
+from .models import Content, ContentPlatform, ContentReaction, WatchmodeUsage
 
 SOURCES_CACHE_TTL = timedelta(hours=24)
 _PROVIDER_PRIORITY = {'subscription': 0, 'free': 1, 'ads': 2, 'rent': 3, 'buy': 4, 'addon': 5}
@@ -464,3 +467,48 @@ def api_streaming_info(request):
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
         return JsonResponse({'error': f"서버 오류: {str(e)}"}, status=500)
+
+
+def _reaction_summary(content, user):
+    counts = dict(
+        content.reactions.values('reaction').annotate(total=Count('id')).values_list('reaction', 'total')
+    )
+    my_reaction = None
+    if getattr(user, 'is_authenticated', False):
+        my_reaction = (
+            ContentReaction.objects
+            .filter(content=content, user=user)
+            .values_list('reaction', flat=True)
+            .first()
+        )
+    return {
+        'like_count': counts.get(ContentReaction.Reaction.LIKE, 0),
+        'dislike_count': counts.get(ContentReaction.Reaction.DISLIKE, 0),
+        'my_reaction': my_reaction,
+    }
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def content_reaction(request, tmdb_id):
+    media_type = request.data.get('media_type') or ''
+    reaction = request.data.get('reaction')
+    if reaction not in [ContentReaction.Reaction.LIKE, ContentReaction.Reaction.DISLIKE, None, '']:
+        return JsonResponse({'error': '올바른 반응 값이 아닙니다.'}, status=400)
+
+    content, _ = Content.objects.get_or_create(
+        tmdb_id=tmdb_id,
+        defaults={'title': '', 'content_type': media_type},
+    )
+
+    existing = ContentReaction.objects.filter(content=content, user=request.user).first()
+    if not reaction or (existing and existing.reaction == reaction):
+        if existing:
+            existing.delete()
+    elif existing:
+        existing.reaction = reaction
+        existing.save(update_fields=['reaction', 'updated_at'])
+    else:
+        ContentReaction.objects.create(content=content, user=request.user, reaction=reaction)
+
+    return JsonResponse(_reaction_summary(content, request.user), json_dumps_params={'ensure_ascii': False})

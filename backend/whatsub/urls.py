@@ -22,9 +22,12 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/accounts/', include('accounts.urls')),
+    path('accounts/', include('accounts.page_urls')),
     path('accounts/', include('allauth.urls')),
-    path('api/detector/', include('detector.urls')),
+    path('detector/', include(('detector.urls', 'detector'), namespace='detector')),
+    path('api/detector/', include(('detector.urls', 'detector_api'), namespace='detector_api')),
     path('api/contents/', include('contents.urls')),
+    path('api/community/', include('community.urls')),
     path('api/subscriptions/', include('subscriptions.urls')),
 ]
 

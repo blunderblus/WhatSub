@@ -66,8 +66,10 @@ function openDetail(item) {
 .search-form input {
   min-height: 46px;
   padding: 10px 12px;
-  border: 1px solid #c8d1da;
+  border: 1px solid var(--ws-border);
   border-radius: 8px;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
 }
 
 @media (max-width: 560px) {

@@ -1,10 +1,8 @@
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { useSessionStore } from '../stores/session';
 
 const session = useSessionStore();
-const router = useRouter();
 const form = ref({ username: '', nickname: '', email: '', password1: '', password2: '' });
 const error = ref('');
 
@@ -12,7 +10,7 @@ async function submit() {
   error.value = '';
   try {
     await session.signup(form.value);
-    router.push('/subscriptions/new');
+    window.location.href = 'http://127.0.0.1:8000/accounts/onboarding/';
   } catch (err) {
     error.value = Object.values(err.payload?.errors || {}).flat().join(' ') || err.message;
   }

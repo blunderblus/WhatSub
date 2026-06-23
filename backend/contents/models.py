@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from subscriptions.models import Platform
 
 
@@ -66,6 +67,28 @@ class ContentPlatform(models.Model):
 
     def __str__(self):
         return f'{self.content} @ {self.platform.name} ({self.source_type})'
+
+
+class ContentReaction(models.Model):
+    class Reaction(models.TextChoices):
+        LIKE = 'like', 'Like'
+        DISLIKE = 'dislike', 'Dislike'
+
+    content = models.ForeignKey(
+        Content, on_delete=models.CASCADE, related_name='reactions',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='content_reactions',
+    )
+    reaction = models.CharField(max_length=7, choices=Reaction.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('content', 'user')
+
+    def __str__(self):
+        return f'{self.user} {self.reaction} {self.content}'
 
 
 class WatchmodeUsage(models.Model):

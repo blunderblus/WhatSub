@@ -11,4 +11,5 @@ urlpatterns = [
     path('show_detail/<int:tmdb_id>/', views.tmdb_show_detail, name='tmdb_show_detail'),
     path('tmdb_search/', views.tmdb_search, name='tmdb_search'),
     path('streaming_info/', views.api_streaming_info, name='streaming_info'),
+    path('reaction/<int:tmdb_id>/', views.content_reaction, name='content_reaction'),
 ]
