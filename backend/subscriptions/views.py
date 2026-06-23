@@ -1,18 +1,37 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Platform, SubscriptionPlan, AddOnPass
+from .models import Platform, SubscriptionPlan, AddOnPass, Category
 from .serializers import (
-    PlatformSerializer, PlatformDetailSerializer,
+    CategorySerializer, PlatformSerializer, PlatformDetailSerializer,
     SubscriptionPlanSerializer, AddOnPassSerializer,
 )
 
 
 @api_view(['GET'])
+def catalog(request):
+    """Categories with nested platforms (for onboarding picker)."""
+    categories = Category.objects.prefetch_related('platforms').order_by('name')
+    data = []
+    for cat in categories:
+        platforms = cat.platforms.order_by('name')
+        data.append({
+            'id': cat.id,
+            'name': cat.name,
+            'platforms': PlatformSerializer(platforms, many=True).data,
+        })
+    return Response(data)
+
+
+@api_view(['GET'])
 def platform_list(request):
-    """List all platforms with basic info."""
-    platforms = Platform.objects.select_related('category').order_by('pk')
+    """List all platforms with basic info. ?q= for name search."""
+    platforms = Platform.objects.select_related('category').order_by('name')
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        platforms = platforms.filter(Q(name__icontains=q))
     serializer = PlatformSerializer(platforms, many=True)
     return Response(serializer.data)
 
