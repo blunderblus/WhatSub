@@ -23,7 +23,7 @@ GENRE_NAMES = {
 }
 
 AXIS_LABELS = {
-    'availability': '콘텐츠 수',
+    'availability': '콘텐츠',
     'exclusivity': '독점작',
     'quality': '고품질',
     'price': '가격',
