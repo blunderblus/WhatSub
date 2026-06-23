@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
@@ -71,6 +71,32 @@ const personalSelected = computed(() => {
   if (!personal.value?.platforms?.length) return null;
   const id = selectedId.value || personal.value.platforms[0].platform_id;
   return personal.value.platforms.find((p) => p.platform_id === id) || personal.value.platforms[0];
+});
+
+const activeTooltip = ref(null);
+
+const axisToolTip = {
+  availability: '이 플랫폼에서 볼 수 있는 영화·시리즈가 얼마나 많은지를 나타내요. 다른 플랫폼들과 비교한 상대적 점수예요.',
+  exclusivity: '오직 이 플랫폼에서만 볼 수 있는 작품이 얼마나 있는지, 그리고 그 작품들이 얼마나 화제성 있는지를 함께 반영해요.',
+  quality: '평점 높은 좋은 작품이 얼마나 많은지를 나타내요. 평가 안 좋은 작품이 많다고 해서 점수가 깎이지는 않아요.',
+  price: '합리적인 가격의 플랜이나 번들 혜택이 얼마나 있는지를 나타내요. 가격 대비 실질적인 혜택을 기준으로 판단해요.',
+  accessibility: '동시 시청 가능 인원, 최대 화질, 다운로드 지원 여부 등 실제 이용 편의성을 나타내요.',
+};
+
+function toggleTooltip(key) {
+  activeTooltip.value = activeTooltip.value === key ? null : key;
+}
+
+function closeTooltip() {
+  activeTooltip.value = null;
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeTooltip);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeTooltip);
 });
 
 function formatScore(value) {
@@ -306,7 +332,18 @@ onMounted(async () => {
 
             <div class="axis-grid">
               <div v-for="key in axisKeys" :key="key" class="axis-row">
-                <span class="axis-label">{{ axisLabels[key] || key }}</span>
+                <span class="axis-label">
+                  {{ axisLabels[key] || key }}
+                  <span
+                    class="info-icon"
+                    tabindex="0"
+                    :class="{ active: activeTooltip === key }"
+                    @click.stop="toggleTooltip(key)"
+                  >
+                    ⓘ
+                    <span class="tooltip">{{ axisToolTip[key] }}</span>
+                  </span>
+                </span>
                 <div class="axis-bar">
                   <span :style="{ width: formatPercent(activeBenchmarkPlatform.scores[key]) }"></span>
                 </div>
@@ -646,7 +683,53 @@ onMounted(async () => {
   align-items: center;
 }
 
-.axis-label { font-size: 13px; color: var(--ws-muted); }
+.axis-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ws-border);
+  color: var(--ws-muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.info-icon .tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 140%;
+  left: 0;
+  width: 200px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #17202a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  z-index: 30;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.info-icon:hover .tooltip,
+.info-icon.active .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
 .axis-value { font-size: 13px; font-weight: 600; text-align: right; }
 
 .axis-bar {
