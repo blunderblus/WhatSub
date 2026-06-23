@@ -1,0 +1,118 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --ws-bg: #000000;
+  --ws-surface: #1c2a43;
+  --ws-surface-2: #14213d;
+  --ws-border: #2a3b54;
+  --ws-text: #ffffff;
+  --ws-muted: #8e9eba;
+  --ws-primary: #c6f349;
+  --ws-primary-fg: #000000;
+  --ws-secondary: #fca311;
+  --ws-radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(198, 243, 73, 0.08), transparent),
+    var(--ws-bg);
+  color: var(--ws-text);
+  font-family: "Pretendard Variable", Pretendard, "Segoe UI", system-ui, sans-serif;
+}
+
+a { color: var(--ws-primary); text-decoration: none; font-weight: 700; }
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--ws-primary);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+h1 { margin: 0 0 8px; font-size: 32px; color: var(--ws-text); font-family: Poppins, Pretendard, sans-serif; }
+
+.lead, .sub { margin: 0 0 24px; color: var(--ws-muted); line-height: 1.55; }
+
+.panel, .card, .scan-panel, .state {
+  border: 1px solid var(--ws-border);
+  border-radius: var(--ws-radius);
+  background: var(--ws-surface);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.cta, .save-btn, .btn, button[type="submit"] {
+  display: inline-block;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ws-primary);
+  color: var(--ws-primary-fg);
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.done-btn, .cancel, .rescan-btn {
+  border: 1px solid var(--ws-border);
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+}
+
+.add-btn {
+  border: 1px dashed var(--ws-primary);
+  background: rgba(198, 243, 73, 0.08);
+  color: var(--ws-primary);
+}
+
+input, select, textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+  font: inherit;
+}
+
+label { color: var(--ws-muted); font-size: 13px; font-weight: 700; }
+
+.progress-fill {
+  background: linear-gradient(90deg, var(--ws-primary), #4caf93) !important;
+}
+
+.progress-track { background: var(--ws-border) !important; }
+
+.step-pill { background: var(--ws-surface-2) !important; color: var(--ws-muted) !important; }
+.step-pill.active { background: rgba(198, 243, 73, 0.12) !important; color: var(--ws-primary) !important; }
+.step-pill.done { background: rgba(76, 175, 147, 0.12) !important; color: #4caf93 !important; }
+
+.sub-card {
+  background: var(--ws-surface) !important;
+  border-color: var(--ws-border) !important;
+}
+
+.sub-card.custom { background: var(--ws-surface-2) !important; }
+
+.scan-panel {
+  background: linear-gradient(165deg, var(--ws-surface) 0%, var(--ws-surface-2) 100%) !important;
+}
+
+.scan-panel.done {
+  border-color: rgba(76, 175, 147, 0.35) !important;
+}
+
+.progress-pct {
+  background: rgba(198, 243, 73, 0.12) !important;
+  color: var(--ws-primary) !important;
+}
+
+.meta { color: var(--ws-muted) !important; }
