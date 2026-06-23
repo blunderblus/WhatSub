@@ -23,6 +23,7 @@ RAPIDAPI_429_MAX_RETRIES = 4
 _last_rapidapi_request_at = 0.0
 _PROVIDER_PRIORITY = {'subscription': 0, 'free': 1, 'ads': 2, 'rent': 3, 'buy': 4, 'addon': 5}
 _TYPE_TO_SOURCE = {'subscription': 'sub', 'free': 'free', 'rent': 'rent', 'buy': 'buy'}
+DISCOVER_PAGE_SIZE = 20
 
 # Maps normalized provider names (from RapidAPI / Watchmode) to a canonical
 # display name and a local icon file under MEDIA_ROOT (subscriptions/media).
@@ -135,48 +136,72 @@ def _tmdb_discover(request, media_type):
         if not provider_ids:
             return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
 
-        url = f'https://api.themoviedb.org/3/discover/{media_type}'
         params = {
-            'api_key': settings.TMDB_API_KEY,
             'language': 'ko-KR',
             'include_adult': 'false',
             'sort_by': 'popularity.desc',
             'watch_region': 'KR',
-            'page': page,
             'with_watch_providers': '|'.join(str(pid) for pid in provider_ids),
         }
         if genre_id:
             params['with_genres'] = genre_id
         try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
+            data = _tmdb_discover_page(media_type, params, page)
             if not data.get('results') and len(platform_ids) == 1:
                 return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
-            return _format_discover_response(data, media_type)
+            return _filled_discover_response(media_type, params, page, first_page_data=data)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-    url = f'https://api.themoviedb.org/3/discover/{media_type}'
     params = {
-        'api_key': settings.TMDB_API_KEY,
         'language': 'ko-KR',
         'include_adult': 'false',
         'sort_by': 'popularity.desc',
         'watch_region': 'KR',
-        'page': page,
     }
 
     if genre_id:
         params['with_genres'] = genre_id
 
     try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        return _format_discover_response(data, media_type)
+        return _filled_discover_response(media_type, params, page)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def _filled_discover_response(media_type, params, requested_page, first_page_data=None):
+    page = _positive_int(requested_page, default=1)
+    target_count = page * DISCOVER_PAGE_SIZE
+    visible_items = []
+    source_page = 1
+    total_pages = 1
+
+    while len(visible_items) < target_count and source_page <= total_pages:
+        data = first_page_data if source_page == page and first_page_data is not None else _tmdb_discover_page(
+            media_type, params, source_page,
+        )
+        total_pages = min(_positive_int(data.get('total_pages'), default=1), 500)
+        visible_items.extend([
+            item
+            for item in data.get('results', [])
+            if _has_korean_catalog_value(item)
+        ])
+        source_page += 1
+
+    start = (page - 1) * DISCOVER_PAGE_SIZE
+    end = page * DISCOVER_PAGE_SIZE
+    return _format_discover_response({
+        'page': page,
+        'total_pages': total_pages,
+        'results': visible_items[start:end],
+    }, media_type)
+
+
+def _tmdb_discover_page(media_type, params, page):
+    return _tmdb_get(f'https://api.themoviedb.org/3/discover/{media_type}', {
+        **params,
+        'page': page,
+    })
 
 
 def _format_discover_response(data, media_type):
@@ -203,10 +228,40 @@ def _format_discover_response(data, media_type):
     }, json_dumps_params={'ensure_ascii': False})
 
 
+def _has_korean_catalog_value(item):
+    return _has_korean_title(item) or bool((item.get('overview') or '').strip())
+
+
+def _has_display_catalog_value(item):
+    return _contains_hangul(item.get('title') or '') or bool((item.get('overview') or '').strip())
+
+
+def _has_korean_title(item):
+    title = item.get('title') or item.get('name') or ''
+    original_title = item.get('original_title') or item.get('original_name') or ''
+    if not title.strip():
+        return False
+    if _contains_hangul(title):
+        return True
+    if not original_title.strip():
+        return False
+    return title.strip().casefold() != original_title.strip().casefold()
+
+
+def _contains_hangul(value):
+    return any('\uac00' <= char <= '\ud7a3' for char in value)
+
+
+def _positive_int(value, default=1):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(parsed, 1)
+
+
 def _streaming_cache_list(request, media_type, platform_ids, genre_id=None):
     """Paginated title list from StreamingCache (supports multi-platform OR)."""
-    from django.core.paginator import Paginator
-
     if not isinstance(platform_ids, (list, tuple)):
         platform_ids = [platform_ids]
 
@@ -226,28 +281,46 @@ def _streaming_cache_list(request, media_type, platform_ids, genre_id=None):
         keys = [k for k in keys if k in genre_keys]
 
     keys.sort(key=lambda row: row[0], reverse=True)
+    page = _positive_int(page, default=1)
+    visible_results = []
+    target_count = page * per_page
+    source_offset = 0
 
-    paginator = Paginator(keys, per_page)
-    page_obj = paginator.get_page(page)
-    display_map = get_title_display_map(page_obj.object_list, max_tmdb_fetches=per_page)
+    while len(visible_results) < target_count and source_offset < len(keys):
+        chunk = keys[source_offset:source_offset + per_page]
+        display_map = get_title_display_map(chunk, max_tmdb_fetches=per_page)
+        meta_map = {
+            (meta.tmdb_id, meta.media_type): meta
+            for meta in TitleMeta.objects.filter(
+                tmdb_id__in=[tmdb_id for tmdb_id, _ in chunk],
+                media_type=media_type,
+            )
+        }
 
-    results = []
-    for tmdb_id, mt in page_obj.object_list:
-        info = display_map.get((tmdb_id, mt), {})
-        meta = TitleMeta.objects.filter(tmdb_id=tmdb_id, media_type=mt).first()
-        results.append({
-            'tmdb_id': tmdb_id,
-            'media_type': mt,
-            'title': info.get('title') or f'작품 #{tmdb_id}',
-            'overview': '',
-            'release_date': '',
-            'rating': meta.vote_average if meta else 0,
-            'poster_url': info.get('poster_url') or '',
-        })
+        for tmdb_id, mt in chunk:
+            info = display_map.get((tmdb_id, mt), {})
+            meta = meta_map.get((tmdb_id, mt))
+            title = info.get('title') or f'작품 #{tmdb_id}'
+            item = {
+                'tmdb_id': tmdb_id,
+                'media_type': mt,
+                'title': title,
+                'overview': '',
+                'release_date': '',
+                'rating': meta.vote_average if meta else 0,
+                'poster_url': info.get('poster_url') or '',
+            }
+            if _has_display_catalog_value(item):
+                visible_results.append(item)
+        source_offset += per_page
+
+    start = (page - 1) * per_page
+    end = page * per_page
+    results = visible_results[start:end]
 
     return JsonResponse({
-        'page': page_obj.number,
-        'total_pages': paginator.num_pages or 1,
+        'page': page,
+        'total_pages': max((len(keys) + per_page - 1) // per_page, 1),
         'results': results,
         'source': 'streaming_cache',
     }, json_dumps_params={'ensure_ascii': False})
