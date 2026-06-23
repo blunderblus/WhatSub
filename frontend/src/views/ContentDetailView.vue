@@ -116,6 +116,7 @@ onMounted(load);
 
       <section class="panel" style="margin-top: 24px">
         <h2>이용 가능한 서비스</h2>
+        <br>
         <template v-if="providers.length">
           <div v-if="subscriptionProviders.length" class="provider-section">
             <h3>구독 · 무료</h3>

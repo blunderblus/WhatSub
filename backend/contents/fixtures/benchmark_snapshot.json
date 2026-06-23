@@ -1,0 +1,1542 @@
+[
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 25,
+  "fields": {
+    "platform": 9,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.1533,
+    "exclusivity_score": 0.4759,
+    "quality_score": 0.1477,
+    "price_score": 0.0233,
+    "accessibility_score": 0.9,
+    "confidence_level": "low",
+    "value_score": 0.34
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 26,
+  "fields": {
+    "platform": 12,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.0,
+    "exclusivity_score": 0.0,
+    "quality_score": 0.0,
+    "price_score": 0.0,
+    "accessibility_score": 0.0,
+    "confidence_level": "low",
+    "value_score": 0.0
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 27,
+  "fields": {
+    "platform": 3,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.0333,
+    "exclusivity_score": 0.0297,
+    "quality_score": 0.0341,
+    "price_score": 0.0233,
+    "accessibility_score": 1.0,
+    "confidence_level": "low",
+    "value_score": 0.2241
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 28,
+  "fields": {
+    "platform": 7,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.0,
+    "exclusivity_score": 0.0,
+    "quality_score": 0.0,
+    "price_score": 0.0233,
+    "accessibility_score": 0.8,
+    "confidence_level": "low",
+    "value_score": 0.1647
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 29,
+  "fields": {
+    "platform": 2,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.4067,
+    "exclusivity_score": 0.7049,
+    "quality_score": 0.5682,
+    "price_score": 0.0233,
+    "accessibility_score": 1.0,
+    "confidence_level": "medium",
+    "value_score": 0.5406
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 30,
+  "fields": {
+    "platform": 11,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.0,
+    "exclusivity_score": 0.0,
+    "quality_score": 0.0,
+    "price_score": 0.0233,
+    "accessibility_score": 0.85,
+    "confidence_level": "low",
+    "value_score": 0.1747
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 31,
+  "fields": {
+    "platform": 1,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.9267,
+    "exclusivity_score": 1.0,
+    "quality_score": 1.0,
+    "price_score": 0.186,
+    "accessibility_score": 1.0,
+    "confidence_level": "high",
+    "value_score": 0.8225
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 32,
+  "fields": {
+    "platform": 16,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.0,
+    "exclusivity_score": 0.0,
+    "quality_score": 0.0,
+    "price_score": 0.3488,
+    "accessibility_score": 0.0,
+    "confidence_level": "low",
+    "value_score": 0.0698
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 33,
+  "fields": {
+    "platform": 10,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.0,
+    "exclusivity_score": 0.0,
+    "quality_score": 0.0,
+    "price_score": 0.0233,
+    "accessibility_score": 0.4375,
+    "confidence_level": "low",
+    "value_score": 0.0922
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 34,
+  "fields": {
+    "platform": 4,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.3267,
+    "exclusivity_score": 0.0777,
+    "quality_score": 0.2614,
+    "price_score": 0.6744,
+    "accessibility_score": 1.0,
+    "confidence_level": "medium",
+    "value_score": 0.468
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 35,
+  "fields": {
+    "platform": 6,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 1.0,
+    "exclusivity_score": 0.3856,
+    "quality_score": 0.9659,
+    "price_score": 0.186,
+    "accessibility_score": 1.0,
+    "confidence_level": "high",
+    "value_score": 0.7075
+  }
+},
+{
+  "model": "contents.platformbenchmarksnapshot",
+  "pk": 36,
+  "fields": {
+    "platform": 5,
+    "snapshot_date": "2026-06-23",
+    "availability_score": 0.5267,
+    "exclusivity_score": 0.2086,
+    "quality_score": 0.2955,
+    "price_score": 1.0,
+    "accessibility_score": 1.0,
+    "confidence_level": "medium",
+    "value_score": 0.6062
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 439,
+  "fields": {
+    "platform": 1,
+    "genre_id": 27,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 440,
+  "fields": {
+    "platform": 1,
+    "genre_id": 35,
+    "title_count": 37,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 441,
+  "fields": {
+    "platform": 1,
+    "genre_id": 80,
+    "title_count": 27,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 442,
+  "fields": {
+    "platform": 1,
+    "genre_id": 18,
+    "title_count": 67,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 443,
+  "fields": {
+    "platform": 1,
+    "genre_id": 9648,
+    "title_count": 16,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 444,
+  "fields": {
+    "platform": 5,
+    "genre_id": 80,
+    "title_count": 21,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 445,
+  "fields": {
+    "platform": 5,
+    "genre_id": 18,
+    "title_count": 49,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 446,
+  "fields": {
+    "platform": 5,
+    "genre_id": 9648,
+    "title_count": 16,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 447,
+  "fields": {
+    "platform": 5,
+    "genre_id": 35,
+    "title_count": 20,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 448,
+  "fields": {
+    "platform": 6,
+    "genre_id": 80,
+    "title_count": 21,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 449,
+  "fields": {
+    "platform": 6,
+    "genre_id": 18,
+    "title_count": 76,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 450,
+  "fields": {
+    "platform": 6,
+    "genre_id": 35,
+    "title_count": 32,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 451,
+  "fields": {
+    "platform": 2,
+    "genre_id": 18,
+    "title_count": 24,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 452,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10759,
+    "title_count": 33,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 453,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10759,
+    "title_count": 35,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 454,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10751,
+    "title_count": 14,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 455,
+  "fields": {
+    "platform": 2,
+    "genre_id": 16,
+    "title_count": 19,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 456,
+  "fields": {
+    "platform": 2,
+    "genre_id": 35,
+    "title_count": 26,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 457,
+  "fields": {
+    "platform": 1,
+    "genre_id": 12,
+    "title_count": 14,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 458,
+  "fields": {
+    "platform": 1,
+    "genre_id": 16,
+    "title_count": 41,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 459,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10751,
+    "title_count": 13,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 460,
+  "fields": {
+    "platform": 1,
+    "genre_id": 14,
+    "title_count": 9,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 461,
+  "fields": {
+    "platform": 5,
+    "genre_id": 53,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 462,
+  "fields": {
+    "platform": 6,
+    "genre_id": 53,
+    "title_count": 13,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 463,
+  "fields": {
+    "platform": 2,
+    "genre_id": 28,
+    "title_count": 12,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 464,
+  "fields": {
+    "platform": 2,
+    "genre_id": 80,
+    "title_count": 14,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 465,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10749,
+    "title_count": 9,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 466,
+  "fields": {
+    "platform": 2,
+    "genre_id": 12,
+    "title_count": 16,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 467,
+  "fields": {
+    "platform": 1,
+    "genre_id": 28,
+    "title_count": 20,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 468,
+  "fields": {
+    "platform": 1,
+    "genre_id": 53,
+    "title_count": 16,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 469,
+  "fields": {
+    "platform": 2,
+    "genre_id": 878,
+    "title_count": 10,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 470,
+  "fields": {
+    "platform": 6,
+    "genre_id": 28,
+    "title_count": 27,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 471,
+  "fields": {
+    "platform": 2,
+    "genre_id": 9648,
+    "title_count": 9,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 472,
+  "fields": {
+    "platform": 5,
+    "genre_id": 12,
+    "title_count": 8,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 473,
+  "fields": {
+    "platform": 5,
+    "genre_id": 878,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 474,
+  "fields": {
+    "platform": 2,
+    "genre_id": 27,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 475,
+  "fields": {
+    "platform": 2,
+    "genre_id": 53,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 476,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10749,
+    "title_count": 15,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 477,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10764,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 478,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10764,
+    "title_count": 10,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 479,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10762,
+    "title_count": 8,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 480,
+  "fields": {
+    "platform": 6,
+    "genre_id": 16,
+    "title_count": 43,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 481,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10762,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 482,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10765,
+    "title_count": 28,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 483,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10759,
+    "title_count": 15,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 484,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10765,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 485,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10765,
+    "title_count": 27,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 486,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10751,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 487,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10759,
+    "title_count": 8,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 488,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10765,
+    "title_count": 6,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 489,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10766,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 490,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10768,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 491,
+  "fields": {
+    "platform": 6,
+    "genre_id": 9648,
+    "title_count": 21,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 492,
+  "fields": {
+    "platform": 3,
+    "genre_id": 18,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 493,
+  "fields": {
+    "platform": 3,
+    "genre_id": 35,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 494,
+  "fields": {
+    "platform": 3,
+    "genre_id": 9648,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 495,
+  "fields": {
+    "platform": 1,
+    "genre_id": 878,
+    "title_count": 9,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 496,
+  "fields": {
+    "platform": 6,
+    "genre_id": 878,
+    "title_count": 14,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 497,
+  "fields": {
+    "platform": 5,
+    "genre_id": 28,
+    "title_count": 6,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 498,
+  "fields": {
+    "platform": 5,
+    "genre_id": 14,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 499,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10749,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 500,
+  "fields": {
+    "platform": 6,
+    "genre_id": 12,
+    "title_count": 18,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 501,
+  "fields": {
+    "platform": 6,
+    "genre_id": 14,
+    "title_count": 7,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 502,
+  "fields": {
+    "platform": 5,
+    "genre_id": 36,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 503,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10402,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 504,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10402,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 505,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10402,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 506,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10749,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 507,
+  "fields": {
+    "platform": 3,
+    "genre_id": 28,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 508,
+  "fields": {
+    "platform": 2,
+    "genre_id": 14,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 509,
+  "fields": {
+    "platform": 5,
+    "genre_id": 16,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 510,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10768,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 511,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10764,
+    "title_count": 10,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 512,
+  "fields": {
+    "platform": 2,
+    "genre_id": 99,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 513,
+  "fields": {
+    "platform": 1,
+    "genre_id": 99,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 514,
+  "fields": {
+    "platform": 4,
+    "genre_id": 99,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 515,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10402,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 516,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10402,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 517,
+  "fields": {
+    "platform": 4,
+    "genre_id": 18,
+    "title_count": 32,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 518,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10749,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 519,
+  "fields": {
+    "platform": 6,
+    "genre_id": 36,
+    "title_count": 6,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 520,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10752,
+    "title_count": 7,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 521,
+  "fields": {
+    "platform": 4,
+    "genre_id": 36,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 522,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10752,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 523,
+  "fields": {
+    "platform": 1,
+    "genre_id": 36,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 524,
+  "fields": {
+    "platform": 2,
+    "genre_id": 36,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 525,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10752,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 526,
+  "fields": {
+    "platform": 4,
+    "genre_id": 53,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 527,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10752,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 528,
+  "fields": {
+    "platform": 4,
+    "genre_id": 14,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 529,
+  "fields": {
+    "platform": 6,
+    "genre_id": 37,
+    "title_count": 8,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 530,
+  "fields": {
+    "platform": 1,
+    "genre_id": 37,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 531,
+  "fields": {
+    "platform": 4,
+    "genre_id": 9648,
+    "title_count": 12,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 532,
+  "fields": {
+    "platform": 4,
+    "genre_id": 37,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 533,
+  "fields": {
+    "platform": 4,
+    "genre_id": 12,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 534,
+  "fields": {
+    "platform": 4,
+    "genre_id": 16,
+    "title_count": 15,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 535,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10762,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 536,
+  "fields": {
+    "platform": 2,
+    "genre_id": 10762,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 537,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10765,
+    "title_count": 11,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 538,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10764,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 539,
+  "fields": {
+    "platform": 4,
+    "genre_id": 35,
+    "title_count": 12,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 540,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10768,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 541,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10768,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 542,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10759,
+    "title_count": 14,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 543,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10768,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 544,
+  "fields": {
+    "platform": 4,
+    "genre_id": 80,
+    "title_count": 6,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 545,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10751,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 546,
+  "fields": {
+    "platform": 4,
+    "genre_id": 28,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 547,
+  "fields": {
+    "platform": 6,
+    "genre_id": 27,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 548,
+  "fields": {
+    "platform": 4,
+    "genre_id": 878,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 549,
+  "fields": {
+    "platform": 4,
+    "genre_id": 27,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 550,
+  "fields": {
+    "platform": 4,
+    "genre_id": 10751,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 551,
+  "fields": {
+    "platform": 1,
+    "genre_id": 10767,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 552,
+  "fields": {
+    "platform": 6,
+    "genre_id": 10767,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 553,
+  "fields": {
+    "platform": 9,
+    "genre_id": 28,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 554,
+  "fields": {
+    "platform": 9,
+    "genre_id": 14,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 555,
+  "fields": {
+    "platform": 9,
+    "genre_id": 18,
+    "title_count": 12,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 556,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10749,
+    "title_count": 7,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 557,
+  "fields": {
+    "platform": 9,
+    "genre_id": 53,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 558,
+  "fields": {
+    "platform": 9,
+    "genre_id": 80,
+    "title_count": 4,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 559,
+  "fields": {
+    "platform": 3,
+    "genre_id": 99,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 560,
+  "fields": {
+    "platform": 3,
+    "genre_id": 10402,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 561,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10402,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 562,
+  "fields": {
+    "platform": 9,
+    "genre_id": 27,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 563,
+  "fields": {
+    "platform": 9,
+    "genre_id": 35,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 564,
+  "fields": {
+    "platform": 9,
+    "genre_id": 16,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 565,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10751,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 566,
+  "fields": {
+    "platform": 9,
+    "genre_id": 9648,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 567,
+  "fields": {
+    "platform": 9,
+    "genre_id": 878,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 568,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10752,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 569,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10765,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 570,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10759,
+    "title_count": 3,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 571,
+  "fields": {
+    "platform": 9,
+    "genre_id": 10762,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 572,
+  "fields": {
+    "platform": 3,
+    "genre_id": 10765,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 573,
+  "fields": {
+    "platform": 3,
+    "genre_id": 10768,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 574,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10767,
+    "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+}
+]
