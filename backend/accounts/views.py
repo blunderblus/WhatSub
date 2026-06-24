@@ -16,7 +16,7 @@ from allauth.socialaccount.models import SocialToken
 
 from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
 from subscriptions.serializers import UserSubscriptionSerializer
-from .billing_dates import build_schedule_items, default_renewal_date, subscription_period
+from .billing_dates import build_schedule_items, default_renewal_date, parse_subscription_date, subscription_period
 from .forms import SignUpForm
 
 _PLATFORM_LOGOS = {
@@ -381,14 +381,12 @@ def manual_add(request):
         if plan is None:
             return Response({'plan': ['선택한 플랫폼의 요금제가 아닙니다.']}, status=status.HTTP_400_BAD_REQUEST)
 
-    start_date = data.get('start_date') or timezone.now().date().isoformat()
+    start_dt = parse_subscription_date(data.get('start_date'), timezone.now().date())
     billing_cycle = data.get('billing_cycle') or (plan.billing_period if plan else 'monthly')
-    if isinstance(start_date, str):
-        from datetime import date as date_cls
-        start_dt = date_cls.fromisoformat(start_date)
-    else:
-        start_dt = start_date
-    renewal_date = data.get('renewal_date') or default_renewal_date(start_dt, billing_cycle).isoformat()
+    renewal_dt = parse_subscription_date(
+        data.get('renewal_date'),
+        default_renewal_date(start_dt, billing_cycle),
+    )
     plan_name = data.get('plan_name') or (plan.plan_name if plan else '미정')
     payment_method = data.get('payment_method') or ''
 
@@ -407,8 +405,8 @@ def manual_add(request):
         payment_amount=payment_amount,
         billing_cycle=billing_cycle,
         payment_method=payment_method,
-        start_date=start_date,
-        renewal_date=renewal_date,
+        start_date=start_dt,
+        renewal_date=renewal_dt,
         auto_renew=bool(data.get('auto_renew', True)),
         memo=data.get('memo') or '',
     )
@@ -444,8 +442,8 @@ def _create_gmail_subscription(user, data):
         defaults={'name': platform_name},
     )
     today = timezone.now().date()
-    renewal = data.get('renewal_date') or today
-    start = data.get('start_date') or today
+    renewal = parse_subscription_date(data.get('renewal_date'), today)
+    start = parse_subscription_date(data.get('start_date'), today)
 
     subscription = UserSubscription.objects.create(
         user=user,

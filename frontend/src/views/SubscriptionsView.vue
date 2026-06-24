@@ -5,6 +5,7 @@ import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
 import SubscriptionCalendar from '../components/SubscriptionCalendar.vue';
 import { useSessionStore } from '../stores/session';
+import { subscriptionMonthlyAmount, subscriptionsMonthlyTotal } from '../utils/billing';
 
 const session = useSessionStore();
 
@@ -14,6 +15,11 @@ const selectedCalendarSubId = ref(null);
 
 const standaloneSubs = computed(() => dashboard.value?.standalone_subscriptions || []);
 const bundleSubs = computed(() => dashboard.value?.bundle_subscriptions || []);
+const allSubscriptions = computed(() => dashboard.value?.subscriptions || []);
+const monthlyTotal = computed(() => {
+  if (allSubscriptions.value.length) return subscriptionsMonthlyTotal(allSubscriptions.value);
+  return dashboard.value?.monthly_total || 0;
+});
 
 function money(value) {
   return Number(value || 0).toLocaleString('ko-KR');
@@ -71,7 +77,7 @@ onMounted(async () => {
       <section class="grid-3">
         <article class="metric"><span>활성 구독</span><strong>{{ dashboard.subscription_count }}</strong></article>
         <article class="metric"><span>구독 플랫폼</span><strong>{{ dashboard.platform_count }}</strong></article>
-        <article class="metric"><span>월 예상 지출</span><strong>{{ money(dashboard.monthly_total) }}원</strong></article>
+        <article class="metric"><span>월 예상 지출</span><strong>{{ money(monthlyTotal) }}원</strong></article>
       </section>
 
       <section class="panel calendar-panel" style="margin-top: 18px">
@@ -108,6 +114,7 @@ onMounted(async () => {
               <div class="price">
                 {{ money(sub.payment_amount) }}원
                 <small>{{ sub.billing_cycle_label }}</small>
+                <small v-if="sub.billing_cycle !== 'monthly'">월 {{ money(subscriptionMonthlyAmount(sub)) }}원 환산</small>
               </div>
               <button
                 class="delete-button"
@@ -133,6 +140,7 @@ onMounted(async () => {
                 <div class="price">
                   {{ money(bundle.payment_amount) }}원
                   <small>{{ bundle.billing_cycle_label }}</small>
+                  <small v-if="bundle.billing_cycle !== 'monthly'">월 {{ money(subscriptionMonthlyAmount(bundle)) }}원 환산</small>
                 </div>
                 <button
                   class="delete-button"

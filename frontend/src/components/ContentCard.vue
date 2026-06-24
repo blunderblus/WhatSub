@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { apiRequest } from '../api/http';
-import { useSessionStore } from '../stores/session';
+import { useRouter } from 'vue-router';
+import { useContentCard } from '../composables/useContentCard';
+import { formatProviderName, providerInitial } from '../utils/formatters';
 
 const props = defineProps({
   item: {
@@ -19,89 +19,26 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['open']);
-const session = useSessionStore();
-const providers = ref([]);
-const providersLoaded = ref(false);
-const providersLoading = ref(false);
-const providerError = ref('');
-const reactions = ref({ like_count: 0, dislike_count: 0, my_reaction: null });
-const reactionLoading = ref(false);
-const reactionMessage = ref('');
-const hoverTimer = ref(null);
+const router = useRouter();
 
-const resolvedMediaType = computed(() => props.mediaType || props.item.media_type || 'movie');
-const visibleProviders = computed(() => providers.value.slice(0, 6));
-
-function syncReactions() {
-  reactions.value = props.item.reactions || { like_count: 0, dislike_count: 0, my_reaction: null };
-  reactionMessage.value = '';
-}
-
-watch(() => props.item, syncReactions, { immediate: true });
-
-async function loadProviders() {
-  if (providersLoaded.value || providersLoading.value || !props.item.tmdb_id) return;
-
-  providersLoading.value = true;
-  providerError.value = '';
-  try {
-    const data = await apiRequest(`/api/contents/streaming_info/?tmdb_id=${props.item.tmdb_id}&media_type=${resolvedMediaType.value}`);
-    providers.value = data.providers || [];
-    providersLoaded.value = true;
-  } catch (err) {
-    providerError.value = err.message;
-    providersLoaded.value = true;
-  } finally {
-    providersLoading.value = false;
+function promptLogin() {
+  if (confirm('로그인이 필요합니다.')) {
+    router.push('/login');
   }
 }
 
-function scheduleProviderLoad() {
-  if (providersLoaded.value || providersLoading.value) return;
-  if (hoverTimer.value) clearTimeout(hoverTimer.value);
-  hoverTimer.value = setTimeout(() => {
-    hoverTimer.value = null;
-    loadProviders();
-  }, 450);
-}
-
-function cancelProviderLoad() {
-  if (hoverTimer.value) {
-    clearTimeout(hoverTimer.value);
-    hoverTimer.value = null;
-  }
-}
-
-onBeforeUnmount(cancelProviderLoad);
-
-async function toggleReaction(reaction) {
-  reactionMessage.value = '';
-  if (!session.isAuthenticated) {
-    reactionMessage.value = '로그인 후 표시할 수 있습니다.';
-    return;
-  }
-
-  reactionLoading.value = true;
-  try {
-    reactions.value = await apiRequest(`/api/contents/reaction/${props.item.tmdb_id}/`, {
-      method: 'POST',
-      body: {
-        media_type: resolvedMediaType.value,
-        reaction,
-        title: props.item.title || '',
-        poster_url: props.item.poster_url || '',
-      },
-    });
-  } catch (err) {
-    reactionMessage.value = err.message;
-  } finally {
-    reactionLoading.value = false;
-  }
-}
-
-function providerInitial(name) {
-  return (name || '?').trim().charAt(0).toUpperCase();
-}
+const {
+  visibleProviders,
+  providersLoaded,
+  providersLoading,
+  providerError,
+  reactions,
+  reactionLoading,
+  reactionMessage,
+  scheduleProviderLoad,
+  cancelProviderLoad,
+  toggleReaction,
+} = useContentCard(props, { onLoginRequired: promptLogin });
 </script>
 
 <template>
@@ -120,7 +57,7 @@ function providerInitial(name) {
       <div v-else class="poster-empty">{{ item.title }}</div>
 
       <div class="ott-overlay" aria-live="polite">
-        <div class="ott-panel">
+        <div v-if="providersLoading || providersLoaded" class="ott-panel">
           <span v-if="providersLoading" class="ott-status">확인 중</span>
           <template v-else-if="visibleProviders.length">
             <span class="ott-label">볼 수 있는 곳</span>
@@ -128,10 +65,10 @@ function providerInitial(name) {
               v-for="provider in visibleProviders"
               :key="`${provider.service}-${provider.type}-${provider.link}`"
               class="ott-icon"
-              :title="provider.display_name || provider.service"
+              :title="formatProviderName(provider)"
             >
-              <img v-if="provider.icon_url" :src="provider.icon_url" :alt="provider.display_name || provider.service" />
-              <span v-else>{{ providerInitial(provider.display_name || provider.service) }}</span>
+              <img v-if="provider.icon_url" :src="provider.icon_url" :alt="formatProviderName(provider)" />
+              <span v-else>{{ providerInitial(provider) }}</span>
             </span>
           </template>
           <span v-else-if="providersLoaded && !providerError" class="ott-status">OTT 정보 없음</span>
@@ -147,7 +84,7 @@ function providerInitial(name) {
       <h2>{{ item.title }}</h2>
       <p v-if="!compact && item.overview" class="muted">{{ item.overview }}</p>
       <span v-if="compact && item.media_type" class="muted">
-        {{ item.media_type === 'tv' ? '시리즈' : '영화' }} ? {{ item.release_date || '공개일 미정' }}
+        {{ item.media_type === 'tv' ? '시리즈' : '영화' }} · {{ item.release_date || '공개일 미정' }}
       </span>
       <div class="card-reactions" @click.stop @keydown.stop>
         <button
@@ -237,7 +174,7 @@ function providerInitial(name) {
 .reaction-icon-button:hover,
 .reaction-icon-button.active {
   border-color: var(--ws-primary);
-  background: rgba(198, 243, 73, 0.12);
+  background: rgba(217, 221, 146, 0.12);
   color: var(--ws-primary);
 }
 
@@ -273,6 +210,7 @@ function providerInitial(name) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  align-content: flex-start;
   width: 100%;
   gap: 8px;
   padding: 10px;
@@ -280,6 +218,13 @@ function providerInitial(name) {
   border-radius: 8px;
   background: rgba(10, 14, 20, 0.9);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
+}
+
+.ott-status {
+  display: grid;
+  width: 100%;
+  place-items: center;
+  text-align: center;
 }
 
 .ott-label,

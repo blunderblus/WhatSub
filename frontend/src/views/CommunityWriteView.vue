@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { apiRequest } from '../api/http';
+import { createCommunityPost, fetchCommunityBoards } from '../api/community';
 import { useSessionStore } from '../stores/session';
 import PageHeader from '../components/PageHeader.vue';
 
@@ -28,8 +28,7 @@ function normalizeBoardSelection() {
 }
 
 async function loadBoards() {
-  const data = await apiRequest('/api/community/boards/');
-  boards.value = data.boards || [];
+  boards.value = await fetchCommunityBoards();
   normalizeBoardSelection();
 }
 
@@ -44,10 +43,7 @@ async function submit() {
   normalizeBoardSelection();
   submitting.value = true;
   try {
-    const post = await apiRequest('/api/community/posts/', {
-      method: 'POST',
-      body: form.value,
-    });
+    const post = await createCommunityPost(form.value);
     router.push(`/community/${post.id}`);
   } catch (err) {
     error.value = Object.values(err.payload || {}).flat().join(' ') || err.message;

@@ -22,8 +22,8 @@
         h2 { margin: 0 0 24px; font-size: 18px; font-weight: 600; color: var(--ws-muted); }
         .note {
             margin: 0 0 28px; padding: 12px 14px; border-radius: 10px;
-            background: rgba(198, 243, 73, 0.08); color: var(--ws-muted); font-size: 13px; line-height: 1.5;
-            border: 1px solid rgba(198, 243, 73, 0.2);
+            background: rgba(217, 221, 146, 0.08); color: var(--ws-muted); font-size: 13px; line-height: 1.5;
+            border: 1px solid rgba(217, 221, 146, 0.2);
         }
         .btn { display: inline-block; padding: 14px 28px; border-radius: 10px; font-weight: 800; text-decoration: none; }
     </style>
@@ -44,7 +44,7 @@
         let W, H, pieces = [];
         function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
         resize(); addEventListener('resize', resize);
-        const colors = ['#c6f349','#fca311','#e50914','#01137c','#00a8e1','#4caf93','#ff6b6b'];
+        const colors = ['#D9DD92','#fca311','#e50914','#01137c','#00a8e1','#D9DD92','#ff6b6b'];
         for (let i = 0; i < 120; i++) {
             pieces.push({
                 x: Math.random() * innerWidth, y: Math.random() * innerHeight - innerHeight,

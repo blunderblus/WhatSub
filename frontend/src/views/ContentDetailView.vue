@@ -2,6 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { apiRequest } from '../api/http';
+import { formatProviderName, providerInitial } from '../utils/formatters';
+import { formatProviderTypes, groupProvidersByPlatform } from '../utils/streamingProviders';
 
 const route = useRoute();
 const movie = ref(null);
@@ -11,6 +13,10 @@ const error = ref('');
 
 const isMovie = computed(() => route.params.type === 'movies');
 const detailUrl = computed(() => `/api/contents/${isMovie.value ? 'movie_detail' : 'show_detail'}/${route.params.id}/`);
+const listRoute = computed(() => ({
+  path: `/contents/${route.params.type}`,
+  query: route.query,
+}));
 
 const SUBSCRIPTION_TYPES = new Set(['subscription', 'free', 'ads']);
 const TRANSACTION_TYPES = new Set(['rent', 'buy']);
@@ -26,15 +32,11 @@ const PLATFORM_HOME = {
 };
 
 const subscriptionProviders = computed(() =>
-  providers.value.filter((p) => SUBSCRIPTION_TYPES.has(p.type)),
+  groupProvidersByPlatform(providers.value.filter((p) => SUBSCRIPTION_TYPES.has(p.type))),
 );
 const transactionProviders = computed(() =>
-  providers.value.filter((p) => TRANSACTION_TYPES.has(p.type)),
+  groupProvidersByPlatform(providers.value.filter((p) => TRANSACTION_TYPES.has(p.type))),
 );
-
-function providerInitial(name) {
-  return (name || '?').trim().charAt(0).toUpperCase();
-}
 
 function resolveProviderHref(provider) {
   const link = (provider?.link || '').trim();
@@ -65,6 +67,13 @@ function formatLicenseExpiry(expiresOn) {
   return `라이선스 ~${parsed.toLocaleDateString('ko-KR')}까지`;
 }
 
+function formatProviderExpiry(provider) {
+  const expiryLabels = (provider.expiresOnList || [])
+    .map((expiresOn) => formatLicenseExpiry(expiresOn))
+    .filter(Boolean);
+  return expiryLabels.join(' · ');
+}
+
 async function load() {
   loading.value = true;
   error.value = '';
@@ -85,7 +94,7 @@ onMounted(load);
 
 <template>
   <main>
-    <RouterLink class="button" :to="`/contents/${route.params.type}`">목록으로</RouterLink>
+    <RouterLink class="button" :to="listRoute">목록으로</RouterLink>
     <p v-if="error" class="notice" style="margin-top: 18px">{{ error }}</p>
     <div v-else-if="loading" class="loader" style="margin-top: 18px">상세 정보를 불러오는 중입니다.</div>
 
@@ -107,14 +116,13 @@ onMounted(load);
 
       <section class="panel" style="margin-top: 24px">
         <h2>이용 가능한 서비스</h2>
-        <br>
         <template v-if="providers.length">
           <div v-if="subscriptionProviders.length" class="provider-section">
             <h3>구독 · 무료</h3>
             <div class="provider-grid">
               <a
-                v-for="(provider, index) in subscriptionProviders"
-                :key="`sub-${index}-${provider.service}-${provider.type}`"
+                v-for="provider in subscriptionProviders"
+                :key="`sub-${provider.key}`"
                 class="provider-link"
                 :class="{ 'no-link': !hasDeepLink(provider) }"
                 :href="resolveProviderHref(provider) || '#'"
@@ -122,14 +130,16 @@ onMounted(load);
                 rel="noopener noreferrer"
                 @click="openProvider($event, provider)"
               >
-                <img v-if="provider.icon_url" :src="provider.icon_url" :alt="provider.display_name || provider.service" />
-                <span v-else class="provider-fallback">{{ providerInitial(provider.display_name || provider.service) }}</span>
-            <strong>{{ provider.display_name || provider.service }}</strong>
-            <span>
-              {{ provider.type_label }}
-              <template v-if="formatLicenseExpiry(provider.expires_on)"> · {{ formatLicenseExpiry(provider.expires_on) }}</template>
-              <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
-            </span>
+                <img v-if="provider.icon_url" :src="provider.icon_url" :alt="formatProviderName(provider)" />
+                <span v-else class="provider-fallback">{{ providerInitial(provider) }}</span>
+                <span class="provider-copy">
+                  <strong>{{ formatProviderName(provider) }}</strong>
+                  <span>
+                    {{ formatProviderTypes(provider) }}
+                    <template v-if="formatProviderExpiry(provider)"> · {{ formatProviderExpiry(provider) }}</template>
+                    <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
+                  </span>
+                </span>
               </a>
             </div>
           </div>
@@ -138,8 +148,8 @@ onMounted(load);
             <h3>대여 · 구매</h3>
             <div class="provider-grid">
               <a
-                v-for="(provider, index) in transactionProviders"
-                :key="`txn-${index}-${provider.service}-${provider.type}`"
+                v-for="provider in transactionProviders"
+                :key="`txn-${provider.key}`"
                 class="provider-link"
                 :class="{ 'no-link': !hasDeepLink(provider) }"
                 :href="resolveProviderHref(provider) || '#'"
@@ -147,14 +157,16 @@ onMounted(load);
                 rel="noopener noreferrer"
                 @click="openProvider($event, provider)"
               >
-                <img v-if="provider.icon_url" :src="provider.icon_url" :alt="provider.display_name || provider.service" />
-                <span v-else class="provider-fallback">{{ providerInitial(provider.display_name || provider.service) }}</span>
-            <strong>{{ provider.display_name || provider.service }}</strong>
-            <span>
-              {{ provider.type_label }}
-              <template v-if="formatLicenseExpiry(provider.expires_on)"> · {{ formatLicenseExpiry(provider.expires_on) }}</template>
-              <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
-            </span>
+                <img v-if="provider.icon_url" :src="provider.icon_url" :alt="formatProviderName(provider)" />
+                <span v-else class="provider-fallback">{{ providerInitial(provider) }}</span>
+                <span class="provider-copy">
+                  <strong>{{ formatProviderName(provider) }}</strong>
+                  <span>
+                    {{ formatProviderTypes(provider) }}
+                    <template v-if="formatProviderExpiry(provider)"> · {{ formatProviderExpiry(provider) }}</template>
+                    <template v-else-if="!hasDeepLink(provider)"> · 작품 링크 없음</template>
+                  </span>
+                </span>
               </a>
             </div>
           </div>
@@ -271,7 +283,7 @@ onMounted(load);
 
 .provider-link {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-height: 58px;
@@ -284,6 +296,25 @@ onMounted(load);
 
 .provider-link.no-link {
   opacity: 0.72;
+}
+
+.provider-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.provider-copy strong,
+.provider-copy span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.provider-copy span {
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .provider-link img,

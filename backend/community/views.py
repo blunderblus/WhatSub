@@ -1,11 +1,9 @@
-from django.db.models import Count, F
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import (
-    CommunityComment,
     CommunityCommentReaction,
     CommunityCommentReport,
     CommunityPost,
@@ -13,7 +11,22 @@ from .models import (
     CommunityPostReport,
     Reaction,
 )
+from .selectors import (
+    get_comment,
+    get_post,
+    get_post_detail,
+    increment_post_views,
+    normalize_board,
+    post_list_queryset,
+    reload_comment_reactions,
+    reload_comment_reports,
+    reload_post_reactions,
+    reload_post_reports,
+    reload_post_with_comments,
+    get_user_comment,
+)
 from .serializers import BOARD_META, CommunityPostDetailSerializer, CommunityPostSerializer, reaction_payload, report_payload
+from .services import apply_reaction, create_comment, create_post, report_once, update_post
 
 
 @api_view(['GET'])
@@ -26,19 +39,8 @@ def boards(request):
 @permission_classes([AllowAny])
 def posts(request):
     if request.method == 'GET':
-        board = request.GET.get('board') or CommunityPost.Board.OTT
-        if board not in BOARD_META:
-            board = CommunityPost.Board.OTT
-        queryset = (
-            CommunityPost.objects.filter(board=board)
-            .select_related('author')
-            .prefetch_related('reactions', 'reports')
-            .annotate(comment_count=Count('comments'))
-            .order_by('-created_at')
-        )
-        platform_id = request.GET.get('platform_id')
-        if platform_id:
-            queryset = queryset.filter(platform_id=platform_id)
+        board = normalize_board(request.GET.get('board') or CommunityPost.Board.OTT)
+        queryset = post_list_queryset(board, request.GET.get('platform_id'))
         return Response({'board': BOARD_META[board], 'results': CommunityPostSerializer(queryset, many=True, context={'request': request}).data})
 
     if not request.user.is_authenticated:
@@ -56,28 +58,24 @@ def posts(request):
         return Response({'title': ['제목을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if not content:
         return Response({'content': ['내용을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
-    post = CommunityPost.objects.create(
-        board=board, title=title, content=content, author=request.user,
-        platform_id=platform_id if platform_id else None,
+    post = create_post(
+        board=board,
+        title=title,
+        content=content,
+        author=request.user,
+        platform_id=platform_id,
     )
-    post.comment_count = 0
     return Response(CommunityPostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([AllowAny])
 def post_detail(request, pk):
-    post = (
-        CommunityPost.objects.select_related('author')
-        .prefetch_related('reactions', 'reports', 'comments__reactions', 'comments__reports')
-        .filter(pk=pk).first()
-    )
+    post = get_post_detail(pk)
     if post is None:
         return Response({'detail': '게시글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
     if request.method == 'GET':
-        CommunityPost.objects.filter(pk=pk).update(view_count=F('view_count') + 1)
-        post.refresh_from_db()
-        post.comment_count = post.comments.count()
+        increment_post_views(post)
         return Response(CommunityPostDetailSerializer(post, context={'request': request}).data)
     if not request.user.is_authenticated or post.author_id != request.user.id:
         return Response({'detail': '작성자만 수정하거나 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
@@ -88,29 +86,14 @@ def post_detail(request, pk):
     content = (request.data.get('content') or post.content).strip()
     if not title or not content:
         return Response({'detail': '제목과 내용을 입력해 주세요.'}, status=status.HTTP_400_BAD_REQUEST)
-    post.title = title
-    post.content = content
-    post.save(update_fields=['title', 'content', 'updated_at'])
-    post.comment_count = post.comments.count()
+    update_post(post, title=title, content=content)
     return Response(CommunityPostDetailSerializer(post, context={'request': request}).data)
-
-
-def _apply_reaction(model, lookup, user, reaction):
-    existing = model.objects.filter(**lookup, user=user).first()
-    if not reaction or (existing and existing.reaction == reaction):
-        if existing:
-            existing.delete()
-    elif existing:
-        existing.reaction = reaction
-        existing.save(update_fields=['reaction', 'updated_at'])
-    else:
-        model.objects.create(**lookup, user=user, reaction=reaction)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def post_reaction(request, pk):
-    post = CommunityPost.objects.filter(pk=pk).first()
+    post = get_post(pk)
     if post is None:
         return Response({'detail': '게시글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
     if post.author_id == request.user.id:
@@ -118,28 +101,28 @@ def post_reaction(request, pk):
     reaction = request.data.get('reaction')
     if reaction not in [Reaction.LIKE, Reaction.DISLIKE, None, '']:
         return Response({'detail': '올바른 반응 값이 아닙니다.'}, status=status.HTTP_400_BAD_REQUEST)
-    _apply_reaction(CommunityPostReaction, {'post': post}, request.user, reaction)
-    post = CommunityPost.objects.prefetch_related('reactions').get(pk=pk)
+    apply_reaction(CommunityPostReaction, {'post': post}, request.user, reaction)
+    post = reload_post_reactions(pk)
     return Response(reaction_payload(post, request))
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def post_report(request, pk):
-    post = CommunityPost.objects.filter(pk=pk).first()
+    post = get_post(pk)
     if post is None:
         return Response({'detail': '게시글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
     if post.author_id == request.user.id:
         return Response({'detail': 'Your own post cannot be reported.'}, status=status.HTTP_403_FORBIDDEN)
-    CommunityPostReport.objects.get_or_create(post=post, user=request.user)
-    post = CommunityPost.objects.prefetch_related('reports').get(pk=pk)
+    report_once(CommunityPostReport, {'post': post}, request.user)
+    post = reload_post_reports(pk)
     return Response(report_payload(post, request))
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def comments(request, pk):
-    post = CommunityPost.objects.filter(pk=pk).first()
+    post = get_post(pk)
     if post is None:
         return Response({'detail': '게시글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
     if post.board == CommunityPost.Board.NOTICE:
@@ -147,25 +130,25 @@ def comments(request, pk):
     content = (request.data.get('content') or '').strip()
     if not content:
         return Response({'content': ['댓글 내용을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
-    CommunityComment.objects.create(post=post, author=request.user, content=content)
-    post = CommunityPost.objects.select_related('author').prefetch_related('reactions', 'reports', 'comments__reactions', 'comments__reports').get(pk=pk)
-    post.comment_count = post.comments.count()
+    create_comment(post=post, author=request.user, content=content)
+    post = reload_post_with_comments(pk)
     return Response(CommunityPostDetailSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def comment_detail(request, pk):
-    deleted, _ = CommunityComment.objects.filter(pk=pk, author=request.user).delete()
-    if not deleted:
+    comment = get_user_comment(pk, request.user)
+    if comment is None:
         return Response({'detail': '댓글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+    comment.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def comment_reaction(request, pk):
-    comment = CommunityComment.objects.select_related('post').filter(pk=pk).first()
+    comment = get_comment(pk)
     if comment is None:
         return Response({'detail': 'Comment not found.'}, status=status.HTTP_404_NOT_FOUND)
     if comment.post.board == CommunityPost.Board.NOTICE:
@@ -175,21 +158,21 @@ def comment_reaction(request, pk):
     reaction = request.data.get('reaction')
     if reaction not in [Reaction.LIKE, Reaction.DISLIKE, None, '']:
         return Response({'detail': 'Invalid reaction value.'}, status=status.HTTP_400_BAD_REQUEST)
-    _apply_reaction(CommunityCommentReaction, {'comment': comment}, request.user, reaction)
-    comment = CommunityComment.objects.prefetch_related('reactions').get(pk=pk)
+    apply_reaction(CommunityCommentReaction, {'comment': comment}, request.user, reaction)
+    comment = reload_comment_reactions(pk)
     return Response(reaction_payload(comment, request))
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def comment_report(request, pk):
-    comment = CommunityComment.objects.select_related('post').filter(pk=pk).first()
+    comment = get_comment(pk)
     if comment is None:
         return Response({'detail': 'Comment not found.'}, status=status.HTTP_404_NOT_FOUND)
     if comment.post.board == CommunityPost.Board.NOTICE:
         return Response({'detail': 'Notice comments cannot be reported.'}, status=status.HTTP_403_FORBIDDEN)
     if comment.author_id == request.user.id:
         return Response({'detail': 'Your own comment cannot be reported.'}, status=status.HTTP_403_FORBIDDEN)
-    CommunityCommentReport.objects.get_or_create(comment=comment, user=request.user)
-    comment = CommunityComment.objects.prefetch_related('reports').get(pk=pk)
+    report_once(CommunityCommentReport, {'comment': comment}, request.user)
+    comment = reload_comment_reports(pk)
     return Response(report_payload(comment, request))

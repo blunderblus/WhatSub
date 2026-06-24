@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiRequest } from '../api/http';
+import { normalizeMonthlyAmount } from '../utils/billing';
 
 const router = useRouter();
 const route = useRoute();
@@ -24,13 +25,72 @@ const form = ref({
 });
 
 const filteredPlans = computed(() => plans.value.filter((plan) => String(plan.platform) === String(form.value.platform)));
+const monthlyEstimate = computed(() => normalizeMonthlyAmount(form.value.payment_amount, form.value.billing_cycle));
+
+function formatDateInput(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function parseDateInput(value) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function addMonths(date, months) {
+  const next = new Date(date);
+  const day = next.getDate();
+  next.setDate(1);
+  next.setMonth(next.getMonth() + months);
+  const lastDayOfMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  next.setDate(Math.min(day, lastDayOfMonth));
+  return next;
+}
+
+function nextRenewalDate(startDate, billingCycle) {
+  const date = parseDateInput(startDate);
+  if (!date) return '';
+  if (billingCycle === 'weekly') {
+    date.setDate(date.getDate() + 7);
+    return formatDateInput(date);
+  }
+  if (billingCycle === 'annual') {
+    return formatDateInput(addMonths(date, 12));
+  }
+  return formatDateInput(addMonths(date, 1));
+}
+
+function applySuggestedRenewalDate() {
+  const suggested = nextRenewalDate(form.value.start_date, form.value.billing_cycle);
+  if (!suggested) return;
+  form.value.renewal_date = suggested;
+}
+
+function resetManualPlanFields() {
+  form.value.plan_name = '';
+  form.value.payment_amount = '';
+  form.value.billing_cycle = 'monthly';
+}
 
 watch(() => form.value.plan, (planId) => {
+  if (!planId) {
+    resetManualPlanFields();
+    return;
+  }
   const plan = plans.value.find((item) => String(item.id) === String(planId));
   if (!plan) return;
   form.value.plan_name = plan.plan_name;
   form.value.payment_amount = plan.price;
   form.value.billing_cycle = plan.billing_period;
+});
+
+watch(() => [form.value.start_date, form.value.billing_cycle], () => {
+  applySuggestedRenewalDate();
+});
+
+watch(() => form.value.platform, () => {
+  form.value.plan = '';
+  resetManualPlanFields();
 });
 
 async function submit() {
@@ -50,6 +110,7 @@ onMounted(async () => {
   ]);
   platforms.value = platformData;
   plans.value = planData;
+  applySuggestedRenewalDate();
 });
 </script>
 
@@ -95,6 +156,10 @@ onMounted(async () => {
         <div class="field"><label for="start_date">시작일</label><input id="start_date" v-model="form.start_date" type="date" required /></div>
         <div class="field"><label for="renewal_date">갱신일</label><input id="renewal_date" v-model="form.renewal_date" type="date" required /></div>
       </div>
+      <div class="monthly-estimate">
+        <span>월 환산 예상 지출</span>
+        <strong>{{ monthlyEstimate.toLocaleString('ko-KR') }}원</strong>
+      </div>
       <div class="field"><label for="memo">메모</label><textarea id="memo" v-model="form.memo"></textarea></div>
       <label class="checkbox"><input v-model="form.auto_renew" type="checkbox" /> 자동 갱신</label>
       <button class="button primary full-width" style="margin-top: 22px" type="submit">구독 추가</button>
@@ -110,5 +175,29 @@ onMounted(async () => {
   margin-top: 16px;
   color: #44515e;
   font-weight: 800;
+}
+
+.monthly-estimate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-surface-2);
+}
+
+.monthly-estimate span {
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.monthly-estimate strong {
+  color: var(--ws-primary);
+  font-size: 18px;
+  font-weight: 900;
 }
 </style>

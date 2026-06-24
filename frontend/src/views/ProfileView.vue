@@ -117,8 +117,8 @@ async function submit() {
 }
 
 .success {
-  border-color: rgba(198, 243, 73, 0.35);
-  background: rgba(198, 243, 73, 0.08);
+  border-color: rgba(217, 221, 146, 0.35);
+  background: rgba(217, 221, 146, 0.08);
   color: var(--ws-primary);
 }
 </style>

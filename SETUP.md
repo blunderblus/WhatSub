@@ -43,6 +43,15 @@ GOOGLE_CLIENT_SECRET=''
 python manage.py makemigrations
 python manage.py migrate
 python manage.py loaddata platform_seed.json
+python manage.py loaddata subscriptions/fixtures/subscriptions_catalog.json
+python -X utf8 manage.py loaddata contents/fixtures/benchmark_snapshot.json
+python -X utf8 manage.py loaddata contents/fixtures/benchmark_streaming_cache.json
+
+python manage.py warm_cache --skip-rapidapi
+python manage.py run_benchmark_batch --skip-llm
+
+python -X utf8 manage.py dumpdata contents.platformbenchmarksnapshot contents.platformgenrestats --indent 2 -o contents/fixtures/benchmark_snapshot.json
+python -X utf8 manage.py dumpdata contents.streamingcache contents.titlemeta contents.titlegenres --indent 2 -o contents/fixtures/benchmark_streaming_cache.json
 ```
 
 ## 6. 백엔드 실행

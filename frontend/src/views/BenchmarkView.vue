@@ -1,12 +1,18 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
-import { apiRequest } from '../api/http';
+import {
+  fetchBenchmarkLeaderboard,
+  fetchBenchmarkPlatform,
+  fetchPersonalBenchmark,
+  fetchPlatformCatalog,
+} from '../api/benchmark';
 import PageHeader from '../components/PageHeader.vue';
 import PieChart from '../components/PieChart.vue';
 import SubscriptionCalculator from '../components/SubscriptionCalculator.vue';
 import PlanCatalogPickers from '../components/PlanCatalogPickers.vue';
-import { formatWon } from '../utils/billing';
+import { useBenchmarkAxisTooltips } from '../composables/useBenchmarkAxisTooltips';
+import { canAddCalcItem, formatWon } from '../utils/billing';
 import { useSessionStore } from '../stores/session';
 
 const route = useRoute();
@@ -25,6 +31,7 @@ const personalError = ref('');
 const platformCatalog = ref(null);
 const plansLoading = ref(false);
 const calcItems = ref([]);
+const calcDuplicateMessage = ref('');
 
 const platforms = computed(() => leaderboard.value?.platforms || []);
 const axisLabels = computed(() => leaderboard.value?.axis_labels || {});
@@ -73,31 +80,7 @@ const personalSelected = computed(() => {
   return personal.value.platforms.find((p) => p.platform_id === id) || personal.value.platforms[0];
 });
 
-const activeTooltip = ref(null);
-
-const axisToolTip = {
-  availability: '이 플랫폼에서 볼 수 있는 영화·시리즈가 얼마나 많은지를 나타내요. 다른 플랫폼들과 비교한 상대적 점수예요.',
-  exclusivity: '오직 이 플랫폼에서만 볼 수 있는 작품이 얼마나 있는지, 그리고 그 작품들이 얼마나 화제성 있는지를 함께 반영해요.',
-  quality: '평점 높은 좋은 작품이 얼마나 많은지를 나타내요. 평가 안 좋은 작품이 많다고 해서 점수가 깎이지는 않아요.',
-  price: '합리적인 가격의 플랜이나 번들 혜택이 얼마나 있는지를 나타내요. 가격 대비 실질적인 혜택을 기준으로 판단해요.',
-  accessibility: '동시 시청 가능 인원, 최대 화질, 다운로드 지원 여부 등 실제 이용 편의성을 나타내요.',
-};
-
-function toggleTooltip(key) {
-  activeTooltip.value = activeTooltip.value === key ? null : key;
-}
-
-function closeTooltip() {
-  activeTooltip.value = null;
-}
-
-onMounted(() => {
-  document.addEventListener('click', closeTooltip);
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', closeTooltip);
-});
+const { activeTooltip, axisTooltips, toggleTooltip } = useBenchmarkAxisTooltips();
 
 function formatScore(value) {
   return Number(value || 0).toFixed(2);
@@ -119,6 +102,12 @@ function platformBudgetWarning(platform) {
 }
 
 function addCalcItem(item) {
+  const { allowed, message } = canAddCalcItem(item, calcItems.value);
+  if (!allowed) {
+    calcDuplicateMessage.value = message;
+    return;
+  }
+  calcDuplicateMessage.value = '';
   calcItems.value = [...calcItems.value, item];
 }
 
@@ -133,7 +122,7 @@ async function loadPlatformCatalog(platformId) {
   }
   plansLoading.value = true;
   try {
-    platformCatalog.value = await apiRequest(`/api/subscriptions/platforms/${platformId}/catalog/`);
+    platformCatalog.value = await fetchPlatformCatalog(platformId);
   } catch {
     platformCatalog.value = null;
   } finally {
@@ -145,7 +134,7 @@ async function loadLeaderboard() {
   loading.value = true;
   error.value = '';
   try {
-    leaderboard.value = await apiRequest('/api/contents/benchmark/?min_titles=1');
+    leaderboard.value = await fetchBenchmarkLeaderboard();
     if (!selectedId.value && leaderboard.value.platforms?.length) {
       selectedId.value = leaderboard.value.platforms[0].platform_id;
     }
@@ -164,7 +153,7 @@ async function loadDetail(platformId) {
   }
   detailLoading.value = true;
   try {
-    detail.value = await apiRequest(`/api/contents/benchmark/platforms/${platformId}/`);
+    detail.value = await fetchBenchmarkPlatform(platformId);
   } catch {
     detail.value = null;
   } finally {
@@ -177,7 +166,7 @@ async function loadPersonal() {
   personalLoading.value = true;
   personalError.value = '';
   try {
-    personal.value = await apiRequest('/api/contents/benchmark/personal/');
+    personal.value = await fetchPersonalBenchmark();
     if (personal.value?.platforms?.length) {
       const exists = personal.value.platforms.some((p) => p.platform_id === selectedId.value);
       if (!exists) {
@@ -341,7 +330,7 @@ onMounted(async () => {
                     @click.stop="toggleTooltip(key)"
                   >
                     ⓘ
-                    <span class="tooltip">{{ axisToolTip[key] }}</span>
+                    <span class="tooltip">{{ axisTooltips[key] }}</span>
                   </span>
                 </span>
                 <div class="axis-bar">
@@ -503,6 +492,7 @@ onMounted(async () => {
             </section>
           </div>
 
+          <p v-if="calcDuplicateMessage" class="calc-duplicate-warn">{{ calcDuplicateMessage }}</p>
           <SubscriptionCalculator
             v-model="calcItems"
             :existing-monthly="existingMonthly"
@@ -535,6 +525,7 @@ onMounted(async () => {
   background: var(--ws-surface-2);
   cursor: pointer;
   font-weight: 600;
+  color: var(--ws-text);
 }
 
 .tab-btn.active {
@@ -672,7 +663,7 @@ onMounted(async () => {
 }
 
 .confidence-badge[data-level='high'] { color: #0f766e; border-color: #99f6e4; background: #ecfdf5; }
-.confidence-badge[data-level='medium'] { color: #b45309; border-color: #fde68a; background: #fffbeb; }
+.confidence-badge[data-level='medium'] { color:rgb(82, 39, 39); border-color:rgb(0, 0, 0); background:rgb(252, 224, 224); }
 
 .axis-grid { display: grid; gap: 10px; }
 
@@ -856,7 +847,8 @@ onMounted(async () => {
 .budget-hint { margin-bottom: 10px; }
 
 .budget-banner-warn,
-.budget-inline-warn {
+.budget-inline-warn,
+.calc-duplicate-warn {
   margin: 12px 0 0;
   padding: 10px 12px;
   border-radius: 10px;

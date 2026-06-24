@@ -1,7 +1,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { apiRequest } from '../api/http';
+import {
+  addCommunityComment,
+  deleteCommunityComment,
+  deleteCommunityPost,
+  fetchCommunityPost,
+  reportCommunityComment,
+  reportCommunityPost,
+  updateCommunityCommentReaction,
+  updateCommunityPostReaction,
+} from '../api/community';
 import { useSessionStore } from '../stores/session';
 
 const route = useRoute();
@@ -20,7 +29,7 @@ async function loadPost() {
   loading.value = true;
   error.value = '';
   try {
-    post.value = await apiRequest(`/api/community/posts/${route.params.id}/`);
+    post.value = await fetchCommunityPost(route.params.id);
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -42,10 +51,7 @@ async function reactToPost(reaction) {
   }
   if (!requireLogin('로그인 후 추천할 수 있습니다.')) return;
   const nextReaction = post.value.reactions?.my_reaction === reaction ? null : reaction;
-  post.value.reactions = await apiRequest(`/api/community/posts/${post.value.id}/reaction/`, {
-    method: 'POST',
-    body: { reaction: nextReaction },
-  });
+  post.value.reactions = await updateCommunityPostReaction(post.value.id, nextReaction);
 }
 
 async function reactToComment(item, reaction) {
@@ -55,27 +61,18 @@ async function reactToComment(item, reaction) {
   }
   if (!requireLogin('로그인 후 추천할 수 있습니다.')) return;
   const nextReaction = item.reactions?.my_reaction === reaction ? null : reaction;
-  item.reactions = await apiRequest(`/api/community/comments/${item.id}/reaction/`, {
-    method: 'POST',
-    body: { reaction: nextReaction },
-  });
+  item.reactions = await updateCommunityCommentReaction(item.id, nextReaction);
 }
 
 async function reportPost() {
   if (!requireLogin('로그인 후 신고할 수 있습니다.')) return;
-  post.value.reports = await apiRequest(`/api/community/posts/${post.value.id}/report/`, {
-    method: 'POST',
-    body: {},
-  });
+  post.value.reports = await reportCommunityPost(post.value.id);
   alert('신고가 접수되었습니다.');
 }
 
 async function reportComment(item) {
   if (!requireLogin('로그인 후 신고할 수 있습니다.')) return;
-  item.reports = await apiRequest(`/api/community/comments/${item.id}/report/`, {
-    method: 'POST',
-    body: {},
-  });
+  item.reports = await reportCommunityComment(item.id);
   alert('신고가 접수되었습니다.');
 }
 
@@ -85,10 +82,7 @@ async function addComment() {
 
   submitting.value = true;
   try {
-    post.value = await apiRequest(`/api/community/posts/${route.params.id}/comments/`, {
-      method: 'POST',
-      body: { content: comment.value },
-    });
+    post.value = await addCommunityComment(route.params.id, comment.value);
     comment.value = '';
   } catch (err) {
     commentMessage.value = err.message;
@@ -99,13 +93,13 @@ async function addComment() {
 
 async function deletePost() {
   if (!confirm('삭제하시겠습니까?')) return;
-  await apiRequest(`/api/community/posts/${route.params.id}/`, { method: 'DELETE', body: {} });
+  await deleteCommunityPost(route.params.id);
   router.push('/community');
 }
 
 async function deleteComment(id) {
   if (!confirm('삭제하시겠습니까?')) return;
-  await apiRequest(`/api/community/comments/${id}/`, { method: 'DELETE', body: {} });
+  await deleteCommunityComment(id);
   await loadPost();
 }
 
@@ -273,7 +267,7 @@ onMounted(loadPost);
   margin-bottom: 10px;
   padding: 4px 8px;
   border-radius: 8px;
-  background: rgba(198, 243, 73, 0.12);
+  background: rgba(217, 221, 146, 0.12);
   color: var(--ws-primary);
   font-size: 12px;
   font-weight: 900;
@@ -407,7 +401,7 @@ onMounted(loadPost);
 
 .icon-button.active {
   border-color: var(--ws-primary);
-  background: rgba(198, 243, 73, 0.12);
+  background: rgba(217, 221, 146, 0.12);
   color: var(--ws-primary);
 }
 

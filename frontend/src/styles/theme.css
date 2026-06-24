@@ -8,9 +8,10 @@
   --ws-border: #2a3b54;
   --ws-text: #ffffff;
   --ws-muted: #8e9eba;
-  --ws-primary: #c6f349;
+  --ws-primary: #ADEDFC;
+  --ws-primary-rgb: 217, 221, 146;
   --ws-primary-fg: #000000;
-  --ws-secondary: #fca311;
+  --ws-secondary: #f3aac9;
   --ws-destructive: #ff4d4d;
   --ws-radius: 12px;
   --ws-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);

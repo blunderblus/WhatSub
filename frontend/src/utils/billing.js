@@ -1,8 +1,23 @@
-export function planMonthlyPrice(plan) {
-  const price = Number(plan?.price || 0);
-  if (plan?.billing_period === 'annual') return Math.round(price / 12);
-  if (plan?.billing_period === 'weekly') return Math.round(price * 52 / 12);
+export function normalizeMonthlyAmount(amount, billingPeriod) {
+  const price = Number(amount || 0);
+  if (billingPeriod === 'annual') return Math.round(price / 12);
+  if (billingPeriod === 'weekly') return Math.round((price * 52) / 12);
   return price;
+}
+
+export function planMonthlyPrice(plan) {
+  return normalizeMonthlyAmount(plan?.price, plan?.billing_period);
+}
+
+export function subscriptionMonthlyAmount(subscription) {
+  if (subscription?.monthly_amount != null) return Number(subscription.monthly_amount || 0);
+  return normalizeMonthlyAmount(subscription?.payment_amount, subscription?.billing_cycle);
+}
+
+export function subscriptionsMonthlyTotal(subscriptions) {
+  return (subscriptions || []).reduce((sum, subscription) => (
+    sum + subscriptionMonthlyAmount(subscription)
+  ), 0);
 }
 
 export function billingLabel(period) {
@@ -70,4 +85,59 @@ export function itemTypeLabel(itemType) {
   if (itemType === 'addon') return '애드온';
   if (itemType === 'related_bundle') return '제휴 번들';
   return '요금제';
+}
+
+export function isBundleCalcItem(item) {
+  return item?.item_type === 'bundle' || item?.item_type === 'related_bundle';
+}
+
+function sameCalcPlatform(a, b) {
+  return a != null && b != null && String(a) === String(b);
+}
+
+/** @returns {{ allowed: boolean, message: string }} */
+export function canAddCalcItem(item, existingItems = []) {
+  if (!item) {
+    return { allowed: false, message: '' };
+  }
+
+  const items = existingItems || [];
+
+  if (item.plan_id != null && items.some((existing) => existing.plan_id === item.plan_id)) {
+    return { allowed: false, message: '이미 계산기에 추가된 요금제입니다.' };
+  }
+
+  if (
+    item.addon_pricing_id != null
+    && items.some((existing) => existing.addon_pricing_id === item.addon_pricing_id)
+  ) {
+    return { allowed: false, message: '이미 계산기에 추가된 패스입니다.' };
+  }
+
+  if (isBundleCalcItem(item)) {
+    return { allowed: true, message: '' };
+  }
+
+  const platformId = item.platform_id;
+  if (platformId == null) {
+    return { allowed: true, message: '' };
+  }
+
+  const platformName = item.platform_name || '해당 플랫폼';
+
+  if (items.some((existing) => sameCalcPlatform(existing.platform_id, platformId) && !isBundleCalcItem(existing))) {
+    return {
+      allowed: false,
+      message: `${platformName}은(는) 이미 다른 요금제로 계산기에 포함되어 있습니다.`,
+    };
+  }
+
+  if (items.some((existing) => sameCalcPlatform(existing.platform_id, platformId) && isBundleCalcItem(existing))) {
+    return {
+      allowed: false,
+      message: `${platformName}은(는) 번들 상품으로 이미 계산기에 포함되어 있습니다.`,
+    };
+  }
+
+  return { allowed: true, message: '' };
 }

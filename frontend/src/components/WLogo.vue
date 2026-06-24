@@ -13,10 +13,10 @@ defineProps({
       </linearGradient>
       <linearGradient id="wt2" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#FCA311" stop-opacity="0.95" />
-        <stop offset="100%" stop-color="#C6F349" stop-opacity="0.9" />
+        <stop offset="100%" stop-color="#D9DD92" stop-opacity="0.9" />
       </linearGradient>
       <linearGradient id="wt3" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#C6F349" />
+        <stop offset="0%" stop-color="#D9DD92" />
         <stop offset="100%" stop-color="#a0d020" stop-opacity="0.85" />
       </linearGradient>
     </defs>

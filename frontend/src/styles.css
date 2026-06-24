@@ -16,7 +16,7 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(198, 243, 73, 0.08), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(217, 221, 146, 0.08), transparent),
     radial-gradient(ellipse 60% 40% at 100% 0%, rgba(252, 163, 17, 0.06), transparent),
     var(--ws-bg);
   color: var(--ws-text);
@@ -27,6 +27,11 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button:hover,
+button:focus-visible {
+  box-shadow: none;
 }
 
 a {
@@ -85,19 +90,38 @@ a {
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.15s;
 }
 
 .nav a:hover,
-.nav-button:hover,
+.nav-button:hover {
+  border-color: var(--ws-primary);
+  background: rgba(217, 221, 146, 0.16);
+  color: var(--ws-primary);
+  box-shadow: none;
+}
+
+.nav a:focus-visible,
+.nav-button:focus-visible {
+  outline: 2px solid var(--ws-primary);
+  outline-offset: 2px;
+}
+
 .button:hover {
   border-color: var(--ws-primary);
-  background: rgba(198, 243, 73, 0.08);
+  background: rgba(217, 221, 146, 0.08);
+  box-shadow: none;
 }
 
 .nav a.router-link-active {
   border-color: var(--ws-primary);
+  background: rgba(217, 221, 146, 0.12);
   color: var(--ws-primary);
+  box-shadow: none;
+}
+
+.nav a.router-link-active:hover {
+  box-shadow: none;
 }
 
 .accent-link,
@@ -109,6 +133,7 @@ a {
 
 .button.primary:hover {
   filter: brightness(1.05);
+  box-shadow: none;
 }
 
 .button.secondary {
@@ -366,12 +391,31 @@ p {
   color: var(--ws-text);
   cursor: pointer;
   font-weight: 750;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.chip:hover {
+  border-color: var(--ws-primary);
+  background: rgba(217, 221, 146, 0.16);
+  color: var(--ws-primary);
+  box-shadow: none;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ws-primary);
+  outline-offset: 2px;
 }
 
 .chip.active {
   border-color: var(--ws-primary);
   background: var(--ws-primary);
   color: var(--ws-primary-fg);
+  box-shadow: none;
+}
+
+.chip.active:hover {
+  filter: brightness(1.04);
+  box-shadow: none;
 }
 
 .pagination {

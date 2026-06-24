@@ -27,8 +27,24 @@ def add_billing_cycle(d: date, billing_cycle: str) -> date:
     return add_months(d, 1)
 
 
+def _as_date(value) -> date | None:
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        return date.fromisoformat(value[:10])
+    return None
+
+
+def parse_subscription_date(value, fallback=None):
+    """Normalize API/form date values to datetime.date."""
+    parsed = _as_date(value)
+    return parsed if parsed is not None else fallback
+
+
 def billing_anchor(sub) -> date | None:
-    return sub.renewal_date or sub.start_date
+    return _as_date(sub.renewal_date) or _as_date(sub.start_date)
 
 
 def last_payment_on_or_before(sub, today: date) -> date | None:
@@ -103,8 +119,8 @@ def build_schedule_items(sub, today: date) -> list[dict]:
         'platform_name': sub.platform.name,
         'plan_name': sub.plan_name,
         'amount': sub.payment_amount,
-        'start_date': sub.start_date.isoformat() if sub.start_date else None,
-        'renewal_date': sub.renewal_date.isoformat() if sub.renewal_date else None,
+        'start_date': _as_date(sub.start_date).isoformat() if _as_date(sub.start_date) else None,
+        'renewal_date': _as_date(sub.renewal_date).isoformat() if _as_date(sub.renewal_date) else None,
     }
     items = []
     for payment_date in iter_payment_dates(sub, range_start, range_end):

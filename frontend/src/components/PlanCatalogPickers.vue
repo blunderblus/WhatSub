@@ -195,7 +195,7 @@ function bundlePlatforms(plan) {
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid #c6f349;
+  border: 1px solid var(--ws-primary);
   border-radius: 10px;
   background: #141414;
   color: #ffffff;
@@ -241,7 +241,7 @@ button.plan-card:active {
   width: fit-content;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #c6f349;
+  background: var(--ws-primary);
   color: #141414;
   font-size: 11px;
   font-weight: 800;
@@ -253,7 +253,7 @@ button.plan-card:active {
 }
 
 .badge.addon-badge {
-  background: #c6f349;
+  background: var(--ws-primary);
   color: #141414;
 }
 
@@ -265,10 +265,10 @@ button.plan-card:active {
   margin: 4px 0 0;
   padding-left: 16px;
   font-size: 11px;
-  color: #c6f349;
+  color: var(--ws-primary);
 }
 
 .promo-list li {
-  color: #c6f349;
+  color: var(--ws-primary);
 }
 </style>

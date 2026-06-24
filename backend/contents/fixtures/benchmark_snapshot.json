@@ -1,187 +1,187 @@
 [
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 25,
+  "pk": 37,
   "fields": {
     "platform": 9,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.1533,
-    "exclusivity_score": 0.4759,
+    "availability_score": 0.1513,
+    "exclusivity_score": 0.3698,
     "quality_score": 0.1477,
-    "price_score": 0.0233,
+    "price_score": 0.1429,
     "accessibility_score": 0.9,
     "confidence_level": "low",
-    "value_score": 0.34
+    "value_score": 0.3423
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 26,
+  "pk": 38,
   "fields": {
     "platform": 12,
     "snapshot_date": "2026-06-23",
     "availability_score": 0.0,
     "exclusivity_score": 0.0,
     "quality_score": 0.0,
-    "price_score": 0.0,
+    "price_score": 0.1224,
     "accessibility_score": 0.0,
     "confidence_level": "low",
-    "value_score": 0.0
+    "value_score": 0.0245
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 27,
+  "pk": 39,
   "fields": {
     "platform": 3,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.0333,
-    "exclusivity_score": 0.0297,
+    "availability_score": 0.0329,
+    "exclusivity_score": 0.0192,
     "quality_score": 0.0341,
-    "price_score": 0.0233,
+    "price_score": 0.1429,
     "accessibility_score": 1.0,
     "confidence_level": "low",
-    "value_score": 0.2241
+    "value_score": 0.2458
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 28,
+  "pk": 40,
   "fields": {
     "platform": 7,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.0,
-    "exclusivity_score": 0.0,
-    "quality_score": 0.0,
-    "price_score": 0.0233,
+    "availability_score": 0.0066,
+    "exclusivity_score": 0.0129,
+    "quality_score": 0.0114,
+    "price_score": 0.0,
     "accessibility_score": 0.8,
     "confidence_level": "low",
-    "value_score": 0.1647
+    "value_score": 0.1662
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 29,
+  "pk": 41,
   "fields": {
     "platform": 2,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.4067,
-    "exclusivity_score": 0.7049,
+    "availability_score": 0.4013,
+    "exclusivity_score": 0.6276,
     "quality_score": 0.5682,
-    "price_score": 0.0233,
+    "price_score": 0.2857,
     "accessibility_score": 1.0,
     "confidence_level": "medium",
-    "value_score": 0.5406
+    "value_score": 0.5766
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 30,
+  "pk": 42,
   "fields": {
     "platform": 11,
     "snapshot_date": "2026-06-23",
     "availability_score": 0.0,
     "exclusivity_score": 0.0,
     "quality_score": 0.0,
-    "price_score": 0.0233,
+    "price_score": 0.2857,
     "accessibility_score": 0.85,
     "confidence_level": "low",
-    "value_score": 0.1747
+    "value_score": 0.2271
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 31,
+  "pk": 43,
   "fields": {
     "platform": 1,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.9267,
+    "availability_score": 0.9145,
     "exclusivity_score": 1.0,
     "quality_score": 1.0,
-    "price_score": 0.186,
+    "price_score": 0.4286,
     "accessibility_score": 1.0,
     "confidence_level": "high",
-    "value_score": 0.8225
+    "value_score": 0.8686
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 32,
+  "pk": 44,
   "fields": {
     "platform": 16,
     "snapshot_date": "2026-06-23",
     "availability_score": 0.0,
     "exclusivity_score": 0.0,
     "quality_score": 0.0,
-    "price_score": 0.3488,
+    "price_score": 0.4286,
     "accessibility_score": 0.0,
     "confidence_level": "low",
-    "value_score": 0.0698
+    "value_score": 0.0857
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 33,
+  "pk": 45,
   "fields": {
     "platform": 10,
     "snapshot_date": "2026-06-23",
     "availability_score": 0.0,
     "exclusivity_score": 0.0,
     "quality_score": 0.0,
-    "price_score": 0.0233,
+    "price_score": 0.2857,
     "accessibility_score": 0.4375,
     "confidence_level": "low",
-    "value_score": 0.0922
+    "value_score": 0.1446
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 34,
+  "pk": 46,
   "fields": {
     "platform": 4,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.3267,
-    "exclusivity_score": 0.0777,
-    "quality_score": 0.2614,
-    "price_score": 0.6744,
+    "availability_score": 0.3421,
+    "exclusivity_score": 0.0645,
+    "quality_score": 0.2841,
+    "price_score": 1.0,
     "accessibility_score": 1.0,
     "confidence_level": "medium",
-    "value_score": 0.468
+    "value_score": 0.5381
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 35,
+  "pk": 47,
   "fields": {
     "platform": 6,
     "snapshot_date": "2026-06-23",
     "availability_score": 1.0,
-    "exclusivity_score": 0.3856,
+    "exclusivity_score": 0.3194,
     "quality_score": 0.9659,
-    "price_score": 0.186,
+    "price_score": 0.5714,
     "accessibility_score": 1.0,
     "confidence_level": "high",
-    "value_score": 0.7075
+    "value_score": 0.7713
   }
 },
 {
   "model": "contents.platformbenchmarksnapshot",
-  "pk": 36,
+  "pk": 48,
   "fields": {
     "platform": 5,
     "snapshot_date": "2026-06-23",
-    "availability_score": 0.5267,
-    "exclusivity_score": 0.2086,
-    "quality_score": 0.2955,
+    "availability_score": 0.5592,
+    "exclusivity_score": 0.177,
+    "quality_score": 0.3409,
     "price_score": 1.0,
     "accessibility_score": 1.0,
     "confidence_level": "medium",
-    "value_score": 0.6062
+    "value_score": 0.6154
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 439,
+  "pk": 575,
   "fields": {
     "platform": 1,
     "genre_id": 27,
@@ -191,7 +191,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 440,
+  "pk": 576,
   "fields": {
     "platform": 1,
     "genre_id": 35,
@@ -201,7 +201,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 441,
+  "pk": 577,
   "fields": {
     "platform": 1,
     "genre_id": 80,
@@ -211,7 +211,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 442,
+  "pk": 578,
   "fields": {
     "platform": 1,
     "genre_id": 18,
@@ -221,7 +221,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 443,
+  "pk": 579,
   "fields": {
     "platform": 1,
     "genre_id": 9648,
@@ -231,7 +231,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 444,
+  "pk": 580,
   "fields": {
     "platform": 5,
     "genre_id": 80,
@@ -241,17 +241,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 445,
+  "pk": 581,
   "fields": {
     "platform": 5,
     "genre_id": 18,
-    "title_count": 49,
+    "title_count": 52,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 446,
+  "pk": 582,
   "fields": {
     "platform": 5,
     "genre_id": 9648,
@@ -261,7 +261,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 447,
+  "pk": 583,
   "fields": {
     "platform": 5,
     "genre_id": 35,
@@ -271,7 +271,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 448,
+  "pk": 584,
   "fields": {
     "platform": 6,
     "genre_id": 80,
@@ -281,17 +281,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 449,
+  "pk": 585,
   "fields": {
     "platform": 6,
     "genre_id": 18,
-    "title_count": 76,
+    "title_count": 78,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 450,
+  "pk": 586,
   "fields": {
     "platform": 6,
     "genre_id": 35,
@@ -301,7 +301,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 451,
+  "pk": 587,
   "fields": {
     "platform": 2,
     "genre_id": 18,
@@ -311,7 +311,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 452,
+  "pk": 588,
   "fields": {
     "platform": 6,
     "genre_id": 10759,
@@ -321,7 +321,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 453,
+  "pk": 589,
   "fields": {
     "platform": 1,
     "genre_id": 10759,
@@ -331,7 +331,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 454,
+  "pk": 590,
   "fields": {
     "platform": 2,
     "genre_id": 10751,
@@ -341,7 +341,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 455,
+  "pk": 591,
   "fields": {
     "platform": 2,
     "genre_id": 16,
@@ -351,7 +351,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 456,
+  "pk": 592,
   "fields": {
     "platform": 2,
     "genre_id": 35,
@@ -361,7 +361,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 457,
+  "pk": 593,
   "fields": {
     "platform": 1,
     "genre_id": 12,
@@ -371,7 +371,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 458,
+  "pk": 594,
   "fields": {
     "platform": 1,
     "genre_id": 16,
@@ -381,7 +381,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 459,
+  "pk": 595,
   "fields": {
     "platform": 1,
     "genre_id": 10751,
@@ -391,7 +391,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 460,
+  "pk": 596,
   "fields": {
     "platform": 1,
     "genre_id": 14,
@@ -401,17 +401,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 461,
+  "pk": 597,
   "fields": {
     "platform": 5,
     "genre_id": 53,
-    "title_count": 3,
+    "title_count": 4,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 462,
+  "pk": 598,
   "fields": {
     "platform": 6,
     "genre_id": 53,
@@ -421,7 +421,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 463,
+  "pk": 599,
   "fields": {
     "platform": 2,
     "genre_id": 28,
@@ -431,7 +431,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 464,
+  "pk": 600,
   "fields": {
     "platform": 2,
     "genre_id": 80,
@@ -441,7 +441,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 465,
+  "pk": 601,
   "fields": {
     "platform": 1,
     "genre_id": 10749,
@@ -451,7 +451,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 466,
+  "pk": 602,
   "fields": {
     "platform": 2,
     "genre_id": 12,
@@ -461,7 +461,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 467,
+  "pk": 603,
   "fields": {
     "platform": 1,
     "genre_id": 28,
@@ -471,7 +471,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 468,
+  "pk": 604,
   "fields": {
     "platform": 1,
     "genre_id": 53,
@@ -481,7 +481,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 469,
+  "pk": 605,
   "fields": {
     "platform": 2,
     "genre_id": 878,
@@ -491,17 +491,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 470,
+  "pk": 606,
   "fields": {
     "platform": 6,
     "genre_id": 28,
-    "title_count": 27,
+    "title_count": 28,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 471,
+  "pk": 607,
   "fields": {
     "platform": 2,
     "genre_id": 9648,
@@ -511,17 +511,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 472,
+  "pk": 608,
   "fields": {
     "platform": 5,
     "genre_id": 12,
-    "title_count": 8,
+    "title_count": 11,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 473,
+  "pk": 609,
   "fields": {
     "platform": 5,
     "genre_id": 878,
@@ -531,7 +531,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 474,
+  "pk": 610,
   "fields": {
     "platform": 2,
     "genre_id": 27,
@@ -541,7 +541,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 475,
+  "pk": 611,
   "fields": {
     "platform": 2,
     "genre_id": 53,
@@ -551,7 +551,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 476,
+  "pk": 612,
   "fields": {
     "platform": 6,
     "genre_id": 10749,
@@ -561,7 +561,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 477,
+  "pk": 613,
   "fields": {
     "platform": 1,
     "genre_id": 10764,
@@ -571,7 +571,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 478,
+  "pk": 614,
   "fields": {
     "platform": 6,
     "genre_id": 10764,
@@ -581,7 +581,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 479,
+  "pk": 615,
   "fields": {
     "platform": 1,
     "genre_id": 10762,
@@ -591,17 +591,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 480,
+  "pk": 616,
   "fields": {
     "platform": 6,
     "genre_id": 16,
-    "title_count": 43,
+    "title_count": 44,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 481,
+  "pk": 617,
   "fields": {
     "platform": 6,
     "genre_id": 10762,
@@ -611,7 +611,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 482,
+  "pk": 618,
   "fields": {
     "platform": 1,
     "genre_id": 10765,
@@ -621,7 +621,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 483,
+  "pk": 619,
   "fields": {
     "platform": 5,
     "genre_id": 10759,
@@ -631,7 +631,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 484,
+  "pk": 620,
   "fields": {
     "platform": 5,
     "genre_id": 10765,
@@ -641,7 +641,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 485,
+  "pk": 621,
   "fields": {
     "platform": 6,
     "genre_id": 10765,
@@ -651,7 +651,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 486,
+  "pk": 622,
   "fields": {
     "platform": 6,
     "genre_id": 10751,
@@ -661,7 +661,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 487,
+  "pk": 623,
   "fields": {
     "platform": 2,
     "genre_id": 10759,
@@ -671,7 +671,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 488,
+  "pk": 624,
   "fields": {
     "platform": 2,
     "genre_id": 10765,
@@ -681,7 +681,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 489,
+  "pk": 625,
   "fields": {
     "platform": 1,
     "genre_id": 10766,
@@ -691,7 +691,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 490,
+  "pk": 626,
   "fields": {
     "platform": 1,
     "genre_id": 10768,
@@ -701,7 +701,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 491,
+  "pk": 627,
   "fields": {
     "platform": 6,
     "genre_id": 9648,
@@ -711,7 +711,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 492,
+  "pk": 628,
   "fields": {
     "platform": 3,
     "genre_id": 18,
@@ -721,7 +721,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 493,
+  "pk": 629,
   "fields": {
     "platform": 3,
     "genre_id": 35,
@@ -731,7 +731,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 494,
+  "pk": 630,
   "fields": {
     "platform": 3,
     "genre_id": 9648,
@@ -741,7 +741,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 495,
+  "pk": 631,
   "fields": {
     "platform": 1,
     "genre_id": 878,
@@ -751,7 +751,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 496,
+  "pk": 632,
   "fields": {
     "platform": 6,
     "genre_id": 878,
@@ -761,37 +761,37 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 497,
+  "pk": 633,
   "fields": {
     "platform": 5,
     "genre_id": 28,
-    "title_count": 6,
+    "title_count": 8,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 498,
+  "pk": 634,
   "fields": {
     "platform": 5,
     "genre_id": 14,
-    "title_count": 4,
+    "title_count": 7,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 499,
+  "pk": 635,
   "fields": {
     "platform": 5,
     "genre_id": 10749,
-    "title_count": 4,
+    "title_count": 5,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 500,
+  "pk": 636,
   "fields": {
     "platform": 6,
     "genre_id": 12,
@@ -801,7 +801,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 501,
+  "pk": 637,
   "fields": {
     "platform": 6,
     "genre_id": 14,
@@ -811,7 +811,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 502,
+  "pk": 638,
   "fields": {
     "platform": 5,
     "genre_id": 36,
@@ -821,7 +821,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 503,
+  "pk": 639,
   "fields": {
     "platform": 1,
     "genre_id": 10402,
@@ -831,7 +831,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 504,
+  "pk": 640,
   "fields": {
     "platform": 5,
     "genre_id": 10402,
@@ -841,7 +841,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 505,
+  "pk": 641,
   "fields": {
     "platform": 6,
     "genre_id": 10402,
@@ -851,7 +851,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 506,
+  "pk": 642,
   "fields": {
     "platform": 2,
     "genre_id": 10749,
@@ -861,7 +861,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 507,
+  "pk": 643,
   "fields": {
     "platform": 3,
     "genre_id": 28,
@@ -871,7 +871,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 508,
+  "pk": 644,
   "fields": {
     "platform": 2,
     "genre_id": 14,
@@ -881,7 +881,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 509,
+  "pk": 645,
   "fields": {
     "platform": 5,
     "genre_id": 16,
@@ -891,7 +891,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 510,
+  "pk": 646,
   "fields": {
     "platform": 2,
     "genre_id": 10768,
@@ -901,7 +901,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 511,
+  "pk": 647,
   "fields": {
     "platform": 5,
     "genre_id": 10764,
@@ -911,7 +911,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 512,
+  "pk": 648,
   "fields": {
     "platform": 2,
     "genre_id": 99,
@@ -921,7 +921,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 513,
+  "pk": 649,
   "fields": {
     "platform": 1,
     "genre_id": 99,
@@ -931,7 +931,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 514,
+  "pk": 650,
   "fields": {
     "platform": 4,
     "genre_id": 99,
@@ -941,17 +941,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 515,
+  "pk": 651,
   "fields": {
     "platform": 4,
     "genre_id": 10402,
-    "title_count": 2,
+    "title_count": 3,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 516,
+  "pk": 652,
   "fields": {
     "platform": 2,
     "genre_id": 10402,
@@ -961,27 +961,27 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 517,
+  "pk": 653,
   "fields": {
     "platform": 4,
     "genre_id": 18,
-    "title_count": 32,
+    "title_count": 35,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 518,
+  "pk": 654,
   "fields": {
     "platform": 4,
     "genre_id": 10749,
-    "title_count": 4,
+    "title_count": 5,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 519,
+  "pk": 655,
   "fields": {
     "platform": 6,
     "genre_id": 36,
@@ -991,17 +991,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 520,
+  "pk": 656,
   "fields": {
     "platform": 6,
     "genre_id": 10752,
-    "title_count": 7,
+    "title_count": 8,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 521,
+  "pk": 657,
   "fields": {
     "platform": 4,
     "genre_id": 36,
@@ -1011,7 +1011,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 522,
+  "pk": 658,
   "fields": {
     "platform": 4,
     "genre_id": 10752,
@@ -1021,7 +1021,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 523,
+  "pk": 659,
   "fields": {
     "platform": 1,
     "genre_id": 36,
@@ -1031,7 +1031,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 524,
+  "pk": 660,
   "fields": {
     "platform": 2,
     "genre_id": 36,
@@ -1041,7 +1041,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 525,
+  "pk": 661,
   "fields": {
     "platform": 2,
     "genre_id": 10752,
@@ -1051,17 +1051,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 526,
+  "pk": 662,
   "fields": {
     "platform": 4,
     "genre_id": 53,
-    "title_count": 3,
+    "title_count": 4,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 527,
+  "pk": 663,
   "fields": {
     "platform": 1,
     "genre_id": 10752,
@@ -1071,7 +1071,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 528,
+  "pk": 664,
   "fields": {
     "platform": 4,
     "genre_id": 14,
@@ -1081,7 +1081,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 529,
+  "pk": 665,
   "fields": {
     "platform": 6,
     "genre_id": 37,
@@ -1091,7 +1091,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 530,
+  "pk": 666,
   "fields": {
     "platform": 1,
     "genre_id": 37,
@@ -1101,7 +1101,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 531,
+  "pk": 667,
   "fields": {
     "platform": 4,
     "genre_id": 9648,
@@ -1111,7 +1111,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 532,
+  "pk": 668,
   "fields": {
     "platform": 4,
     "genre_id": 37,
@@ -1121,7 +1121,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 533,
+  "pk": 669,
   "fields": {
     "platform": 4,
     "genre_id": 12,
@@ -1131,17 +1131,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 534,
+  "pk": 670,
   "fields": {
     "platform": 4,
     "genre_id": 16,
-    "title_count": 15,
+    "title_count": 16,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 535,
+  "pk": 671,
   "fields": {
     "platform": 4,
     "genre_id": 10762,
@@ -1151,7 +1151,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 536,
+  "pk": 672,
   "fields": {
     "platform": 2,
     "genre_id": 10762,
@@ -1161,7 +1161,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 537,
+  "pk": 673,
   "fields": {
     "platform": 4,
     "genre_id": 10765,
@@ -1171,7 +1171,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 538,
+  "pk": 674,
   "fields": {
     "platform": 4,
     "genre_id": 10764,
@@ -1181,7 +1181,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 539,
+  "pk": 675,
   "fields": {
     "platform": 4,
     "genre_id": 35,
@@ -1191,7 +1191,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 540,
+  "pk": 676,
   "fields": {
     "platform": 4,
     "genre_id": 10768,
@@ -1201,7 +1201,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 541,
+  "pk": 677,
   "fields": {
     "platform": 6,
     "genre_id": 10768,
@@ -1211,7 +1211,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 542,
+  "pk": 678,
   "fields": {
     "platform": 4,
     "genre_id": 10759,
@@ -1221,7 +1221,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 543,
+  "pk": 679,
   "fields": {
     "platform": 5,
     "genre_id": 10768,
@@ -1231,17 +1231,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 544,
+  "pk": 680,
   "fields": {
     "platform": 4,
     "genre_id": 80,
-    "title_count": 6,
+    "title_count": 7,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 545,
+  "pk": 681,
   "fields": {
     "platform": 5,
     "genre_id": 10751,
@@ -1251,17 +1251,17 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 546,
+  "pk": 682,
   "fields": {
     "platform": 4,
     "genre_id": 28,
-    "title_count": 3,
+    "title_count": 4,
     "snapshot_date": "2026-06-23"
   }
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 547,
+  "pk": 683,
   "fields": {
     "platform": 6,
     "genre_id": 27,
@@ -1271,7 +1271,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 548,
+  "pk": 684,
   "fields": {
     "platform": 4,
     "genre_id": 878,
@@ -1281,7 +1281,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 549,
+  "pk": 685,
   "fields": {
     "platform": 4,
     "genre_id": 27,
@@ -1291,7 +1291,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 550,
+  "pk": 686,
   "fields": {
     "platform": 4,
     "genre_id": 10751,
@@ -1301,7 +1301,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 551,
+  "pk": 687,
   "fields": {
     "platform": 1,
     "genre_id": 10767,
@@ -1311,7 +1311,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 552,
+  "pk": 688,
   "fields": {
     "platform": 6,
     "genre_id": 10767,
@@ -1321,7 +1321,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 553,
+  "pk": 689,
   "fields": {
     "platform": 9,
     "genre_id": 28,
@@ -1331,7 +1331,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 554,
+  "pk": 690,
   "fields": {
     "platform": 9,
     "genre_id": 14,
@@ -1341,7 +1341,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 555,
+  "pk": 691,
   "fields": {
     "platform": 9,
     "genre_id": 18,
@@ -1351,7 +1351,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 556,
+  "pk": 692,
   "fields": {
     "platform": 9,
     "genre_id": 10749,
@@ -1361,7 +1361,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 557,
+  "pk": 693,
   "fields": {
     "platform": 9,
     "genre_id": 53,
@@ -1371,7 +1371,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 558,
+  "pk": 694,
   "fields": {
     "platform": 9,
     "genre_id": 80,
@@ -1381,7 +1381,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 559,
+  "pk": 695,
   "fields": {
     "platform": 3,
     "genre_id": 99,
@@ -1391,7 +1391,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 560,
+  "pk": 696,
   "fields": {
     "platform": 3,
     "genre_id": 10402,
@@ -1401,7 +1401,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 561,
+  "pk": 697,
   "fields": {
     "platform": 9,
     "genre_id": 10402,
@@ -1411,7 +1411,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 562,
+  "pk": 698,
   "fields": {
     "platform": 9,
     "genre_id": 27,
@@ -1421,7 +1421,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 563,
+  "pk": 699,
   "fields": {
     "platform": 9,
     "genre_id": 35,
@@ -1431,7 +1431,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 564,
+  "pk": 700,
   "fields": {
     "platform": 9,
     "genre_id": 16,
@@ -1441,7 +1441,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 565,
+  "pk": 701,
   "fields": {
     "platform": 9,
     "genre_id": 10751,
@@ -1451,7 +1451,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 566,
+  "pk": 702,
   "fields": {
     "platform": 9,
     "genre_id": 9648,
@@ -1461,7 +1461,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 567,
+  "pk": 703,
   "fields": {
     "platform": 9,
     "genre_id": 878,
@@ -1471,7 +1471,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 568,
+  "pk": 704,
   "fields": {
     "platform": 9,
     "genre_id": 10752,
@@ -1481,7 +1481,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 569,
+  "pk": 705,
   "fields": {
     "platform": 9,
     "genre_id": 10765,
@@ -1491,7 +1491,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 570,
+  "pk": 706,
   "fields": {
     "platform": 9,
     "genre_id": 10759,
@@ -1501,7 +1501,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 571,
+  "pk": 707,
   "fields": {
     "platform": 9,
     "genre_id": 10762,
@@ -1511,7 +1511,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 572,
+  "pk": 708,
   "fields": {
     "platform": 3,
     "genre_id": 10765,
@@ -1521,7 +1521,7 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 573,
+  "pk": 709,
   "fields": {
     "platform": 3,
     "genre_id": 10768,
@@ -1531,11 +1531,61 @@
 },
 {
   "model": "contents.platformgenrestats",
-  "pk": 574,
+  "pk": 710,
   "fields": {
     "platform": 5,
     "genre_id": 10767,
     "title_count": 5,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 711,
+  "fields": {
+    "platform": 5,
+    "genre_id": 10752,
+    "title_count": 2,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 712,
+  "fields": {
+    "platform": 7,
+    "genre_id": 18,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 713,
+  "fields": {
+    "platform": 7,
+    "genre_id": 35,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 714,
+  "fields": {
+    "platform": 7,
+    "genre_id": 80,
+    "title_count": 1,
+    "snapshot_date": "2026-06-23"
+  }
+},
+{
+  "model": "contents.platformgenrestats",
+  "pk": 715,
+  "fields": {
+    "platform": 7,
+    "genre_id": 9648,
+    "title_count": 1,
     "snapshot_date": "2026-06-23"
   }
 }

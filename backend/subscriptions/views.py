@@ -1,73 +1,52 @@
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Platform, SubscriptionPlan, AddOnPass, Category, BundleContent
+from .selectors import (
+    addon_pass_queryset,
+    addon_passes_for_platform,
+    bundle_plan_queryset,
+    bundle_plans_for_platform,
+    category_catalog_queryset,
+    plan_list_queryset,
+    platform_catalog_queryset,
+    platform_detail_queryset,
+    platform_list_queryset,
+    regular_plans_for_platform,
+    related_bundle_plans_for_platform,
+)
 from .serializers import (
-    CategorySerializer, PlatformSerializer, PlatformDetailSerializer,
-    SubscriptionPlanSerializer, AddOnPassSerializer,
+    AddOnPassSerializer,
+    PlatformDetailSerializer,
+    PlatformSerializer,
+    SubscriptionPlanSerializer,
 )
 
 
 @api_view(['GET'])
 def platform_catalog(request, pk):
     """Plans, bundles, add-on passes, and cross-platform bundles for a platform."""
-    platform = get_object_or_404(
-        Platform.objects.select_related('category'),
-        pk=pk,
-    )
-    plans_qs = (
-        SubscriptionPlan.objects
-        .filter(platform=platform)
-        .select_related('platform', 'requires_membership__platform')
-        .prefetch_related('bundle_contents__included_platform')
-        .order_by('price')
-    )
-    regular = plans_qs.filter(is_bundle=False)
-    bundles = plans_qs.filter(is_bundle=True)
-
-    related_bundle_ids = (
-        BundleContent.objects
-        .filter(included_platform=platform)
-        .values_list('plan_id', flat=True)
-        .distinct()
-    )
-    related_bundles = (
-        SubscriptionPlan.objects
-        .filter(id__in=related_bundle_ids, is_bundle=True)
-        .select_related('platform')
-        .prefetch_related('bundle_contents__included_platform')
-        .order_by('price')
-    )
-
-    passes = (
-        AddOnPass.objects
-        .filter(platform=platform)
-        .prefetch_related('pricings__base_plan__platform')
-        .order_by('pass_name')
-    )
+    platform = get_object_or_404(platform_catalog_queryset(), pk=pk)
 
     return Response({
         'platform_id': platform.id,
         'platform_name': platform.name,
-        'plans': SubscriptionPlanSerializer(regular, many=True).data,
-        'bundles': SubscriptionPlanSerializer(bundles, many=True).data,
-        'related_bundles': SubscriptionPlanSerializer(related_bundles, many=True).data,
-        'addon_passes': AddOnPassSerializer(passes, many=True).data,
+        'plans': SubscriptionPlanSerializer(regular_plans_for_platform(platform), many=True).data,
+        'bundles': SubscriptionPlanSerializer(bundle_plans_for_platform(platform), many=True).data,
+        'related_bundles': SubscriptionPlanSerializer(related_bundle_plans_for_platform(platform), many=True).data,
+        'addon_passes': AddOnPassSerializer(addon_passes_for_platform(platform), many=True).data,
     })
 
 
 @api_view(['GET'])
 def catalog(request):
     """Categories with nested platforms (for onboarding picker)."""
-    categories = Category.objects.prefetch_related('platforms').order_by('name')
     data = []
-    for cat in categories:
-        platforms = cat.platforms.order_by('name')
+    for category in category_catalog_queryset():
+        platforms = category.platforms.order_by('name')
         data.append({
-            'id': cat.id,
-            'name': cat.name,
+            'id': category.id,
+            'name': category.name,
             'platforms': PlatformSerializer(platforms, many=True).data,
         })
     return Response(data)
@@ -76,10 +55,7 @@ def catalog(request):
 @api_view(['GET'])
 def platform_list(request):
     """List all platforms with basic info. ?q= for name search."""
-    platforms = Platform.objects.select_related('category').order_by('name')
-    q = (request.GET.get('q') or '').strip()
-    if q:
-        platforms = platforms.filter(Q(name__icontains=q))
+    platforms = platform_list_queryset((request.GET.get('q') or '').strip())
     serializer = PlatformSerializer(platforms, many=True)
     return Response(serializer.data)
 
@@ -87,16 +63,7 @@ def platform_list(request):
 @api_view(['GET'])
 def platform_detail(request, pk):
     """Single platform with nested plans and add-on passes."""
-    platform = get_object_or_404(
-        Platform.objects
-        .select_related('category')
-        .prefetch_related(
-            'plans__bundle_contents__included_platform',
-            'plans__requires_membership__platform',
-            'addon_passes__pricings__base_plan__platform',
-        ),
-        pk=pk,
-    )
+    platform = get_object_or_404(platform_detail_queryset(), pk=pk)
     serializer = PlatformDetailSerializer(platform)
     return Response(serializer.data)
 
@@ -110,36 +77,19 @@ def plan_list(request):
       ?billing=monthly|annual|weekly
       ?bundle=true|false
     """
-    qs = SubscriptionPlan.objects.select_related('platform').prefetch_related(
-        'bundle_contents__included_platform',
-        'requires_membership__platform',
-    ).order_by('platform__pk', 'price')
-
-    platform_pk = request.GET.get('platform')
-    billing = request.GET.get('billing')
-    bundle = request.GET.get('bundle')
-
-    if platform_pk:
-        qs = qs.filter(platform__pk=platform_pk)
-    if billing:
-        qs = qs.filter(billing_period=billing)
-    if bundle is not None:
-        qs = qs.filter(is_bundle=(bundle.lower() == 'true'))
-
-    serializer = SubscriptionPlanSerializer(qs, many=True)
+    plans = plan_list_queryset(
+        platform_pk=request.GET.get('platform'),
+        billing=request.GET.get('billing'),
+        bundle=request.GET.get('bundle'),
+    )
+    serializer = SubscriptionPlanSerializer(plans, many=True)
     return Response(serializer.data)
 
 
 @api_view(['GET'])
 def bundle_list(request):
     """List all bundle plans with included platforms."""
-    plans = (
-        SubscriptionPlan.objects
-        .filter(is_bundle=True)
-        .select_related('platform')
-        .prefetch_related('bundle_contents__included_platform')
-        .order_by('price')
-    )
+    plans = bundle_plan_queryset()
     serializer = SubscriptionPlanSerializer(plans, many=True)
     return Response(serializer.data)
 
@@ -151,12 +101,6 @@ def addon_pass_list(request):
     Query params:
       ?platform=<pk>  filter by platform
     """
-    passes = AddOnPass.objects.select_related('platform').prefetch_related(
-        'pricings__base_plan__platform',
-    )
-    platform_pk = request.GET.get('platform')
-    if platform_pk:
-        passes = passes.filter(platform__pk=platform_pk)
-
+    passes = addon_pass_queryset(request.GET.get('platform'))
     serializer = AddOnPassSerializer(passes, many=True)
     return Response(serializer.data)
