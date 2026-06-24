@@ -65,6 +65,8 @@ def posts(request):
         return Response({'title': ['제목을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if not content:
         return Response({'content': ['내용을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+    if board == CommunityPost.Board.OTT and not platform_id:
+        return Response({'platform_id': ['OTT 게시판에서는 플랫폼을 선택해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     post = create_post(
         board=board,
         title=title,

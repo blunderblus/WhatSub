@@ -1,15 +1,34 @@
 let csrfPromise = null;
 
+function resetCsrfToken() {
+  csrfPromise = null;
+}
+
 async function csrfToken() {
   if (!csrfPromise) {
     csrfPromise = fetch('/api/accounts/csrf/', { credentials: 'include' })
-      .then((response) => response.json())
-      .then((data) => data.csrfToken);
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('CSRF token fetch failed');
+        }
+        const data = await response.json();
+        return data.csrfToken;
+      })
+      .catch((error) => {
+        csrfPromise = null;
+        throw error;
+      });
   }
   return csrfPromise;
 }
 
-export async function apiRequest(path, options = {}) {
+function isCsrfFailure(status, data) {
+  if (status !== 403) return false;
+  const message = String(data?.detail || data?.error || '');
+  return message.toLowerCase().includes('csrf');
+}
+
+export async function apiRequest(path, options = {}, retried = false) {
   const headers = {
     Accept: 'application/json',
     ...(options.headers || {}),
@@ -34,6 +53,10 @@ export async function apiRequest(path, options = {}) {
   const data = response.status === 204 ? null : await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (!retried && isCsrfFailure(response.status, data)) {
+      resetCsrfToken();
+      return apiRequest(path, options, true);
+    }
     const error = new Error(data?.detail || data?.error || '요청을 처리하지 못했습니다.');
     error.payload = data;
     throw error;

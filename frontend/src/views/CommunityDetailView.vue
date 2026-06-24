@@ -11,6 +11,7 @@ import {
   updateCommunityCommentReaction,
   updateCommunityPostReaction,
 } from '../api/community';
+import { profileInitial } from '../utils/formatters';
 import { useSessionStore } from '../stores/session';
 
 const route = useRoute();
@@ -120,8 +121,8 @@ onMounted(loadPost);
         <div class="detail-meta">
           <span class="author-chip">
             <img v-if="post.author.profile_image" :src="post.author.profile_image" alt="" />
-            <span v-else class="default-avatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></svg>
+            <span v-else class="default-avatar avatar-initial-letter" aria-hidden="true">
+              {{ profileInitial(post.author.nickname) }}
             </span>
             <strong>{{ post.author.nickname }}</strong>
           </span>
@@ -195,8 +196,8 @@ onMounted(loadPost);
             <div class="comment-body">
               <span class="author-chip">
                 <img v-if="item.author.profile_image" :src="item.author.profile_image" alt="" />
-                <span v-else class="default-avatar" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></svg>
+                <span v-else class="default-avatar avatar-initial-letter" aria-hidden="true">
+                  {{ profileInitial(item.author.nickname) }}
                 </span>
                 <strong>{{ item.author.nickname }}</strong>
               </span>
@@ -300,29 +301,16 @@ onMounted(loadPost);
   height: 24px;
   border-radius: 50%;
   flex: none;
+  border: none;
+  box-shadow: none;
 }
 
 .author-chip img {
   object-fit: cover;
 }
 
-.default-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--ws-border);
-  background: var(--ws-surface-2);
-  color: var(--ws-muted);
-}
-
-.default-avatar svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
+.author-chip .avatar-initial-letter {
+  font-size: 12px;
 }
 
 .post-actions {

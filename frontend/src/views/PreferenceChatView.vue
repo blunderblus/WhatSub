@@ -1,10 +1,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
+import { backendRoutes, redirectToBackend, backendUrl } from '../config/backend';
+import { navigateWithOnboardingNav } from '../utils/onboardingNav';
 
+const route = useRoute();
 const router = useRouter();
+const isOnboarding = computed(() => route.query.onboarding === '1');
+const entry = computed(() => (route.query.entry || '').trim());
+const isInitialSkip = computed(() => isOnboarding.value && entry.value === 'skip');
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
@@ -79,12 +85,39 @@ async function submit() {
       method: 'POST',
       body: { structured_answers: structured, chat_messages },
     });
+    if (isOnboarding.value) {
+      if (isInitialSkip.value) {
+        navigateWithOnboardingNav(backendUrl(backendRoutes.onboardingComplete), '대시보드로 이동하는 중…');
+        return;
+      }
+      navigateWithOnboardingNav(
+        backendUrl(`${backendRoutes.onboarding}?phase=finish`),
+        '완료 화면으로 이동하는 중…',
+      );
+      return;
+    }
     router.push('/benchmark?tab=personal');
   } catch (err) {
     error.value = err.message;
   } finally {
     saving.value = false;
   }
+}
+
+function exitPreferences() {
+  if (isInitialSkip.value) {
+    navigateWithOnboardingNav(backendUrl(backendRoutes.onboardingComplete), '대시보드로 이동하는 중…');
+    return;
+  }
+  if (isOnboarding.value) {
+    navigateWithOnboardingNav(backendUrl(backendRoutes.onboarding), '온보딩으로 돌아가는 중…');
+    return;
+  }
+  router.push('/subscriptions');
+}
+
+function exitToOnboarding() {
+  exitPreferences();
 }
 
 function nextStep() {
@@ -116,16 +149,35 @@ function skipStep() {
   nextStep();
 }
 
-onMounted(loadQuestions);
+onMounted(async () => {
+  if (route.query.skip === '1' && isOnboarding.value) {
+    exitPreferences();
+    return;
+  }
+  if (isOnboarding.value) {
+    const params = new URLSearchParams({ phase: 'ott' });
+    if (entry.value === 'skip') params.set('skipped_sub', '1');
+    navigateWithOnboardingNav(
+      backendUrl(`${backendRoutes.onboarding}?${params.toString()}`),
+      '온보딩 챗봇으로 이동하는 중…',
+    );
+    return;
+  }
+  await loadQuestions();
+});
 </script>
 
 <template>
   <main class="pref-page">
     <PageHeader
       eyebrow="Onboarding"
-      title="취향 설정 (선택)"
+      :title="isInitialSkip ? '나에게 맞는 OTT' : (isOnboarding ? 'OTT 취향 설문 (선택)' : '취향 설정')"
       description="AI가 예산·장르·습관을 바탕으로 Personal Score를 더 정확하게 계산합니다. 건너뛰어도 좋아요."
     />
+
+    <p v-if="isOnboarding && !isInitialSkip" class="onboarding-back">
+      <button type="button" class="link-btn" @click="exitToOnboarding">← 온보딩으로 돌아가기</button>
+    </p>
 
     <p v-if="error" class="notice">{{ error }}</p>
     <div v-else-if="loading" class="loader">질문을 불러오는 중입니다.</div>
@@ -212,9 +264,25 @@ onMounted(loadQuestions);
 
         <div class="actions">
           <button v-if="step > 0" class="button" type="button" @click="prevStep">이전</button>
-          <button class="button secondary" type="button" :disabled="saving" @click="skipStep">건너뛰기</button>
+          <button
+            v-if="isOnboarding"
+            class="button secondary"
+            type="button"
+            @click="exitPreferences"
+          >
+            {{ isInitialSkip ? '설문 건너뛰고 대시보드로' : '나중에 하기' }}
+          </button>
+          <button
+            v-else
+            class="button secondary"
+            type="button"
+            :disabled="saving"
+            @click="skipStep"
+          >
+            건너뛰기
+          </button>
           <button class="button primary" type="button" :disabled="saving" @click="nextStep">
-            {{ step < visibleSteps.length - 1 ? '다음' : (saving ? '저장 중...' : '완료') }}
+            {{ step < visibleSteps.length - 1 ? '다음' : (saving ? '저장 중...' : (isInitialSkip ? '저장하고 대시보드로' : (isOnboarding ? '저장하고 온보딩으로' : '완료'))) }}
           </button>
         </div>
       </section>
@@ -227,6 +295,20 @@ onMounted(loadQuestions);
   max-width: 640px;
   margin: 0 auto;
   padding: 0 20px 48px;
+}
+
+.onboarding-back {
+  margin: -8px 0 12px;
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ws-primary);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .step-nav {

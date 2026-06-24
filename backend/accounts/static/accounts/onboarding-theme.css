@@ -117,3 +117,56 @@ label { color: var(--ws-muted); font-size: 13px; font-weight: 700; }
 }
 
 .meta { color: var(--ws-muted) !important; }
+
+body.ws-nav-active { overflow: hidden; }
+
+.ws-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.ws-nav-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ws-nav-overlay-card {
+  width: min(360px, 100%);
+  padding: 28px 24px;
+  border: 1px solid rgba(var(--ws-primary-rgb), 0.28);
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--ws-surface), var(--ws-surface-2));
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.ws-nav-spinner {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(var(--ws-primary-rgb), 0.18);
+  border-top-color: var(--ws-primary);
+  border-radius: 50%;
+  animation: wsNavSpin 0.85s linear infinite;
+}
+
+.ws-nav-message {
+  margin: 0;
+  color: var(--ws-text);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+@keyframes wsNavSpin {
+  to { transform: rotate(360deg); }
+}

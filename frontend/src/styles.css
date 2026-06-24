@@ -34,6 +34,23 @@ button:focus-visible {
   box-shadow: none;
 }
 
+.avatar-initial-letter {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  text-align: center;
+  line-height: 1;
+  font-weight: 900;
+  background: var(--ws-primary);
+  color: var(--ws-primary-fg);
+}
+
 a {
   color: inherit;
   text-decoration: none;

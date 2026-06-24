@@ -28,6 +28,34 @@ export function saveBenchmarkPlatformReview(platformId, { score, body }) {
   });
 }
 
+export function deleteBenchmarkPlatformReview(platformId) {
+  return apiRequest(`/api/contents/benchmark/platforms/${platformId}/reviews/me/`, {
+    method: 'DELETE',
+    body: {},
+  });
+}
+
+export function reactBenchmarkPlatformReview(platformId, reviewId, reaction) {
+  return apiRequest(`/api/contents/benchmark/platforms/${platformId}/reviews/${reviewId}/reaction/`, {
+    method: 'POST',
+    body: { reaction },
+  });
+}
+
+export function addBenchmarkReviewComment(platformId, reviewId, content) {
+  return apiRequest(`/api/contents/benchmark/platforms/${platformId}/reviews/${reviewId}/comments/`, {
+    method: 'POST',
+    body: { content },
+  });
+}
+
+export function deleteBenchmarkReviewComment(platformId, commentId) {
+  return apiRequest(`/api/contents/benchmark/platforms/${platformId}/reviews/comments/${commentId}/`, {
+    method: 'DELETE',
+    body: {},
+  });
+}
+
 export function fetchPlatformCatalog(platformId) {
   return apiRequest(`/api/subscriptions/platforms/${platformId}/catalog/`);
 }

@@ -2,6 +2,8 @@
 
 from django.conf import settings
 
+from subscriptions.platform_icons import PLATFORM_ICON_ALIASES
+
 PROVIDER_PRIORITY = {
     'subscription': 0,
     'free': 1,
@@ -25,32 +27,6 @@ PROVIDER_TYPE_LABELS = {
     'free': '\ubb34\ub8cc',
     'ads': '\uad11\uace0 \ud3ec\ud568',
 }
-
-# Maps normalized provider names (from RapidAPI / Watchmode) to canonical
-# display names and local icon files under MEDIA_ROOT (subscriptions/media).
-PLATFORM_ICON_ALIASES = {
-    'netflix': ('Netflix', 'Netflix_icon.png'),
-    'disney+': ('Disney+', 'DisneyPlus_icon.png'),
-    'disneyplus': ('Disney+', 'DisneyPlus_icon.png'),
-    'disney plus': ('Disney+', 'DisneyPlus_icon.png'),
-    'apple tv+': ('Apple TV+', 'AppleTV_icon.png'),
-    'apple tv plus': ('Apple TV+', 'AppleTV_icon.png'),
-    'apple tv': ('Apple TV+', 'AppleTV_icon.png'),
-    'appletv': ('Apple TV+', 'AppleTV_icon.png'),
-    'amazon prime video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'prime video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'amazon video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'amazon': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'coupang play': ('Coupang Play', 'CoupangPlay_icon.png'),
-    'coupangplay': ('Coupang Play', 'CoupangPlay_icon.png'),
-    'tving': ('TVING', 'TVING_icon.png'),
-    'wavve': ('Wavve', 'Wavve_icon.png'),
-    'watcha': ('Watcha', 'Watcha_icon.webp'),
-    'spotv': ('SPOTV', 'SpotvNow_icon.png'),
-    'spotv now': ('SPOTV', 'SpotvNow_icon.png'),
-    'spotvnow': ('SPOTV', 'SpotvNow_icon.png'),
-}
-
 
 def provider_type_label(provider_type):
     return PROVIDER_TYPE_LABELS.get(provider_type, '\uae30\ud0c0')

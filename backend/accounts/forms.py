@@ -17,6 +17,14 @@ class SignUpForm(UserCreationForm):
         model = User
         fields = ['username', 'nickname', 'email']
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if not user.nickname:
+            user.nickname = (user.username or '')[:30] or 'User'
+        if commit:
+            user.save()
+        return user
+
 
 class PlanSelect(forms.Select):
     """Render plan metadata for platform filtering and autofill on the page."""

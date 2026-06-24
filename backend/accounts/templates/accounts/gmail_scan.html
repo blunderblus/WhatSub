@@ -165,13 +165,19 @@
         <div class="toolbar" id="toolbar" hidden>
             <button type="button" class="add-btn" id="add-custom">+ 구독 직접 추가</button>
             <button type="button" class="save-btn" id="save-all">선택 항목 저장</button>
-            <a class="done-btn btn" href="{% url 'accounts:onboarding_complete' %}">완료</a>
+            <a class="done-btn btn" href="{% url 'accounts:onboarding' %}">다음 단계로</a>
         </div>
 
         <div id="results"></div>
     </main>
 
+    {{ catalog_platforms|json_script:"catalog-platforms" }}
+    {{ catalog_plans|json_script:"catalog-plans" }}
+
+    <script src="{% static 'accounts/onboarding-nav.js' %}"></script>
     <script>
+        const CATALOG_PLATFORMS = JSON.parse(document.getElementById('catalog-platforms').textContent);
+        const CATALOG_PLANS = JSON.parse(document.getElementById('catalog-plans').textContent);
         const DISMISS_KEY = 'whatsub_sub_dismissed';
         const SCAN_STEPS = [
             { step: 1, icon: '📬', label: '메일 목록' },
@@ -241,7 +247,11 @@
                 `전체 ${pipe.scanned || 0}건 스캔 → 후보 ${pipe.prefiltered || 0}건 → LLM ${pipe.llm_candidates || 0}건 → 구독 ${(data.subscriptions || []).length}개`;
 
             showScanComplete(data.message || '분석 완료');
-            subscriptions = (data.subscriptions || []).map(s => ({ ...s }));
+            subscriptions = (data.subscriptions || []).map((sub) => ({
+                ...sub,
+                plan_id: sub.plan_id || guessPlanId(sub.platform_id, sub.plan_name),
+                custom: !sub.platform_matched,
+            }));
             sessionStorage.removeItem(DISMISS_KEY);
             document.getElementById('toolbar').hidden = false;
             render();
@@ -331,12 +341,110 @@
             sessionStorage.setItem(DISMISS_KEY, JSON.stringify([...set]));
         }
 
+        function plansForPlatform(platformId) {
+            return CATALOG_PLANS.filter((plan) => String(plan.platform) === String(platformId));
+        }
+
+        function platformNameById(platformId) {
+            return CATALOG_PLATFORMS.find((item) => String(item.id) === String(platformId))?.name || '';
+        }
+
+        function guessPlanId(platformId, planName) {
+            if (!platformId || !planName) return null;
+            const normalized = planName.trim().toLowerCase();
+            const candidates = plansForPlatform(platformId);
+            const exact = candidates.find((plan) => plan.plan_name.toLowerCase() === normalized);
+            if (exact) return exact.id;
+            const partial = candidates.find((plan) =>
+                normalized.includes(plan.plan_name.toLowerCase())
+                || plan.plan_name.toLowerCase().includes(normalized));
+            return partial?.id || null;
+        }
+
+        function planOptionsHtml(platformId, selectedPlanId) {
+            const options = ['<option value="">직접 입력</option>'];
+            plansForPlatform(platformId).forEach((plan) => {
+                const selected = String(plan.id) === String(selectedPlanId) ? ' selected' : '';
+                options.push(
+                    `<option value="${plan.id}"${selected}>${escapeHtml(plan.plan_name)} · ${Number(plan.price).toLocaleString('ko-KR')}원</option>`,
+                );
+            });
+            return options.join('');
+        }
+
+        function platformFieldHtml(sub) {
+            if (sub.platform_matched && sub.platform_id) {
+                const options = CATALOG_PLATFORMS.map((platform) => {
+                    const selected = String(platform.id) === String(sub.platform_id) ? ' selected' : '';
+                    return `<option value="${platform.id}"${selected}>${escapeHtml(platform.name)}</option>`;
+                }).join('');
+                return `<select class="f-platform-id">${options}</select>`;
+            }
+            return `<input class="f-platform" value="${escapeHtml(sub.platform || '')}" />`;
+        }
+
+        function planFieldHtml(sub) {
+            if (sub.platform_matched && sub.platform_id) {
+                const showManual = !sub.plan_id;
+                return `
+                    <select class="f-plan-id">${planOptionsHtml(sub.platform_id, sub.plan_id)}</select>
+                    <input class="f-plan" value="${escapeHtml(sub.plan_name || '')}" placeholder="미정" ${showManual ? '' : 'hidden'} />
+                `;
+            }
+            return `<input class="f-plan" value="${escapeHtml(sub.plan_name || '')}" placeholder="미정" />`;
+        }
+
+        function applyPlanSelection(card) {
+            const planSelect = card.querySelector('.f-plan-id');
+            const planInput = card.querySelector('.f-plan');
+            const amountInput = card.querySelector('.f-amount');
+            const cycleSelect = card.querySelector('.f-cycle');
+            if (!planSelect) return;
+            const plan = CATALOG_PLANS.find((item) => String(item.id) === String(planSelect.value));
+            if (plan) {
+                if (planInput) {
+                    planInput.value = plan.plan_name;
+                    planInput.hidden = true;
+                }
+                if (amountInput && !amountInput.value) amountInput.value = plan.price;
+                if (cycleSelect) cycleSelect.value = plan.billing_period;
+            } else if (planInput) {
+                planInput.hidden = false;
+            }
+        }
+
+        function refreshPlanSelect(card, platformId, selectedPlanId) {
+            const planSelect = card.querySelector('.f-plan-id');
+            const planInput = card.querySelector('.f-plan');
+            if (!planSelect) return;
+            planSelect.innerHTML = planOptionsHtml(platformId, selectedPlanId);
+            if (planInput) {
+                planInput.hidden = Boolean(selectedPlanId);
+                if (!selectedPlanId) planInput.value = '';
+            }
+            applyPlanSelection(card);
+        }
+
+        function bindCardEvents(card) {
+            const platformSelect = card.querySelector('.f-platform-id');
+            if (platformSelect) {
+                platformSelect.addEventListener('change', () => {
+                    refreshPlanSelect(card, platformSelect.value, null);
+                });
+            }
+            const planSelect = card.querySelector('.f-plan-id');
+            if (planSelect) {
+                planSelect.addEventListener('change', () => applyPlanSelection(card));
+            }
+        }
+
         function cardHtml(sub, key, custom) {
+            const matched = Boolean(sub.platform_matched && sub.platform_id);
             return `
-                <article class="sub-card${custom ? ' custom' : ''}" data-key="${escapeHtml(key)}">
+                <article class="sub-card${custom ? ' custom' : ''}${matched ? ' matched' : ''}" data-key="${escapeHtml(key)}">
                     <div class="fields">
-                        <div><label>플랫폼</label><input class="f-platform" value="${escapeHtml(sub.platform || '')}" /></div>
-                        <div><label>요금제</label><input class="f-plan" value="${escapeHtml(sub.plan_name || '')}" placeholder="미정" /></div>
+                        <div><label>플랫폼</label>${platformFieldHtml(sub)}</div>
+                        <div class="plan-field"><label>요금제</label>${planFieldHtml(sub)}</div>
                         <div><label>금액 (원)</label><input class="f-amount" type="number" min="0" value="${sub.payment_amount ?? ''}" /></div>
                         <div><label>결제 주기</label>
                             <select class="f-cycle">
@@ -383,6 +491,7 @@
                     card?.remove();
                 });
             });
+            el.querySelectorAll('.sub-card').forEach((card) => bindCardEvents(card));
         }
 
         function addCustom() {
@@ -397,11 +506,31 @@
             const items = [];
             document.querySelectorAll('.sub-card').forEach((card) => {
                 if (!card.querySelector('.f-check')?.checked) return;
-                const platform = card.querySelector('.f-platform')?.value?.trim();
+                const platformSelect = card.querySelector('.f-platform-id');
+                let platform = '';
+                let platformId = null;
+                if (platformSelect) {
+                    platformId = Number(platformSelect.value) || null;
+                    platform = platformNameById(platformId);
+                } else {
+                    platform = card.querySelector('.f-platform')?.value?.trim() || '';
+                }
                 if (!platform) return;
+
+                const planSelect = card.querySelector('.f-plan-id');
+                let planId = null;
+                let planName = card.querySelector('.f-plan')?.value || '미정';
+                if (planSelect && planSelect.value) {
+                    planId = Number(planSelect.value);
+                    const plan = CATALOG_PLANS.find((item) => String(item.id) === String(planId));
+                    if (plan) planName = plan.plan_name;
+                }
+
                 items.push({
                     platform,
-                    plan_name: card.querySelector('.f-plan')?.value || '미정',
+                    platform_id: platformId,
+                    plan_id: planId,
+                    plan_name: planName,
                     payment_amount: card.querySelector('.f-amount')?.value || 0,
                     billing_cycle: card.querySelector('.f-cycle')?.value || 'monthly',
                     renewal_date: card.querySelector('.f-renewal')?.value || '',
@@ -430,7 +559,22 @@
                 alert(data.detail || '저장에 실패했습니다.');
                 return;
             }
-            window.location.href = '{% url "accounts:onboarding_complete" %}';
+            WhatSubNav.go(
+                '온보딩으로 돌아오는 중…',
+                '{% url "accounts:onboarding" %}?phase=subscribe_continue&saved=gmail',
+            );
+        }
+
+        function bindOnboardingNavLinks() {
+            const subscribeReturnUrl = '{% url "accounts:onboarding" %}?phase=subscribe';
+            document.querySelector('.back')?.addEventListener('click', (event) => {
+                event.preventDefault();
+                WhatSubNav.go('온보딩으로 돌아가는 중…', subscribeReturnUrl);
+            });
+            document.querySelector('.done-btn')?.addEventListener('click', (event) => {
+                event.preventDefault();
+                WhatSubNav.go('온보딩으로 돌아가는 중…', subscribeReturnUrl);
+            });
         }
 
         async function scan() {
@@ -438,6 +582,7 @@
         }
 
         initProgressSteps();
+        bindOnboardingNavLinks();
         document.getElementById('add-custom').addEventListener('click', addCustom);
         document.getElementById('save-all').addEventListener('click', saveAll);
         document.getElementById('rescan').addEventListener('click', scanWithStream);

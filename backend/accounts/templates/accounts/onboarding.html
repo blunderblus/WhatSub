@@ -3,46 +3,834 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구독 추가 · WhatSub</title>
+    <title>온보딩 · WhatSub</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'accounts/onboarding-theme.css' %}">
     <style>
-        body { display: grid; place-items: center; }
-        .wrap { width: min(760px, calc(100% - 32px)); padding: 40px 0; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .opt {
-            display: block; padding: 24px; border: 1px solid var(--ws-border); border-radius: 14px;
-            background: var(--ws-surface); text-decoration: none; color: inherit;
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25); transition: border-color 160ms, transform 160ms;
+        body {
+            display: grid;
+            place-items: center;
+            padding: 24px 0 32px;
+            min-height: 100vh;
         }
-        .opt:hover { border-color: var(--ws-primary); transform: translateY(-2px); }
-        .opt .icon { font-size: 30px; }
-        .opt h2 { margin: 12px 0 6px; font-size: 19px; color: var(--ws-text); }
-        .opt p { margin: 0; color: var(--ws-muted); font-size: 14px; line-height: 1.5; }
-        .skip { margin-top: 24px; text-align: center; }
-        @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+        .chat-shell {
+            width: min(520px, calc(100% - 24px));
+            min-height: min(720px, calc(100vh - 48px));
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            border: 1px solid var(--ws-border);
+            border-radius: 20px;
+            background: var(--ws-surface);
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+            overflow: hidden;
+        }
+        .chat-shell.phase-enter {
+            animation: shellIn 0.45s ease both;
+        }
+        .chat-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--ws-border);
+            background: linear-gradient(180deg, rgba(var(--ws-primary-rgb), 0.08), transparent);
+        }
+        .bot-avatar {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            background: rgba(var(--ws-primary-rgb), 0.16);
+            font-size: 24px;
+        }
+        .chat-head h1 { margin: 0; font-size: 18px; line-height: 1.2; }
+        .chat-head p { margin: 2px 0 0; color: var(--ws-muted); font-size: 13px; }
+        .phase-badge {
+            margin-left: auto;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(var(--ws-primary-rgb), 0.35);
+            color: var(--ws-primary);
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .chat-log {
+            padding: 20px 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .bubble {
+            max-width: 88%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.55;
+            animation: fadeUp 0.35s ease both;
+            word-break: keep-all;
+        }
+        .bubble.bot {
+            align-self: flex-start;
+            border: 1px solid rgba(var(--ws-primary-rgb), 0.18);
+            background: rgba(var(--ws-primary-rgb), 0.08);
+            border-bottom-left-radius: 6px;
+        }
+        .bubble.user {
+            align-self: flex-end;
+            background: var(--ws-primary);
+            color: var(--ws-primary-fg);
+            font-weight: 700;
+            border-bottom-right-radius: 6px;
+        }
+        .typing {
+            align-self: flex-start;
+            display: inline-flex;
+            gap: 5px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border-bottom-left-radius: 6px;
+            border: 1px solid rgba(var(--ws-primary-rgb), 0.18);
+            background: rgba(var(--ws-primary-rgb), 0.08);
+        }
+        .typing span {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--ws-primary);
+            animation: bounce 1.2s infinite;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.15s; }
+        .typing span:nth-child(3) { animation-delay: 0.3s; }
+        .chat-actions {
+            padding: 14px 16px 18px;
+            border-top: 1px solid var(--ws-border);
+            background: rgba(0, 0, 0, 0.12);
+            display: grid;
+            gap: 8px;
+        }
+        .chat-actions.hidden { display: none; }
+        .action-btn {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid var(--ws-border);
+            background: var(--ws-surface-2);
+            color: var(--ws-text);
+            font: inherit;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .action-btn.primary {
+            border-color: rgba(var(--ws-primary-rgb), 0.5);
+            background: rgba(var(--ws-primary-rgb), 0.14);
+            color: var(--ws-primary);
+        }
+        .action-btn.ghost { color: var(--ws-muted); font-weight: 700; }
+        .chip-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .chip-btn {
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--ws-border);
+            background: var(--ws-surface-2);
+            color: var(--ws-text);
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .chip-btn.active {
+            border-color: var(--ws-primary);
+            background: var(--ws-primary);
+            color: var(--ws-primary-fg);
+        }
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+        .input-row input,
+        .input-row textarea {
+            min-height: 48px;
+            padding: 10px 14px;
+            border: 1px solid var(--ws-border);
+            border-radius: 12px;
+            background: var(--ws-surface-2);
+            color: var(--ws-text);
+            font: inherit;
+            resize: vertical;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+            40% { transform: translateY(-5px); opacity: 1; }
+        }
+        @keyframes shellIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: none; }
+        }
     </style>
 </head>
 <body>
-    <main class="wrap">
-        <p class="eyebrow">Onboarding</p>
-        <h1>구독을 어떻게 추가할까요?</h1>
-        <p class="lead">Gmail에서 자동으로 찾거나, 직접 입력할 수 있어요.</p>
-
-        <div class="grid">
-            <a class="opt" href="{% url 'accounts:gmail_scan' %}">
-                <div class="icon">📨</div>
-                <h2>Gmail로 자동 찾기</h2>
-                <p>받은편지함의 결제·구독 메일을 분석해 구독을 자동으로 찾아드립니다.</p>
-            </a>
-            <a class="opt" href="{% url 'accounts:manual_add' %}">
-                <div class="icon">✍️</div>
-                <h2>직접 추가하기</h2>
-                <p>플랫폼과 플랜을 선택해 구독 정보를 직접 입력합니다.</p>
-            </a>
-        </div>
-
-        <p class="skip"><a href="{{ frontend_url }}/subscriptions">나중에 하기 →</a></p>
+    <main class="chat-shell phase-enter" aria-live="polite">
+        <header class="chat-head">
+            <div class="bot-avatar" aria-hidden="true">🐱</div>
+            <div>
+                <h1 id="head-title">WhatSub</h1>
+                <p id="head-sub">구독 관리 도우미</p>
+            </div>
+            <span id="phase-badge" class="phase-badge" hidden></span>
+        </header>
+        <div id="chat-log" class="chat-log"></div>
+        <div id="chat-actions" class="chat-actions hidden"></div>
     </main>
+
+    {{ remaining_methods|json_script:"onboarding-methods" }}
+    {{ chat_resume|json_script:"chat-resume" }}
+    <script id="onboarding-config" type="application/json">
+    {
+        "chatPhase": "{{ chat_phase|escapejs }}",
+        "saved": "{{ saved_step|escapejs }}",
+        "skippedSub": {% if skipped_sub %}true{% else %}false{% endif %},
+        "subscriptionCount": {{ subscription_count }},
+        "preferencesCompleted": {% if preferences_completed %}true{% else %}false{% endif %},
+        "onboardingUrl": "{{ onboarding_url|escapejs }}",
+        "subscribeReturnUrl": "{{ subscribe_return_url|escapejs }}",
+        "dashboardUrl": "{{ onboarding_complete_url|escapejs }}",
+        "navEnterMessage": "{{ nav_enter_message|escapejs }}",
+        "savedReplies": {
+            "gmail": "{{ saved_replies.gmail|escapejs }}",
+            "receipt": "{{ saved_replies.receipt|escapejs }}",
+            "manual": "{{ saved_replies.manual|escapejs }}"
+        }
+    }
+    </script>
+    <script src="{% static 'accounts/onboarding-nav.js' %}"></script>
+    <script>
+        const CONFIG = JSON.parse(document.getElementById('onboarding-config').textContent);
+        const ALL_METHODS = JSON.parse(document.getElementById('onboarding-methods').textContent);
+        const CHAT_RESUME = JSON.parse(document.getElementById('chat-resume').textContent);
+        CONFIG.chatResume = CHAT_RESUME;
+        const METHOD_NAV = {
+            gmail: 'Gmail 스캔으로 이동하는 중…',
+            receipt: '결제내역·이미지 스캔으로 이동하는 중…',
+            manual: '직접 추가 화면으로 이동하는 중…',
+        };
+        const METHOD_TITLES = {
+            gmail: 'Gmail로 자동 찾기',
+            receipt: '결제내역·이미지 스캔',
+            manual: '직접 추가하기',
+        };
+        const chatLog = document.getElementById('chat-log');
+        const chatActions = document.getElementById('chat-actions');
+        const headTitle = document.getElementById('head-title');
+        const headSub = document.getElementById('head-sub');
+        const phaseBadge = document.getElementById('phase-badge');
+        const TYPING_MS = 480;
+
+        const GENRE_KO = {
+            Action: '액션', Drama: '드라마', Romance: '로맨스', Comedy: '코미디',
+            Animation: '애니메이션', Horror: '공포', 'Sci-Fi': 'SF', Documentary: '다큐',
+            Family: '가족', Mystery: '미스터리', Thriller: '스릴러', 'Sci-Fi & Fantasy': 'SF·판타지',
+        };
+
+        let methodIndex = 0;
+        let activeMethods = [];
+        let prefQuestions = [];
+        let genreOptions = [];
+        let ottStep = 0;
+        let ottAnswers = {
+            monthly_spend_cap: null,
+            preferred_genre_ids: [],
+            consumption_habits: {},
+            platform_criteria: [],
+            free_text: '',
+        };
+        let ottDraft = { genres: new Set(), habits: {}, criteria: new Set() };
+
+        function setHeader(title, sub, badge) {
+            headTitle.textContent = title;
+            headSub.textContent = sub;
+            if (badge) {
+                phaseBadge.hidden = false;
+                phaseBadge.textContent = badge;
+            } else {
+                phaseBadge.hidden = true;
+            }
+        }
+
+        function scrollToBottom() {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function clearChat() {
+            chatLog.innerHTML = '';
+            chatActions.innerHTML = '';
+            chatActions.classList.add('hidden');
+        }
+
+        function showTyping() {
+            const el = document.createElement('div');
+            el.className = 'typing';
+            el.id = 'typing-indicator';
+            el.innerHTML = '<span></span><span></span><span></span>';
+            chatLog.appendChild(el);
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            document.getElementById('typing-indicator')?.remove();
+        }
+
+        function addBubble(role, text) {
+            const el = document.createElement('div');
+            el.className = `bubble ${role}`;
+            el.textContent = text;
+            chatLog.appendChild(el);
+            scrollToBottom();
+        }
+
+        function delay(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        async function botSay(text) {
+            showTyping();
+            await delay(TYPING_MS);
+            hideTyping();
+            addBubble('bot', text);
+            await delay(160);
+        }
+
+        function userSay(text) {
+            addBubble('user', text);
+        }
+
+        function setActions(content) {
+            chatActions.innerHTML = '';
+            if (!content) {
+                chatActions.classList.add('hidden');
+                return;
+            }
+            chatActions.classList.remove('hidden');
+            if (typeof content === 'string') {
+                chatActions.innerHTML = content;
+                return;
+            }
+            content.forEach((action) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `action-btn${action.primary ? ' primary' : ''}${action.ghost ? ' ghost' : ''}`;
+                btn.textContent = action.label;
+                btn.addEventListener('click', () => {
+                    chatActions.classList.add('hidden');
+                    action.onClick();
+                });
+                chatActions.appendChild(btn);
+            });
+        }
+
+        function go(url, message) {
+            if (message && window.WhatSubNav) {
+                WhatSubNav.go(message, url);
+                return;
+            }
+            window.location.href = url;
+        }
+
+        function transitionToOtt(skippedSub) {
+            const params = new URLSearchParams({ phase: 'ott' });
+            if (skippedSub) params.set('skipped_sub', '1');
+            go(`${CONFIG.onboardingUrl}?${params.toString()}`, 'OTT 설문으로 이동하는 중…');
+        }
+
+        function transitionToFinish() {
+            go(`${CONFIG.onboardingUrl}?phase=finish`, '완료 화면으로 이동하는 중…');
+        }
+
+        async function fetchJson(url, options = {}) {
+            const headers = { Accept: 'application/json', ...(options.headers || {}) };
+            if (options.body && !(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            if (options.method && options.method !== 'GET') {
+                const csrfRes = await fetch('/api/accounts/csrf/', { credentials: 'include' });
+                const csrfData = await csrfRes.json();
+                headers['X-CSRFToken'] = csrfData.csrfToken;
+            }
+            const res = await fetch(url, {
+                credentials: 'include',
+                ...options,
+                headers,
+                body: options.body && typeof options.body === 'object' && !(options.body instanceof FormData)
+                    ? JSON.stringify(options.body)
+                    : options.body,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || '요청에 실패했습니다.');
+            return data;
+        }
+
+        /* ── Phase 1: 구독 추가 ── */
+        async function startSubscribePhase() {
+            setHeader('WhatSub', '구독 등록', '1/2');
+            await botSay('안녕하세요! WhatSub예요 👋');
+            await botSay('구독 관리와 OTT 추천을 도와드릴게요. 같이 시작해 볼까요?');
+            setActions([{
+                label: '네, 시작할게요',
+                primary: true,
+                onClick: () => { userSay('네, 시작할게요'); stepAskRegister(); },
+            }]);
+        }
+
+        async function stepAskRegister() {
+            await botSay('먼저 사용 중인 구독을 등록하면 분석이 더 정확해져요.');
+            await botSay('지금 구독을 추가해 볼까요?');
+            setActions([
+                {
+                    label: '네, 추가할게요',
+                    primary: true,
+                    onClick: () => {
+                        userSay('네, 추가할게요');
+                        persistResume('ask_register');
+                        startMethodOffers(ALL_METHODS.slice());
+                    },
+                },
+                {
+                    label: '아니오, 설문부터 할게요',
+                    ghost: true,
+                    onClick: () => { userSay('아니오, 설문부터 할게요'); transitionToOtt(true); },
+                },
+            ]);
+        }
+
+        function startMethodOffers(methods, startIndex = 0) {
+            activeMethods = methods.slice();
+            methodIndex = startIndex;
+            offerCurrentMethod();
+        }
+
+        async function persistResume(step, extra = {}) {
+            try {
+                await fetchJson('/api/accounts/onboarding/resume/', {
+                    method: 'POST',
+                    body: { step, ...extra },
+                });
+            } catch (_) {
+                /* session may still be set by destination page */
+            }
+        }
+
+        async function startSubscribeResume() {
+            clearChat();
+            setHeader('WhatSub', '구독 등록', '1/2');
+            const resume = CONFIG.chatResume || {};
+            const remaining = ALL_METHODS.filter((m) => !m.done);
+
+            if (resume.step === 'ask_more') {
+                if (CONFIG.subscriptionCount > 0) {
+                    await botSay(`현재 ${CONFIG.subscriptionCount}개 구독이 등록되어 있어요.`);
+                }
+                await botSay('이어서 진행할게요.');
+                await botSay('다른 방법으로도 더 추가할래요?');
+                setActions([
+                    {
+                        label: '네, 더 추가할게요',
+                        primary: true,
+                        onClick: () => {
+                            userSay('네, 더 추가할게요');
+                            persistResume('method_pick', { method_index: 0 });
+                            startMethodOffers(remaining.length ? remaining : ALL_METHODS.slice());
+                        },
+                    },
+                    {
+                        label: '아니오, 다음 단계로',
+                        ghost: true,
+                        onClick: () => { userSay('아니오, 다음 단계로'); transitionToOtt(false); },
+                    },
+                ]);
+                return;
+            }
+
+            if (resume.step === 'method_pick' || CONFIG.chatPhase === 'subscribe') {
+                await botSay('다시 온보딩으로 돌아왔어요.');
+                const title = METHOD_TITLES[resume.method_key];
+                if (title) {
+                    await botSay(`${title} - 아직 완료하지 않으셨네요.`);
+                }
+                activeMethods = remaining.length ? remaining : ALL_METHODS.slice();
+                const idx = activeMethods.findIndex((m) => m.key === resume.method_key);
+                methodIndex = idx >= 0 ? idx : (Number(resume.method_index) || 0);
+                if (methodIndex >= activeMethods.length) methodIndex = 0;
+                await botSay('다른 방법을 이어서 안내해 드릴게요.');
+                offerCurrentMethod();
+                return;
+            }
+
+            if (resume.step === 'ask_register') {
+                await botSay('이어서 진행할게요.');
+                stepAskRegister();
+                return;
+            }
+
+            if (CONFIG.subscriptionCount > 0) {
+                await botSay('이어서 구독 등록을 진행할게요.');
+                stepAskRegister();
+                return;
+            }
+
+            startSubscribePhase();
+        }
+
+        async function offerCurrentMethod() {
+            if (!activeMethods.length || methodIndex >= activeMethods.length) {
+                transitionToOtt(false);
+                return;
+            }
+            const method = activeMethods[methodIndex];
+            await botSay(`${method.icon} ${method.title}`);
+            await botSay(method.description);
+            await botSay('이 방법으로 추가할래요?');
+            const isLast = methodIndex >= activeMethods.length - 1;
+            setActions([
+                {
+                    label: '네, 이 방법으로',
+                    primary: true,
+                    onClick: () => {
+                        userSay('네, 이 방법으로');
+                        persistResume('method_pick', {
+                            method_key: method.key,
+                            method_index: methodIndex,
+                        });
+                        go(method.url, METHOD_NAV[method.key] || '이동하는 중…');
+                    },
+                },
+                {
+                    label: isLast ? '건너뛸게요' : '다른 방법 볼게요',
+                    ghost: true,
+                    onClick: () => {
+                        userSay(isLast ? '건너뛸게요' : '다른 방법 볼게요');
+                        methodIndex += 1;
+                        offerCurrentMethod();
+                    },
+                },
+            ]);
+        }
+
+        /* ── Phase 1b: 구독 추가 후 (새 대화) ── */
+        async function startSubscribeContinuePhase() {
+            clearChat();
+            setHeader('WhatSub', '구독 등록 확인', '1/2');
+            await botSay(CONFIG.savedReplies[CONFIG.saved] || '구독을 저장했어요!');
+            if (CONFIG.subscriptionCount > 0) {
+                await botSay(`현재 ${CONFIG.subscriptionCount}개 구독이 등록되어 있어요.`);
+            }
+            const remaining = ALL_METHODS.filter((m) => !m.done);
+            if (remaining.length) {
+                await botSay('다른 방법으로도 더 추가할래요?');
+                setActions([
+                    {
+                        label: '네, 더 추가할게요',
+                        primary: true,
+                        onClick: () => { userSay('네, 더 추가할게요'); startMethodOffers(remaining); },
+                    },
+                    {
+                        label: '아니오, 다음 단계로',
+                        ghost: true,
+                        onClick: () => { userSay('아니오, 다음 단계로'); transitionToOtt(false); },
+                    },
+                ]);
+            } else {
+                await botSay('좋아요! 다음 단계로 넘어갈게요.');
+                await delay(400);
+                transitionToOtt(false);
+            }
+        }
+
+        /* ── Phase 2: OTT 설문 (챗봇 내 Q&A) ── */
+        async function loadPreferenceQuestions() {
+            const data = await fetchJson('/api/accounts/preferences/questions/');
+            prefQuestions = data.questions || [];
+            genreOptions = data.genre_options || [];
+        }
+
+        async function startOttPhase() {
+            clearChat();
+            setHeader('WhatSub', 'OTT 취향 설문', '2/2');
+
+            if (CONFIG.preferencesCompleted) {
+                transitionToFinish();
+                return;
+            }
+
+            try {
+                await loadPreferenceQuestions();
+            } catch (err) {
+                await botSay('설문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+                setActions([{
+                    label: '대시보드로 이동',
+                    primary: true,
+                    onClick: () => go(CONFIG.dashboardUrl, '대시보드로 이동하는 중…'),
+                }]);
+                return;
+            }
+
+            if (CONFIG.skippedSub) {
+                await botSay('구독 추가 없이 취향부터 맞춰볼게요.');
+            } else {
+                await botSay('구독 등록 단계는 여기까지예요! ✨');
+                await botSay('이제 나에게 맞는 OTT 설문을 진행할게요.');
+            }
+            await botSay('간단한 질문 몇 가지만 차례대로 여쭤볼게요.');
+            ottStep = 0;
+            runOttQuestion();
+        }
+
+        function runOttQuestion() {
+            if (ottStep >= prefQuestions.length) {
+                submitOttAnswers();
+                return;
+            }
+            const q = prefQuestions[ottStep];
+            botSay(q.label).then(() => botSay(q.description)).then(() => renderOttInput(q));
+        }
+
+        function renderOttInput(q) {
+            ottDraft = { genres: new Set(ottAnswers.preferred_genre_ids), habits: { ...ottAnswers.consumption_habits }, criteria: new Set(ottAnswers.platform_criteria) };
+
+            if (q.type === 'number') {
+                setActions(`
+                    <div class="input-row">
+                        <input id="ott-input" type="number" min="0" step="1000" placeholder="${q.placeholder || ''}" />
+                        <button type="button" class="action-btn primary" id="ott-confirm">확인</button>
+                    </div>
+                    <button type="button" class="action-btn ghost" id="ott-skip">건너뛰기</button>
+                    <button type="button" class="action-btn ghost" id="ott-quit">설문 없이 대시보드로</button>
+                `);
+                document.getElementById('ott-confirm').onclick = () => {
+                    const val = document.getElementById('ott-input').value.trim();
+                    if (val) {
+                        ottAnswers.monthly_spend_cap = Number(val);
+                        userSay(`월 ${Number(val).toLocaleString('ko-KR')}원`);
+                    } else {
+                        userSay('건너뛰기');
+                    }
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                document.getElementById('ott-skip').onclick = () => {
+                    userSay('건너뛰기');
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                bindOttQuit();
+                return;
+            }
+
+            if (q.type === 'genre_multi') {
+                const chips = genreOptions.map((g) => {
+                    const label = GENRE_KO[g.name] || g.name;
+                    return `<button type="button" class="chip-btn" data-id="${g.id}">${label}</button>`;
+                }).join('');
+                setActions(`
+                    <div class="chip-grid" id="ott-chips">${chips}</div>
+                    <button type="button" class="action-btn primary" id="ott-next">다음</button>
+                    <button type="button" class="action-btn ghost" id="ott-skip">건너뛰기</button>
+                    <button type="button" class="action-btn ghost" id="ott-quit">설문 없이 대시보드로</button>
+                `);
+                document.querySelectorAll('#ott-chips .chip-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const id = Number(btn.dataset.id);
+                        if (ottDraft.genres.has(id)) ottDraft.genres.delete(id);
+                        else ottDraft.genres.add(id);
+                        btn.classList.toggle('active', ottDraft.genres.has(id));
+                    });
+                });
+                document.getElementById('ott-next').onclick = () => {
+                    ottAnswers.preferred_genre_ids = [...ottDraft.genres];
+                    const labels = genreOptions.filter((g) => ottDraft.genres.has(g.id)).map((g) => GENRE_KO[g.name] || g.name);
+                    userSay(labels.length ? labels.join(', ') : '건너뛰기');
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                document.getElementById('ott-skip').onclick = () => {
+                    userSay('건너뛰기');
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                bindOttQuit();
+                return;
+            }
+
+            if (q.type === 'habits' || q.type === 'criteria_multi') {
+                const isHabit = q.type === 'habits';
+                const chips = (q.options || []).map((opt) =>
+                    `<button type="button" class="chip-btn" data-key="${opt.key}">${opt.label}</button>`,
+                ).join('');
+                setActions(`
+                    <div class="chip-grid" id="ott-chips">${chips}</div>
+                    <button type="button" class="action-btn primary" id="ott-next">다음</button>
+                    <button type="button" class="action-btn ghost" id="ott-skip">건너뛰기</button>
+                    <button type="button" class="action-btn ghost" id="ott-quit">설문 없이 대시보드로</button>
+                `);
+                document.querySelectorAll('#ott-chips .chip-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const key = btn.dataset.key;
+                        if (isHabit) {
+                            ottDraft.habits[key] = !ottDraft.habits[key];
+                            btn.classList.toggle('active', ottDraft.habits[key]);
+                        } else if (ottDraft.criteria.has(key)) {
+                            ottDraft.criteria.delete(key);
+                            btn.classList.remove('active');
+                        } else {
+                            ottDraft.criteria.add(key);
+                            btn.classList.add('active');
+                        }
+                    });
+                });
+                document.getElementById('ott-next').onclick = () => {
+                    if (isHabit) {
+                        ottAnswers.consumption_habits = { ...ottDraft.habits };
+                        const labels = (q.options || []).filter((o) => ottDraft.habits[o.key]).map((o) => o.label);
+                        userSay(labels.length ? labels.join(', ') : '건너뛰기');
+                    } else {
+                        ottAnswers.platform_criteria = [...ottDraft.criteria];
+                        const labels = (q.options || []).filter((o) => ottDraft.criteria.has(o.key)).map((o) => o.label);
+                        userSay(labels.length ? labels.join(', ') : '건너뛰기');
+                    }
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                document.getElementById('ott-skip').onclick = () => {
+                    userSay('건너뛰기');
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                bindOttQuit();
+                return;
+            }
+
+            if (q.type === 'textarea') {
+                setActions(`
+                    <textarea id="ott-input" rows="3" placeholder="${q.placeholder || ''}"></textarea>
+                    <button type="button" class="action-btn primary" id="ott-confirm">완료</button>
+                    <button type="button" class="action-btn ghost" id="ott-skip">건너뛰기</button>
+                    <button type="button" class="action-btn ghost" id="ott-quit">설문 없이 대시보드로</button>
+                `);
+                document.getElementById('ott-confirm').onclick = () => {
+                    const val = document.getElementById('ott-input').value.trim();
+                    ottAnswers.free_text = val;
+                    userSay(val || '건너뛰기');
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                document.getElementById('ott-skip').onclick = () => {
+                    userSay('건너뛰기');
+                    ottStep += 1;
+                    chatActions.classList.add('hidden');
+                    runOttQuestion();
+                };
+                bindOttQuit();
+            }
+        }
+
+        function bindOttQuit() {
+            const quit = document.getElementById('ott-quit');
+            if (!quit) return;
+            quit.onclick = () => {
+                userSay('설문 없이 대시보드로');
+                go(CONFIG.dashboardUrl, '대시보드로 이동하는 중…');
+            };
+        }
+
+        async function submitOttAnswers() {
+            await botSay('답변 감사해요! 취향을 분석하고 저장할게요…');
+            setActions([]);
+            try {
+                const structured = {
+                    monthly_spend_cap: ottAnswers.monthly_spend_cap,
+                    preferred_genre_ids: ottAnswers.preferred_genre_ids,
+                    consumption_habits: ottAnswers.consumption_habits,
+                    platform_criteria: ottAnswers.platform_criteria,
+                };
+                const chat_messages = ottAnswers.free_text
+                    ? [{ role: 'user', content: ottAnswers.free_text }]
+                    : [];
+                await fetchJson('/api/accounts/preferences/complete/', {
+                    method: 'POST',
+                    body: { structured_answers: structured, chat_messages },
+                });
+                if (window.WhatSubNav) WhatSubNav.show('취향을 저장하는 중…');
+                transitionToFinish();
+            } catch (err) {
+                await botSay(err.message || '저장에 실패했어요.');
+                setActions([
+                    { label: '다시 시도', primary: true, onClick: () => submitOttAnswers() },
+                    { label: '대시보드로', ghost: true, onClick: () => go(CONFIG.dashboardUrl, '대시보드로 이동하는 중…') },
+                ]);
+            }
+        }
+
+        /* ── Phase 3: 완료 (새 대화) ── */
+        async function startFinishPhase() {
+            clearChat();
+            setHeader('WhatSub', '설정 완료', '완료');
+            await botSay('취향 설정을 저장했어요! 🎉');
+            await botSay('이제 대시보드에서 구독을 관리하고 OTT 추천을 받아보세요.');
+            setActions([{
+                label: '대시보드로 이동',
+                primary: true,
+                onClick: () => { userSay('대시보드로 이동'); go(CONFIG.dashboardUrl, '대시보드로 이동하는 중…'); },
+            }]);
+        }
+
+        function shouldResumeSubscribe() {
+            if (CONFIG.chatPhase === 'subscribe') return true;
+            const step = CONFIG.chatResume?.step;
+            return step === 'method_pick' || step === 'ask_more' || step === 'ask_register';
+        }
+
+        function boot() {
+            const phase = CONFIG.chatPhase;
+            if (phase === 'finish') {
+                startFinishPhase();
+                return;
+            }
+            if (phase === 'ott') {
+                startOttPhase();
+                return;
+            }
+            if (phase === 'subscribe_continue' && CONFIG.saved) {
+                startSubscribeContinuePhase();
+                return;
+            }
+            if (shouldResumeSubscribe()) {
+                startSubscribeResume();
+                return;
+            }
+            startSubscribePhase();
+        }
+
+        if (window.WhatSubNav) {
+            WhatSubNav.enterThenRun(CONFIG.navEnterMessage, boot);
+        } else {
+            boot();
+        }
+    </script>
 </body>
 </html>

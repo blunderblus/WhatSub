@@ -90,6 +90,20 @@
             </div>
         </form>
     </main>
+    <script src="{% static 'accounts/onboarding-nav.js' %}"></script>
+    <script>
+        (() => {
+            const onboardingUrl = '{% url "accounts:onboarding" %}';
+            const subscribeReturnUrl = `${onboardingUrl}?phase=subscribe`;
+            document.querySelector('form')?.addEventListener('submit', () => {
+                WhatSubNav.show('구독을 저장하는 중…');
+            });
+            document.querySelector('.cancel')?.addEventListener('click', (event) => {
+                event.preventDefault();
+                WhatSubNav.go('온보딩으로 돌아가는 중…', subscribeReturnUrl);
+            });
+        })();
+    </script>
     <script>
         (() => {
             const platformSelect = document.getElementById('{{ form.platform.id_for_label }}');

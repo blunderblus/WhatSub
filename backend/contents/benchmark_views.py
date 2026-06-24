@@ -297,9 +297,111 @@ def platform_user_reviews(request, platform_id):
 def platform_user_review_delete(request, platform_id):
     from .models import PlatformUserReview
 
+    platform = Platform.objects.filter(pk=platform_id).first()
+    if not platform:
+        return Response({'detail': '플랫폼을 찾을 수 없습니다.'}, status=404)
+
     deleted, _ = PlatformUserReview.objects.filter(
-        platform_id=platform_id, user=request.user,
+        platform=platform, user=request.user,
     ).delete()
     if not deleted:
         return Response({'detail': '리뷰를 찾을 수 없습니다.'}, status=404)
-    return Response(status=204)
+
+    from .platform_benchmark import _reviews_payload
+    return Response(_reviews_payload(platform, request))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def platform_user_review_reaction(request, platform_id, review_id):
+    from .models import PlatformUserReview, PlatformUserReviewReaction
+    from .platform_benchmark import _reviews_payload, _user_review_payload
+    from .review_social import review_reaction_payload
+
+    review = PlatformUserReview.objects.filter(
+        pk=review_id, platform_id=platform_id,
+    ).prefetch_related('reactions').first()
+    if not review:
+        return Response({'detail': '리뷰를 찾을 수 없습니다.'}, status=404)
+    if review.user_id == request.user.id:
+        return Response({'detail': '본인 리뷰에는 반응할 수 없습니다.'}, status=403)
+
+    reaction = request.data.get('reaction')
+    if reaction not in (PlatformUserReviewReaction.Reaction.LIKE, PlatformUserReviewReaction.Reaction.DISLIKE, None, ''):
+        return Response({'detail': '올바른 반응 값이 아닙니다.'}, status=400)
+
+    existing = PlatformUserReviewReaction.objects.filter(review=review, user=request.user).first()
+    if not reaction:
+        if existing:
+            existing.delete()
+    elif existing:
+        if existing.reaction != reaction:
+            existing.reaction = reaction
+            existing.save(update_fields=['reaction', 'updated_at'])
+    else:
+        PlatformUserReviewReaction.objects.create(
+            review=review, user=request.user, reaction=reaction,
+        )
+
+    review = PlatformUserReview.objects.filter(pk=review_id).prefetch_related('reactions', 'comments__author').first()
+    platform = Platform.objects.filter(pk=platform_id).first()
+    return Response({
+        'review': _user_review_payload(review, request),
+        'reactions': review_reaction_payload(review, request),
+        **_reviews_payload(platform, request),
+    })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def platform_user_review_comments(request, platform_id, review_id):
+    from .models import PlatformUserReview, PlatformUserReviewComment
+    from .platform_benchmark import _user_review_payload
+    from .review_social import review_comment_payload
+
+    review = PlatformUserReview.objects.filter(
+        pk=review_id, platform_id=platform_id,
+    ).select_related('user').first()
+    if not review:
+        return Response({'detail': '리뷰를 찾을 수 없습니다.'}, status=404)
+
+    if request.method == 'GET':
+        comments = review.comments.select_related('author').all()
+        return Response({
+            'comments': [review_comment_payload(item, request) for item in comments],
+        })
+
+    if not request.user.is_authenticated:
+        return Response({'detail': '로그인이 필요합니다.'}, status=401)
+
+    content = (request.data.get('content') or '').strip()
+    if not content:
+        return Response({'detail': '댓글 내용을 입력해주세요.'}, status=400)
+
+    comment = PlatformUserReviewComment.objects.create(
+        review=review, author=request.user, content=content,
+    )
+    review = PlatformUserReview.objects.filter(pk=review_id).prefetch_related('reactions', 'comments__author').first()
+    return Response({
+        'comment': review_comment_payload(comment, request),
+        'review': _user_review_payload(review, request),
+    }, status=201)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def platform_user_review_comment_delete(request, platform_id, comment_id):
+    from .models import PlatformUserReviewComment
+    from .platform_benchmark import _user_review_payload
+
+    comment = PlatformUserReviewComment.objects.filter(
+        pk=comment_id, review__platform_id=platform_id, author=request.user,
+    ).select_related('review').first()
+    if not comment:
+        return Response({'detail': '댓글을 찾을 수 없습니다.'}, status=404)
+
+    review_id = comment.review_id
+    comment.delete()
+    from .models import PlatformUserReview
+    review = PlatformUserReview.objects.filter(pk=review_id).prefetch_related('reactions', 'comments__author').first()
+    return Response({'review': _user_review_payload(review, request)})

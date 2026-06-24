@@ -1,7 +1,6 @@
 """Shared benchmark constants (avoids circular imports)."""
-from django.conf import settings
 
-from .streaming_provider_display import PLATFORM_ICON_ALIASES
+from subscriptions.platform_icons import platform_icon_url
 
 GENRE_NAMES = {
     28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
@@ -21,7 +20,4 @@ AXIS_LABELS = {
 }
 
 
-def platform_icon(name):
-    match = PLATFORM_ICON_ALIASES.get((name or '').lower().strip())
-    filename = match[1] if match else None
-    return f'{settings.MEDIA_URL}{filename}' if filename else ''
+platform_icon = platform_icon_url

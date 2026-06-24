@@ -18,6 +18,7 @@ import { useSessionStore } from '../stores/session';
 const route = useRoute();
 const session = useSessionStore();
 const activeTab = ref(route.query.tab === 'personal' ? 'personal' : 'benchmark');
+const initialPlatformId = route.query.platform_id ? Number(route.query.platform_id) : null;
 const loading = ref(false);
 const error = ref('');
 const leaderboard = ref(null);
@@ -206,6 +207,12 @@ watch(activeTab, (tab) => {
 
 onMounted(async () => {
   await loadLeaderboard();
+  if (initialPlatformId) {
+    selectedId.value = initialPlatformId;
+    if (route.query.tab === 'personal') {
+      activeTab.value = 'personal';
+    }
+  }
   if (session.isAuthenticated && activeTab.value === 'personal') {
     await loadPersonal();
   }

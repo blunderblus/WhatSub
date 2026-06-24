@@ -5,6 +5,8 @@ import logging
 import re
 
 import requests
+
+from detector.ai_client import build_chat_payload, chat_completions_url, chat_headers
 from django.conf import settings
 
 from .models import LLMJudgmentCache
@@ -41,20 +43,15 @@ def _parse_json(content):
 
 
 def _call_llm(prompt):
-    url = settings.AI_API_BASE.rstrip('/') + '/chat/completions'
-    payload = {
-        'model': getattr(settings, 'AI_MODEL', 'gpt-4o-mini'),
-        'messages': [
+    url = chat_completions_url()
+    payload = build_chat_payload(
+        messages=[
             {'role': 'system', 'content': _SYSTEM_PROMPT},
             {'role': 'user', 'content': prompt},
         ],
-        'temperature': 0,
-        'response_format': {'type': 'json_object'},
-    }
-    headers = {
-        'Authorization': f'Bearer {settings.AI_API_KEY}',
-        'Content-Type': 'application/json',
-    }
+        use_json_format=True,
+    )
+    headers = chat_headers()
     resp = requests.post(url, json=payload, headers=headers, timeout=_TIMEOUT)
     resp.raise_for_status()
     return _parse_json(resp.json()['choices'][0]['message']['content'])

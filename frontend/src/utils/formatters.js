@@ -13,6 +13,11 @@ export function providerInitial(name) {
   return (formatProviderName(name) || '?').charAt(0).toUpperCase();
 }
 
+export function profileInitial(name) {
+  const label = (name || '?').trim();
+  return label ? label.charAt(0).toUpperCase() : '?';
+}
+
 export function formatCurrency(value) {
   return Number(value || 0).toLocaleString('ko-KR');
 }

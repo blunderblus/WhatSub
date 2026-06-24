@@ -1,4 +1,5 @@
 from datetime import timedelta
+import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
@@ -14,27 +15,17 @@ from rest_framework.response import Response
 from accounts.google_auth import user_has_google_token
 from allauth.socialaccount.models import SocialToken
 
+from subscriptions.detected_utils import enrich_detected_subscription
 from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
+from subscriptions.platform_icons import platform_icon_url as _platform_icon
+from subscriptions.platform_utils import resolve_official_platform
 from subscriptions.serializers import UserSubscriptionSerializer
 from .billing_dates import build_schedule_items, default_renewal_date, parse_subscription_date, subscription_period
 from .forms import SignUpForm
+from .models import UserPreferenceProfile
+from .onboarding_session import get_chat_resume, set_chat_resume, touch_method_pick
 
-_PLATFORM_LOGOS = {
-    'netflix': 'Netflix_icon.png',
-    'disney+': 'DisneyPlus_icon.png',
-    'apple tv+': 'AppleTV_icon.png',
-    'amazon prime video': 'AmazonPrimeVideo_icon.png',
-    'coupang play': 'CoupangPlay_icon.png',
-    'tving': 'TVING_icon.png',
-    'wavve': 'Wavve_icon.png',
-    'watcha': 'Watcha_icon.webp',
-    'spotv': 'SpotvNow_icon.png',
-}
-
-
-def _platform_icon(name):
-    filename = _PLATFORM_LOGOS.get((name or '').lower().strip())
-    return f'{settings.MEDIA_URL}{filename}' if filename else ''
+logger = logging.getLogger(__name__)
 
 
 def _monthly_amount(subscription):
@@ -127,10 +118,12 @@ def _dashboard_payload(user):
     all_subscriptions = [_subscription_payload(sub, today) for sub in subscriptions]
     standalone_subscriptions = [s for s in all_subscriptions if not s['is_bundle']]
     bundle_subscriptions = [s for s in all_subscriptions if s['is_bundle']]
+    pref = UserPreferenceProfile.objects.filter(user=user).first()
 
     return {
         'subscription_count': len(subscriptions),
         'monthly_total': monthly_total,
+        'monthly_spend_cap': pref.monthly_spend_cap if pref else None,
         'platform_count': len(platform_ids),
         'plan_count': SubscriptionPlan.objects.count(),
         'next_payment': timeline[0] if timeline else None,
@@ -431,7 +424,7 @@ def save_from_gmail(request):
     return Response(payload, status=status.HTTP_201_CREATED)
 
 
-def _create_gmail_subscription(user, data):
+def _create_detected_subscription(user, data, source='gmail'):
     platform_name = (data.get('platform') or '').strip()
     if not platform_name:
         return None
@@ -443,31 +436,89 @@ def _create_gmail_subscription(user, data):
     except (TypeError, ValueError):
         amount = 0
 
-    platform, _ = Platform.objects.get_or_create(
-        name__iexact=platform_name,
-        defaults={'name': platform_name},
-    )
+    platform = resolve_official_platform(name=platform_name, platform_id=data.get('platform_id'))
+    if not platform:
+        platform, _ = Platform.objects.get_or_create(
+            name__iexact=platform_name,
+            defaults={'name': platform_name},
+        )
+
+    plan_id = data.get('plan_id') or data.get('plan')
+    plan = None
+    if plan_id:
+        plan = SubscriptionPlan.objects.filter(pk=plan_id, platform=platform).first()
+
+    if plan:
+        if not (data.get('plan_name') or '').strip():
+            plan_name = plan.plan_name
+        if data.get('payment_amount') in (None, ''):
+            amount = int(plan.price)
+        if not data.get('billing_cycle'):
+            billing_cycle = plan.billing_period
+        else:
+            billing_cycle = data.get('billing_cycle') or 'monthly'
+    else:
+        billing_cycle = data.get('billing_cycle') or 'monthly'
+
     today = timezone.now().date()
     renewal = parse_subscription_date(data.get('renewal_date'), today)
     start = parse_subscription_date(data.get('start_date'), today)
 
+    if source == 'receipt':
+        payment_method = (data.get('payment_method') or '').strip() or '결제내역 스캔'
+        memo = '결제내역·이미지 OCR/AI 분석으로 자동 감지됨'
+    else:
+        payment_method = 'Gmail 감지'
+        memo = 'Gmail 받은편지함에서 자동 감지됨'
+
     subscription = UserSubscription.objects.create(
         user=user,
         platform=platform,
+        plan=plan,
         plan_name=plan_name,
         payment_amount=amount,
-        billing_cycle=data.get('billing_cycle') or 'monthly',
-        payment_method='Gmail 감지',
+        billing_cycle=billing_cycle,
+        payment_method=payment_method,
         start_date=start,
         renewal_date=renewal,
-        memo='Gmail 받은편지함에서 자동 감지됨',
+        memo=memo,
     )
     return _subscription_payload(subscription)
+
+
+def _create_gmail_subscription(user, data):
+    return _create_detected_subscription(user, data, source='gmail')
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_bulk_from_gmail(request):
+    return _save_bulk_detected(request, default_source='gmail')
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_onboarding_resume(request):
+    step = (request.data.get('step') or '').strip()
+    if not step:
+        return Response({'detail': 'step이 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if step == 'method_pick':
+        method_key = (request.data.get('method_key') or '').strip()
+        method_index = request.data.get('method_index', 0)
+        touch_method_pick(request, method_key, method_index)
+    else:
+        extras = {
+            key: value
+            for key, value in request.data.items()
+            if key != 'step'
+        }
+        set_chat_resume(request, step, **extras)
+
+    return Response({'resume': get_chat_resume(request)})
+
+
+def _save_bulk_detected(request, default_source='gmail'):
     items = request.data.get('subscriptions') or []
     if not isinstance(items, list) or not items:
         return Response(
@@ -475,11 +526,12 @@ def save_bulk_from_gmail(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    source = (request.data.get('source') or default_source).strip() or default_source
     saved = []
     for item in items:
         if not item.get('selected', True):
             continue
-        payload = _create_gmail_subscription(request.user, item)
+        payload = _create_detected_subscription(request.user, item, source=source)
         if payload:
             saved.append(payload)
 
@@ -487,6 +539,83 @@ def save_bulk_from_gmail(request):
         'saved_count': len(saved),
         'subscriptions': saved,
     }, status=status.HTTP_201_CREATED)
+
+
+_MAX_RECEIPT_BYTES = 5 * 1024 * 1024
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def extract_receipt(request):
+    from detector.gemini_client import is_vision_configured
+    from detector.receipt_images import prepare_receipt_image, resolve_receipt_mime
+    from detector.receipt_llm import extract_subscriptions_from_images
+
+    if not is_vision_configured():
+        return Response(
+            {'error': 'llm not configured', 'detail': 'AI 분석 API가 설정되지 않았습니다.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    uploads = request.FILES.getlist('images') or []
+    single = request.FILES.get('image')
+    if single:
+        uploads.append(single)
+    if not uploads:
+        return Response(
+            {'detail': '영수증 또는 결제 화면 이미지를 업로드해 주세요.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    images = []
+    filenames = []
+    for upload in uploads[:5]:
+        raw = upload.read()
+        if len(raw) > _MAX_RECEIPT_BYTES:
+            return Response(
+                {'detail': f'이미지 크기는 5MB 이하여야 합니다: {upload.name}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        content_type = resolve_receipt_mime(upload, raw)
+        if not content_type:
+            return Response(
+                {'detail': f'지원하지 않는 이미지 형식입니다: {upload.name}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            prepared, prepared_mime = prepare_receipt_image(raw, content_type)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        images.append((prepared, prepared_mime))
+        filenames.append(upload.name)
+
+    try:
+        raw_subs = extract_subscriptions_from_images(images)
+    except RuntimeError as exc:
+        return Response({'detail': str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as exc:
+        logger.exception('[extract_receipt] unexpected error')
+        return Response(
+            {'detail': '영수증 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    enriched = []
+    for sub in raw_subs:
+        item = enrich_detected_subscription(sub)
+        enriched.append({
+            **item,
+            'selected': True,
+            'source_label': ', '.join(filenames),
+            'plan_id': item.get('plan_id'),
+        })
+
+    return Response({
+        'subscriptions': enriched,
+        'llm_used': True,
+        'image_count': len(images),
+        'filenames': filenames,
+    })
 
 
 @api_view(['DELETE'])

@@ -5,6 +5,7 @@ import { fetchMyCommunityPosts } from '../api/community';
 import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
 import UserSubscriptionDashboard from '../components/UserSubscriptionDashboard.vue';
+import { profileInitial as getProfileInitial } from '../utils/formatters';
 import { useSessionStore } from '../stores/session';
 
 const session = useSessionStore();
@@ -16,27 +17,13 @@ const saving = ref(false);
 const myPosts = ref([]);
 const myPostsLoading = ref(false);
 const myPostsError = ref('');
-const avatarPresetGroups = [
-  {
-    title: '3D 기본 프사',
-    avatars: Array.from({ length: 9 }, (_, index) => ({
-      src: `/img/avatars/avatar-3d-${String(index + 1).padStart(2, '0')}.png`,
-      label: `3D 아바타 ${index + 1}`,
-    })),
-  },
-  {
-    title: '2D 아이콘 프사',
-    avatars: [
-      { src: '/img/avatars/avatar-2d-blue.svg', label: '블루 아이콘' },
-      { src: '/img/avatars/avatar-2d-pink.svg', label: '핑크 아이콘' },
-      { src: '/img/avatars/avatar-2d-mint.svg', label: '민트 아이콘' },
-      { src: '/img/avatars/avatar-2d-bot.svg', label: '봇 아이콘' },
-    ],
-  },
-];
+const avatarPresets = Array.from({ length: 9 }, (_, index) => ({
+  src: `/img/avatars/avatar-3d-${String(index + 1).padStart(2, '0')}.png`,
+  label: `기본 프사 ${index + 1}`,
+}));
 
 const profileName = computed(() => session.user?.nickname || session.user?.username || '내 프로필');
-const profileInitial = computed(() => profileName.value.charAt(0).toUpperCase());
+const profileInitial = computed(() => getProfileInitial(profileName.value));
 
 function hydrateForm() {
   form.value.nickname = session.user?.nickname || session.user?.username || '';
@@ -102,7 +89,7 @@ onMounted(() => {
     <section class="profile-hero panel">
       <div class="profile-avatar-frame">
         <img v-if="form.profile_image" :src="form.profile_image" alt="" />
-        <span v-else class="default-avatar" aria-hidden="true">{{ profileInitial }}</span>
+        <span v-else class="default-avatar avatar-initial-letter" aria-hidden="true">{{ profileInitial }}</span>
       </div>
       <div class="profile-copy">
         <strong>{{ profileName }}</strong>
@@ -186,26 +173,30 @@ onMounted(() => {
           <input id="nickname" v-model.trim="form.nickname" maxlength="30" required />
         </div>
         <div class="avatar-presets">
-          <div
-            v-for="group in avatarPresetGroups"
-            :key="group.title"
-            class="avatar-preset-group"
-          >
-            <h3>{{ group.title }}</h3>
-            <div class="avatar-grid">
-              <button
-                v-for="avatar in group.avatars"
-                :key="avatar.src"
-                type="button"
-                class="avatar-option"
-                :class="{ selected: form.profile_image === avatar.src }"
-                :aria-label="avatar.label"
-                :aria-pressed="form.profile_image === avatar.src"
-                @click="selectAvatar(avatar.src)"
-              >
-                <img :src="avatar.src" :alt="avatar.label" />
-              </button>
-            </div>
+          <h3>기본 프사</h3>
+          <div class="avatar-grid">
+            <button
+              type="button"
+              class="avatar-option avatar-option-initial avatar-initial-letter"
+              :class="{ selected: !form.profile_image }"
+              aria-label="닉네임 이니셜"
+              :aria-pressed="!form.profile_image"
+              @click="selectAvatar('')"
+            >
+              {{ profileInitial }}
+            </button>
+            <button
+              v-for="avatar in avatarPresets"
+              :key="avatar.src"
+              type="button"
+              class="avatar-option"
+              :class="{ selected: form.profile_image === avatar.src }"
+              :aria-label="avatar.label"
+              :aria-pressed="form.profile_image === avatar.src"
+              @click="selectAvatar(avatar.src)"
+            >
+              <img :src="avatar.src" :alt="avatar.label" />
+            </button>
           </div>
         </div>
         <div class="field">
@@ -235,18 +226,19 @@ onMounted(() => {
 }
 
 .profile-avatar-frame {
-  display: grid;
-  place-items: center;
   width: 56px;
   height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
 }
 
 .profile-avatar-frame img,
 .profile-avatar-frame .default-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  flex: none;
+  width: 100%;
+  height: 100%;
+  border: none;
+  box-shadow: none;
 }
 
 .profile-avatar-frame img {
@@ -255,17 +247,7 @@ onMounted(() => {
   object-position: center;
 }
 
-.default-avatar {
-  display: grid;
-  place-items: center;
-  background: var(--ws-primary);
-  color: var(--ws-primary-fg);
-  font-size: 22px;
-  font-weight: 900;
-}
-
-.profile-hero strong,
-.profile-hero span {
+.profile-hero strong {
   display: block;
 }
 
@@ -278,7 +260,8 @@ onMounted(() => {
   line-height: 1.2;
 }
 
-.profile-hero span {
+.profile-copy > span {
+  display: block;
   color: var(--ws-muted);
   font-size: 13px;
   font-weight: 700;
@@ -400,62 +383,67 @@ onMounted(() => {
   margin: 0;
 }
 
+.profile-avatar-frame .avatar-initial-letter {
+  font-size: 24px;
+}
+
 .avatar-presets {
   display: grid;
-  gap: 18px;
+  gap: 12px;
   margin: 20px 0;
   padding: 16px;
-  border: 1px solid rgba(var(--ws-secondary-rgb), 0.28);
+  border: none;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.avatar-preset-group {
-  display: grid;
-  gap: 10px;
-}
-
-.avatar-preset-group h3 {
+.avatar-presets h3 {
   margin: 0;
   color: var(--ws-secondary);
   font-size: 14px;
 }
 
 .avatar-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .avatar-option {
   display: grid;
   place-items: center;
-  aspect-ratio: 1;
-  padding: 4px;
-  border: 2px solid transparent;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  background: var(--ws-surface-2);
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
 }
 
 .avatar-option:hover {
-  border-color: var(--ws-secondary);
-  background: rgba(var(--ws-secondary-rgb), 0.12);
+  filter: brightness(1.08);
   transform: translateY(-1px);
 }
 
 .avatar-option.selected {
-  border-color: var(--ws-primary);
-  background: linear-gradient(135deg, rgba(var(--ws-primary-rgb), 0.18), rgba(var(--ws-secondary-rgb), 0.2));
+  filter: brightness(1.12);
+  transform: scale(1.04);
 }
 
 .avatar-option img {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
   object-fit: cover;
+  border: none;
+}
+
+.avatar-option-initial.avatar-initial-letter {
+  font-size: 24px;
+  background: var(--ws-primary);
 }
 
 .success {

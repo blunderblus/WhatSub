@@ -1,14 +1,18 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { fetchCommunityBoards, fetchCommunityPosts } from '../api/community';
+import { fetchSubscriptionPlatforms } from '../api/subscriptions';
+import { profileInitial } from '../utils/formatters';
 import { useSessionStore } from '../stores/session';
 import PageHeader from '../components/PageHeader.vue';
 
+const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
 const boards = ref([]);
-const selectedBoard = ref('ott');
+const selectedBoard = ref(typeof route.query.board === 'string' ? route.query.board : 'ott');
+const platformFilterId = ref(route.query.platform_id ? String(route.query.platform_id) : '');
 const posts = ref([]);
 const notices = ref([]);
 const loading = ref(false);
@@ -19,6 +23,13 @@ const activeBoard = computed(() => boards.value.find((board) => board.key === se
 const currentPosts = computed(() => posts.value);
 const showPinnedNotices = computed(() => selectedBoard.value !== 'notice' && notices.value.length > 0);
 const canWriteCurrentBoard = computed(() => selectedBoard.value !== 'notice' || isAdmin.value);
+const platformFilterName = ref('');
+const platformFlairName = computed(() => {
+  if (selectedBoard.value !== 'ott' || !platformFilterId.value) return '';
+  if (platformFilterName.value) return platformFilterName.value;
+  const match = posts.value.find((post) => String(post.platform_id) === platformFilterId.value);
+  return match?.platform_name || '';
+});
 
 function formatDate(value) {
   if (!value) return '';
@@ -34,11 +45,29 @@ function goWrite() {
     return;
   }
   if (!canWriteCurrentBoard.value) return;
-  router.push({ path: '/community/write', query: { board: selectedBoard.value } });
+  const query = { board: selectedBoard.value };
+  if (selectedBoard.value === 'ott' && platformFilterId.value) {
+    query.platform_id = platformFilterId.value;
+  }
+  router.push({ path: '/community/write', query });
 }
 
 async function loadBoards() {
   boards.value = await fetchCommunityBoards();
+}
+
+async function loadPlatformFilterName() {
+  if (!platformFilterId.value) {
+    platformFilterName.value = '';
+    return;
+  }
+  try {
+    const platforms = await fetchSubscriptionPlatforms();
+    const match = platforms.find((item) => String(item.id) === platformFilterId.value);
+    platformFilterName.value = match?.name || '';
+  } catch {
+    platformFilterName.value = '';
+  }
 }
 
 async function loadNotices() {
@@ -51,7 +80,10 @@ async function loadPosts(board = selectedBoard.value) {
   loading.value = true;
   error.value = '';
   try {
-    const data = await fetchCommunityPosts({ board });
+    const data = await fetchCommunityPosts({
+      board,
+      platformId: board === 'ott' ? platformFilterId.value : '',
+    });
     posts.value = data.results || [];
   } catch (err) {
     posts.value = [];
@@ -61,8 +93,15 @@ async function loadPosts(board = selectedBoard.value) {
   }
 }
 
+function clearPlatformFilter() {
+  platformFilterId.value = '';
+  router.replace({ path: '/community', query: { board: selectedBoard.value } });
+  loadPosts(selectedBoard.value);
+}
+
 onMounted(async () => {
   await loadBoards();
+  await loadPlatformFilterName();
   await Promise.all([loadPosts(selectedBoard.value), loadNotices()]);
 });
 </script>
@@ -93,6 +132,10 @@ onMounted(async () => {
         <div>
           <h2>{{ activeBoard?.name || '게시판' }}</h2>
           <p class="muted">{{ activeBoard?.description }}</p>
+          <p v-if="platformFlairName" class="platform-filter-chip">
+            <span class="flair">{{ platformFlairName }}</span> 플랫폼 글만 보는 중
+            <button type="button" class="link-btn" @click="clearPlatformFilter">필터 해제</button>
+          </p>
         </div>
         <button v-if="canWriteCurrentBoard" class="button primary" type="button" @click="goWrite">글쓰기</button>
       </div>
@@ -105,8 +148,8 @@ onMounted(async () => {
           <strong class="row-title">{{ notice.title }}</strong>
           <span class="row-author author-chip">
             <img v-if="notice.author.profile_image" :src="notice.author.profile_image" alt="" />
-            <span v-else class="default-avatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></svg>
+            <span v-else class="default-avatar avatar-initial-letter" aria-hidden="true">
+              {{ profileInitial(notice.author.nickname) }}
             </span>
             <span>{{ notice.author.nickname }}</span>
           </span>
@@ -117,12 +160,16 @@ onMounted(async () => {
 
         <div v-if="currentPosts.length === 0" class="empty">아직 게시글이 없습니다.</div>
         <RouterLink v-for="post in currentPosts" :key="post.id" class="board-row" :to="`/community/${post.id}`">
-          <span class="row-board">{{ post.board_label }}</span>
+          <span class="row-board">
+            <span v-if="post.is_notice" class="flair notice">공지</span>
+            <span v-else-if="post.platform_name" class="flair">{{ post.platform_name }}</span>
+            <span v-else>{{ post.board_label }}</span>
+          </span>
           <strong class="row-title">{{ post.title }}</strong>
           <span class="row-author author-chip">
             <img v-if="post.author.profile_image" :src="post.author.profile_image" alt="" />
-            <span v-else class="default-avatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></svg>
+            <span v-else class="default-avatar avatar-initial-letter" aria-hidden="true">
+              {{ profileInitial(post.author.nickname) }}
             </span>
             <span>{{ post.author.nickname }}</span>
           </span>
@@ -209,6 +256,40 @@ onMounted(async () => {
   font-weight: 900;
 }
 
+.flair {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(217, 221, 146, 0.2);
+  color: var(--ws-primary);
+}
+
+.flair.notice {
+  background: rgba(252, 163, 17, 0.2);
+  color: var(--ws-secondary);
+}
+
+.platform-filter-chip {
+  margin: 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--ws-muted);
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: underline;
+  padding: 0;
+}
+
 .notice-row .row-board {
   color: var(--ws-secondary);
 }
@@ -253,29 +334,16 @@ onMounted(async () => {
   height: 22px;
   border-radius: 50%;
   flex: none;
+  border: none;
+  box-shadow: none;
 }
 
 .author-chip img {
   object-fit: cover;
 }
 
-.default-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--ws-border);
-  background: var(--ws-surface-2);
-  color: var(--ws-muted);
-}
-
-.default-avatar svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
+.author-chip .avatar-initial-letter {
+  font-size: 11px;
 }
 
 @media (max-width: 820px) {

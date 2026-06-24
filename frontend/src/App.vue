@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { useSessionStore } from './stores/session';
+import { profileInitial } from './utils/formatters';
 import WLogo from './components/WLogo.vue';
 import NotificationBell from './components/NotificationBell.vue';
 import UrgentNotificationToast from './components/UrgentNotificationToast.vue';
@@ -30,8 +31,8 @@ async function logout() {
         <NotificationBell v-if="session.isAuthenticated" />
         <RouterLink v-if="session.isAuthenticated" class="profile-link" to="/profile" aria-label="내 프로필">
           <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
-          <span v-else class="nav-avatar" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></svg>
+          <span v-else class="nav-avatar avatar-initial-letter" aria-hidden="true">
+            {{ profileInitial(session.user?.nickname || session.user?.username) }}
           </span>
           <span>{{ session.user?.nickname || session.user?.username }}</span>
         </RouterLink>
@@ -72,6 +73,8 @@ async function logout() {
   height: 24px;
   border-radius: 50%;
   flex: none;
+  border: none;
+  box-shadow: none;
 }
 
 .profile-link img {
@@ -80,21 +83,6 @@ async function logout() {
 }
 
 .nav-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--ws-border);
-  background: var(--ws-surface-2);
-  color: var(--ws-muted);
-}
-
-.nav-avatar svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
+  font-size: 12px;
 }
 </style>

@@ -30,6 +30,198 @@ export function formatWon(value) {
   return Number(value || 0).toLocaleString('ko-KR');
 }
 
+function monthKeyFromDate(date) {
+  if (typeof date === 'string' && date.length >= 7) {
+    return date.slice(0, 7);
+  }
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function addMonthsToKey(key, delta) {
+  const [year, month] = key.split('-').map(Number);
+  const d = new Date(year, month - 1 + delta, 1);
+  return monthKeyFromKeyDate(d);
+}
+
+function monthKeyFromKeyDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(key) {
+  const [year, month] = key.split('-');
+  return `${Number(year)}.${Number(month)}`;
+}
+
+function formatDayLabel(dateStr) {
+  const day = Number(dateStr.slice(8, 10));
+  return String(day);
+}
+
+function formatWeekLabel(startDay, endDay) {
+  return `${startDay}~${endDay}일`;
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function toDateStr(year, month, day) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function todayDateStr(referenceDate = new Date()) {
+  const d = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function aggregatePayments(items) {
+  return (items || []).map((item) => ({
+    platform_name: item.platform_name,
+    amount: Number(item.amount || 0),
+  }));
+}
+
+/**
+ * Aggregate schedule items into monthly payment totals for charting.
+ * @returns {{ key: string, label: string, amount: number, isFuture: boolean, isCurrent: boolean, payments?: object[] }[]}
+ */
+export function buildPaymentFlowSeries(scheduleItems = [], {
+  monthsBefore = 5,
+  monthsAfter = 6,
+  referenceDate = new Date(),
+} = {}) {
+  const todayKey = monthKeyFromDate(referenceDate);
+  const startKey = addMonthsToKey(todayKey, -monthsBefore);
+  const endKey = addMonthsToKey(todayKey, monthsAfter);
+
+  const buckets = {};
+  for (const item of scheduleItems || []) {
+    const key = monthKeyFromDate(item.date);
+    if (!key || key < startKey || key > endKey) continue;
+    if (!buckets[key]) buckets[key] = { total: 0, items: [] };
+    buckets[key].total += Number(item.amount || 0);
+    buckets[key].items.push(item);
+  }
+
+  const points = [];
+  let cursor = startKey;
+  while (cursor <= endKey) {
+    const bucket = buckets[cursor];
+    points.push({
+      key: cursor,
+      label: formatMonthLabel(cursor),
+      amount: bucket?.total || 0,
+      isFuture: cursor > todayKey,
+      isCurrent: cursor === todayKey,
+      payments: aggregatePayments(bucket?.items),
+    });
+    cursor = addMonthsToKey(cursor, 1);
+  }
+  return points;
+}
+
+/** Daily payment totals within a single month. */
+export function buildPaymentFlowDailySeries(scheduleItems = [], monthKey, referenceDate = new Date()) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const lastDay = daysInMonth(year, month);
+  const todayStr = todayDateStr(referenceDate);
+  const buckets = {};
+
+  for (const item of scheduleItems || []) {
+    if (monthKeyFromDate(item.date) !== monthKey) continue;
+    const dateStr = item.date.slice(0, 10);
+    if (!buckets[dateStr]) buckets[dateStr] = { total: 0, items: [] };
+    buckets[dateStr].total += Number(item.amount || 0);
+    buckets[dateStr].items.push(item);
+  }
+
+  const points = [];
+  for (let day = 1; day <= lastDay; day += 1) {
+    const dateStr = toDateStr(year, month, day);
+    const bucket = buckets[dateStr];
+    points.push({
+      key: dateStr,
+      label: formatDayLabel(dateStr),
+      amount: bucket?.total || 0,
+      isFuture: dateStr > todayStr,
+      isCurrent: dateStr === todayStr,
+      payments: aggregatePayments(bucket?.items),
+    });
+  }
+  return points;
+}
+
+/** Weekly payment totals within a single month. */
+export function buildPaymentFlowWeeklySeries(scheduleItems = [], monthKey, referenceDate = new Date()) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const lastDay = daysInMonth(year, month);
+  const todayStr = todayDateStr(referenceDate);
+  const weeks = [];
+  for (let start = 1; start <= lastDay; start += 7) {
+    weeks.push({ start, end: Math.min(start + 6, lastDay) });
+  }
+
+  return weeks.map(({ start, end }) => {
+    const startStr = toDateStr(year, month, start);
+    const endStr = toDateStr(year, month, end);
+    const matched = (scheduleItems || []).filter((item) => {
+      const dateStr = item.date?.slice(0, 10);
+      return dateStr >= startStr && dateStr <= endStr;
+    });
+    const amount = matched.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return {
+      key: `${monthKey}-w${start}`,
+      label: formatWeekLabel(start, end),
+      amount,
+      isFuture: startStr > todayStr,
+      isCurrent: todayStr >= startStr && todayStr <= endStr,
+      payments: aggregatePayments(matched),
+    };
+  });
+}
+
+export function buildChartYScale(values = [], budget = null, monthlyEstimate = 0, { includeGuides = true } = {}) {
+  const numericBudget = includeGuides ? Number(budget || 0) : 0;
+  const numericEstimate = includeGuides ? Number(monthlyEstimate || 0) : 0;
+  const dataPeak = Math.max(...values, 1);
+  const peak = Math.max(dataPeak, numericBudget, numericEstimate);
+  const padded = Math.ceil(peak * 1.1);
+  const step = padded <= 50000 ? 5000 : padded <= 150000 ? 10000 : 25000;
+  const maxY = Math.max(Math.ceil(padded / step) * step, numericBudget, numericEstimate, step);
+
+  const ticks = [0];
+  for (let v = step; v < maxY; v += step) ticks.push(v);
+  if (!ticks.includes(maxY)) ticks.push(maxY);
+
+  return { maxY, ticks };
+}
+
+/** Stats for a focused month in day/week chart footers. */
+export function buildFocusMonthStats(scheduleItems = [], monthKey, referenceDate = new Date()) {
+  const todayStr = todayDateStr(referenceDate);
+  const matched = (scheduleItems || []).filter(
+    (item) => monthKeyFromDate(item.date) === monthKey,
+  );
+
+  let paidTotal = 0;
+  let scheduledTotal = 0;
+  matched.forEach((item) => {
+    const amount = Number(item.amount || 0);
+    const dateStr = item.date?.slice(0, 10) || '';
+    if (dateStr && dateStr <= todayStr) paidTotal += amount;
+    else scheduledTotal += amount;
+  });
+
+  return {
+    paymentCount: matched.length,
+    paidTotal,
+    scheduledTotal,
+    total: paidTotal + scheduledTotal,
+  };
+}
+
 /** notes 필드에서 affiliate_ 프로모션 문구 추출 */
 export function parsePromoNotes(notes) {
   if (!notes) return [];

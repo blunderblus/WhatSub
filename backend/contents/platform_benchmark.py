@@ -2,10 +2,7 @@
 import json
 from datetime import date
 
-from django.db.models import Avg, Count
-from django.utils import timezone
-
-from community.models import CommunityPost
+from django.db.models import Avg, Count, F, Q
 from subscriptions.models import Platform, SubscriptionPlan, BundleContent, AddOnPass
 from subscriptions.serializers import SubscriptionPlanSerializer, AddOnPassSerializer
 
@@ -20,6 +17,12 @@ from .models import (
     PlatformUserReview,
 )
 from .personal_scoring import _exclusive_highlights, _exclusive_titles_by_platform
+from .review_social import (
+    build_score_summary,
+    community_board_preview,
+    review_comment_payload,
+    review_reaction_payload,
+)
 from .title_display import get_title_display_map
 
 PLATFORM_INSIGHT_SCHEMA = (
@@ -64,7 +67,7 @@ def get_platform_llm_insight(platform, snap, snapshot_date, use_llm=True):
 
 def _user_review_payload(review, request=None):
     from community.serializers import author_payload
-    return {
+    payload = {
         'id': review.id,
         'score': review.score,
         'body': review.body,
@@ -75,6 +78,11 @@ def _user_review_payload(review, request=None):
             request and request.user.is_authenticated and review.user_id == request.user.id
         ),
     }
+    payload['reactions'] = review_reaction_payload(review, request)
+    comments = list(review.comments.select_related('author').all())
+    payload['comment_count'] = len(comments)
+    payload['comments'] = [review_comment_payload(item, request) for item in comments]
+    return payload
 
 
 def _reviews_payload(platform, request):
@@ -85,18 +93,33 @@ def _reviews_payload(platform, request):
         PlatformUserReview.objects
         .filter(platform=platform)
         .select_related('user')
-        .order_by('-updated_at')[:20]
+        .prefetch_related('reactions', 'comments__author')
+        .annotate(
+            like_count=Count(
+                'reactions',
+                filter=Q(reactions__reaction='like'),
+                distinct=True,
+            ),
+            dislike_count=Count(
+                'reactions',
+                filter=Q(reactions__reaction='dislike'),
+                distinct=True,
+            ),
+        )
+        .annotate(reaction_score=F('like_count') - F('dislike_count'))
+        .order_by('-reaction_score', '-updated_at')[:30]
     )
     my_review = None
     if request and request.user.is_authenticated:
         my_review = PlatformUserReview.objects.filter(
             platform=platform, user=request.user,
-        ).select_related('user').first()
+        ).select_related('user').prefetch_related('reactions', 'comments__author').first()
     return {
         'user_score': {
             'average': round(review_stats['avg_score'] or 0, 2),
             'count': review_stats['count'] or 0,
         },
+        'score_summary': build_score_summary(platform),
         'reviews': [_user_review_payload(r, request) for r in reviews],
         'my_review': _user_review_payload(my_review, request) if my_review else None,
     }
@@ -172,16 +195,7 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
 
     reviews_block = _reviews_payload(platform, request)
 
-    community_posts = (
-        CommunityPost.objects.filter(board=CommunityPost.Board.OTT, platform=platform)
-        .select_related('author')
-        .annotate(comment_count=Count('comments'))
-        .order_by('-created_at')[:10]
-    )
-    from community.serializers import CommunityPostSerializer
-    posts_data = CommunityPostSerializer(
-        community_posts, many=True, context={'request': request},
-    ).data
+    community_board = community_board_preview(platform, request, limit=10)
 
     ex_keys = _exclusive_titles_by_platform().get(platform_id, set())
     if enrich_titles and ex_keys:
@@ -220,7 +234,8 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
         'llm_insight': insight,
         'llm_insight_month': _month_key(snapshot_date),
         **reviews_block,
-        'community_threads': posts_data,
+        'community_board': community_board,
+        'calculator_url': f'/benchmark?tab=personal&platform_id={platform.id}',
         'exclusive_highlights': exclusive_highlights,
         'content_links': {
             'movies': f'/contents/movies?platform_id={platform.id}',

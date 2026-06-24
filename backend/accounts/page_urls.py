@@ -6,6 +6,7 @@ app_name = 'accounts'
 
 urlpatterns = [
     path('login/', page_views.login_redirect, name='login'),
+    path('auth/google/done/', page_views.google_auth_done, name='google_auth_done'),
     path('onboarding/', page_views.onboarding_page, name='onboarding'),
     path('onboarding/manual/', page_views.manual_add_page, name='manual_add'),
     path('onboarding/gmail/', page_views.gmail_scan_page, name='gmail_scan'),

@@ -62,7 +62,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'whatsub.middleware.DevRelaxedCsrfMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -186,22 +186,10 @@ SOCIALACCOUNT_PROVIDERS = {
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
 
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
-
-CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-]
-
-CORS_ALLOWED_ORIGINS = [
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-]
-CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -235,17 +223,49 @@ BACKEND_URL = env('BACKEND_URL', default=BACKEND_URL)
 LOGIN_REDIRECT_URL = '/accounts/onboarding/'
 LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
 
+_DEV_VITE_PORTS = tuple(range(5173, 5200))
+
+
+def _dev_frontend_origins(frontend_url):
+    origins = {frontend_url.rstrip('/')}
+    for port in _DEV_VITE_PORTS:
+        origins.add(f'http://127.0.0.1:{port}')
+        origins.add(f'http://localhost:{port}')
+    return sorted(origins)
+
+
+CSRF_TRUSTED_ORIGINS = sorted({
+    BACKEND_URL.rstrip('/'),
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    *_dev_frontend_origins(FRONTEND_URL),
+})
+
+CORS_ALLOWED_ORIGINS = _dev_frontend_origins(FRONTEND_URL)
+CORS_ALLOW_CREDENTIALS = True
+
 # 우리가 사용할 API 키들
 TMDB_API_KEY = env('TMDB_API_KEY', default='')
 WATCHMODE_API_KEY = env('WATCHMODE_API_KEY', default='')
 # RapidAPI streaming-availability key. Accept both spellings (RAPID_API_KEY / RAPIDAPI_KEY).
 RAPIDAPI_KEY = env('RAPID_API_KEY', default=env('RAPIDAPI_KEY', default=''))
-AI_API_KEY = env('AI_API_KEY', default='')
+AI_API_KEY = env('AI_API_KEY', default=env('GMS_KEY', default=''))
 AI_API_BASE = env(
     'AI_API_BASE',
     default='https://gms.ssafy.io/gmsapi/api.openai.com/v1',
 )
-AI_MODEL = env('AI_MODEL', default='gpt-4o-mini')
+AI_MODEL = (env('AI_MODEL', default='gpt-4o-mini') or 'gpt-4o-mini').strip().strip("'\"")
+if not AI_MODEL:
+    AI_MODEL = 'gpt-4o-mini'
+AI_VISION_MODEL = (
+    env('AI_VISION_MODEL', default='gemini-2.5-flash') or 'gemini-2.5-flash'
+).strip().strip("'\"")
+if not AI_VISION_MODEL:
+    AI_VISION_MODEL = 'gemini-2.5-flash'
+AI_VISION_API_BASE = env(
+    'AI_VISION_API_BASE',
+    default='https://gms.ssafy.io/gmsapi/generativelanguage.googleapis.com/v1beta',
+)
 GMAIL_PIPELINE_LOG = env.bool('GMAIL_PIPELINE_LOG', default=True)
 
 if GMAIL_PIPELINE_LOG:

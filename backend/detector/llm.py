@@ -12,6 +12,8 @@ import re
 import requests
 from django.conf import settings
 
+from .ai_client import build_chat_payload, chat_completions_url, chat_headers, resolve_ai_model
+
 logger = logging.getLogger('detector.gmail')
 
 
@@ -164,24 +166,19 @@ def _extract_batch(emails):
         prompt = _USER_TEMPLATE.replace('__EMAILS__', '\n\n'.join(lines))
         log_label = f'{len(emails)} email(s)'
 
-    url = settings.AI_API_BASE.rstrip('/') + '/chat/completions'
-    payload = {
-        'model': getattr(settings, 'AI_MODEL', 'gpt-4o-mini'),
-        'messages': [
+    url = chat_completions_url()
+    payload = build_chat_payload(
+        messages=[
             {'role': 'system', 'content': _SYSTEM_PROMPT},
             {'role': 'user', 'content': prompt},
         ],
-        'temperature': 0,
-        'response_format': {'type': 'json_object'},
-    }
-    headers = {
-        'Authorization': f'Bearer {settings.AI_API_KEY}',
-        'Content-Type': 'application/json',
-    }
+        use_json_format=True,
+    )
+    headers = chat_headers()
 
     if getattr(settings, 'GMAIL_PIPELINE_LOG', True):
         _pipeline_log(
-            f'[llm] batch: {log_label} → {settings.AI_MODEL} (~{len(prompt)} chars)'
+            f'[llm] batch: {log_label} → {resolve_ai_model()} (~{len(prompt)} chars)'
         )
 
     try:

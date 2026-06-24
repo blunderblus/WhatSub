@@ -1,8 +1,12 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { apiRequest } from '../api/http';
 import { normalizeMonthlyAmount } from '../utils/billing';
+import { backendRoutes, redirectToBackend, backendUrl } from '../config/backend';
+import { navigateWithOnboardingNav } from '../utils/onboardingNav';
+
+const SUBSCRIBE_RETURN = `${backendRoutes.onboarding}?phase=subscribe`;
 
 const router = useRouter();
 const route = useRoute();
@@ -97,14 +101,25 @@ async function submit() {
   error.value = '';
   try {
     await apiRequest('/api/accounts/subscriptions/', { method: 'POST', body: form.value });
-    router.push(isOnboarding.value ? '/onboarding/complete' : '/subscriptions');
+    if (isOnboarding.value) {
+      navigateWithOnboardingNav(
+        backendUrl(`${backendRoutes.onboarding}?phase=subscribe_continue&saved=manual`),
+        '온보딩으로 돌아오는 중…',
+      );
+      return;
+    }
+    router.push('/subscriptions');
   } catch (err) {
     error.value = Object.values(err.payload || {}).flat().join(' ') || err.message;
   }
 }
 
 function closeModal() {
-  router.push(isOnboarding.value ? '/onboarding' : '/subscriptions');
+  if (isOnboarding.value) {
+    navigateWithOnboardingNav(backendUrl(SUBSCRIBE_RETURN), '온보딩으로 돌아가는 중…');
+    return;
+  }
+  router.push('/subscriptions');
 }
 
 onMounted(async () => {
@@ -131,6 +146,9 @@ onMounted(async () => {
       <p class="eyebrow">Add subscription</p>
       <h1 id="add-subscription-title">구독 직접 추가</h1>
       <p class="muted">플랫폼과 요금제를 고르면 금액과 결제 주기가 자동으로 채워집니다.</p>
+      <p class="alt-link">
+        <RouterLink to="/subscriptions/receipt-scan">📷 결제내역·이미지 AI로 추가</RouterLink>
+      </p>
       <p v-if="error" class="notice">{{ error }}</p>
       <form @submit.prevent="submit">
       <div class="field">
@@ -249,5 +267,11 @@ onMounted(async () => {
   color: var(--ws-primary);
   font-size: 18px;
   font-weight: 900;
+}
+
+.alt-link {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
 }
 </style>

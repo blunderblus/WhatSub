@@ -3,7 +3,9 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { apiRequest } from '../api/http';
 import SubscriptionCalendar from './SubscriptionCalendar.vue';
+import PaymentFlowChart from './PaymentFlowChart.vue';
 import { backendRoutes, backendUrl } from '../config/backend';
+import { profileInitial } from '../utils/formatters';
 import { useSessionStore } from '../stores/session';
 import { subscriptionMonthlyAmount, subscriptionsMonthlyTotal } from '../utils/billing';
 
@@ -16,9 +18,15 @@ const selectedCalendarSubId = ref(null);
 const standaloneSubs = computed(() => dashboard.value?.standalone_subscriptions || []);
 const bundleSubs = computed(() => dashboard.value?.bundle_subscriptions || []);
 const allSubscriptions = computed(() => dashboard.value?.subscriptions || []);
+const profileName = computed(() => session.user?.nickname || session.user?.username || '?');
+const profileAvatarInitial = computed(() => profileInitial(profileName.value));
 const monthlyTotal = computed(() => {
   if (allSubscriptions.value.length) return subscriptionsMonthlyTotal(allSubscriptions.value);
   return dashboard.value?.monthly_total || 0;
+});
+const monthlyBudget = computed(() => {
+  const cap = dashboard.value?.monthly_spend_cap;
+  return cap != null && cap !== '' ? Number(cap) : null;
 });
 
 function money(value) {
@@ -60,6 +68,7 @@ onMounted(async () => {
       </div>
       <div class="dashboard-actions">
         <RouterLink class="button primary" to="/subscriptions/new">구독 추가</RouterLink>
+        <RouterLink class="button" to="/subscriptions/receipt-scan">결제내역·이미지 스캔</RouterLink>
         <a class="button" :href="backendUrl(backendRoutes.onboardingGmail)">Gmail에서 찾기</a>
       </div>
     </header>
@@ -69,7 +78,10 @@ onMounted(async () => {
 
     <template v-else>
       <div class="account panel">
-        <div class="avatar">{{ (session.user?.nickname || session.user?.username || '?').charAt(0).toUpperCase() }}</div>
+        <div class="avatar">
+          <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
+          <span v-else class="avatar-initial-letter" aria-hidden="true">{{ profileAvatarInitial }}</span>
+        </div>
         <div>
           <strong>{{ session.user?.nickname || session.user?.username }}</strong>
           <span>{{ session.user?.email || '이메일 정보 없음' }}</span>
@@ -80,6 +92,23 @@ onMounted(async () => {
         <article class="metric"><span>활성 구독</span><strong>{{ dashboard.subscription_count }}</strong></article>
         <article class="metric"><span>구독 플랫폼</span><strong>{{ dashboard.platform_count }}</strong></article>
         <article class="metric"><span>월 예상 지출</span><strong>{{ money(monthlyTotal) }}원</strong></article>
+      </section>
+
+      <section class="panel payment-flow-panel">
+        <div class="payment-flow-head">
+          <div>
+            <h2>결제 흐름</h2>
+            <p class="muted small">월·주·일 단위로 결제 시점을 확인하고 예산·월 예상 지출과 비교하세요.</p>
+          </div>
+          <div v-if="monthlyBudget != null && monthlyBudget > 0" class="budget-chip">
+            예산 {{ money(monthlyBudget) }}원
+          </div>
+        </div>
+        <PaymentFlowChart
+          :schedule-items="dashboard.schedule_items || []"
+          :budget="monthlyBudget"
+          :monthly-estimate="monthlyTotal"
+        />
       </section>
 
       <section class="panel calendar-panel">
@@ -212,15 +241,25 @@ onMounted(async () => {
 }
 
 .avatar {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--ws-primary), var(--ws-secondary));
-  color: var(--ws-primary-fg);
-  font-size: 20px;
-  font-weight: 800;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  border: none;
+  box-shadow: none;
+  background: var(--ws-surface-2);
+}
+
+.avatar .avatar-initial-letter {
+  font-size: 24px;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
 }
 
 .account span,
@@ -230,6 +269,29 @@ onMounted(async () => {
   color: var(--ws-muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.payment-flow-panel h2 {
+  margin: 0 0 4px;
+}
+
+.payment-flow-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.budget-chip {
+  flex: none;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 77, 77, 0.1);
+  color: #ffb4b4;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .calendar-panel {
@@ -249,12 +311,25 @@ onMounted(async () => {
   margin-bottom: 14px;
 }
 
+.dashboard-grid .panel > h2 {
+  margin: 0 0 14px;
+}
+
 .dashboard-grid,
 .subscription-list,
 .timeline,
 .bundle-platforms {
   display: grid;
   gap: 10px;
+}
+
+.subscription-list {
+  gap: 12px;
+}
+
+.timeline {
+  gap: 0;
+  margin-top: 2px;
 }
 
 .dashboard-grid {
@@ -272,18 +347,22 @@ onMounted(async () => {
   font-size: 15px;
 }
 
-.bundle-card {
-  padding: 12px;
-  border: 1px solid var(--ws-border);
-  border-radius: 10px;
-  background: var(--ws-surface-2);
-}
-
 .bundle-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
+}
+
+.bundle-head .sub-main {
+  gap: 7px;
+}
+
+.bundle-card {
+  padding: 14px 12px;
+  border: 1px solid var(--ws-border);
+  border-radius: 10px;
+  background: var(--ws-surface-2);
 }
 
 .bundle-platforms {
@@ -315,13 +394,26 @@ onMounted(async () => {
   grid-template-columns: 46px minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
-  padding: 12px;
+  padding: 14px 12px;
   border: 1px solid var(--ws-border);
   border-radius: 8px;
   background: var(--ws-surface);
   color: inherit;
   text-decoration: none;
   transition: border-color 0.15s, background 0.15s;
+}
+
+.sub-main {
+  display: grid;
+  gap: 6px;
+}
+
+.sub-main strong {
+  line-height: 1.35;
+}
+
+.sub-main span {
+  line-height: 1.45;
 }
 
 .subscription-row:hover {
@@ -374,9 +466,19 @@ onMounted(async () => {
 .timeline-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  padding-bottom: 10px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--ws-border);
+}
+
+.timeline-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.timeline-row:first-child {
+  padding-top: 0;
 }
 
 @media (max-width: 620px) {

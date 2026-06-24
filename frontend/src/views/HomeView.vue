@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { apiRequest } from '../api/http';
 import HomePlatformCarousel from '../components/HomePlatformCarousel.vue';
+import WLogo from '../components/WLogo.vue';
 import { backendRoutes, backendUrl } from '../config/backend';
 import { useHomeDiscovery } from '../composables/useHomeDiscovery';
 import { useTimedCarousel } from '../composables/useTimedCarousel';
@@ -15,13 +16,11 @@ const dashboard = ref(null);
 const heroSlides = [
   {
     image: '/img/home-hero-1.jpg',
-    eyebrow: 'WhatSub',
     title: '슬기로운 구독생활, 한 화면에서.',
     description: '매달 빠져나가는 OTT·멤버십 비용, 다음 결제일, 볼 수 있는 작품까지 한 번에 정리하세요.',
   },
   {
     image: '/img/home-hero-2.jpg',
-    eyebrow: 'OTT Choice',
     title: '무엇을 볼지보다 먼저, 어디서 볼지.',
     description: '플랫폼별 인기 작품과 추천 랭킹을 함께 보고 내 구독 선택을 가볍게 만드세요.',
   },
@@ -84,7 +83,12 @@ onMounted(async () => {
         aria-hidden="true"
       />
       <div class="hero-copy">
-        <p class="eyebrow">{{ heroSlides[activeHeroSlide].eyebrow }}</p>
+        <div class="hero-brand-intro">
+          <div class="hero-logo-row">
+            <WLogo :size="52" />
+            <span class="hero-logo-text">WhatSub</span>
+          </div>
+        </div>
         <h1>{{ heroSlides[activeHeroSlide].title }}</h1>
         <p class="lead">{{ heroSlides[activeHeroSlide].description }}</p>
         <div class="actions">
@@ -239,8 +243,26 @@ onMounted(async () => {
   gap: 18px;
 }
 
+.hero-brand-intro {
+  display: grid;
+  gap: 8px;
+}
+
+.hero-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-logo-text {
+  font-family: Comfortaa, "Asta Sans", sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
 .landing-hero h1,
-.landing-hero .eyebrow,
 .landing-hero .lead {
   color: #fff;
 }
@@ -453,6 +475,10 @@ onMounted(async () => {
   .landing-hero {
     min-height: 640px;
     padding: 18px;
+  }
+
+  .hero-logo-text {
+    font-size: 24px;
   }
 
   .hero-points,

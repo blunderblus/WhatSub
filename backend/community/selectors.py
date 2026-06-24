@@ -11,7 +11,7 @@ def normalize_board(board):
 def post_list_queryset(board, platform_id=None, author=None):
     queryset = (
         CommunityPost.objects.filter(board=normalize_board(board))
-        .select_related('author')
+        .select_related('author', 'platform')
         .prefetch_related('reactions', 'reports')
         .annotate(comment_count=Count('comments'))
         .order_by('-created_at')

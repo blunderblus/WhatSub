@@ -25,6 +25,7 @@ from email.header import decode_header, make_header
 
 from accounts.google_auth import google_link_status
 from .llm import extract_subscriptions, is_configured as llm_configured
+from subscriptions.detected_utils import enrich_detected_subscription
 
 logger = logging.getLogger('detector.gmail')
 
@@ -466,7 +467,8 @@ def run_gmail_pipeline(service, user_label='', on_progress=None):
     subscriptions = []
     llm_used = False
     if llm_inputs and llm_configured():
-        _log('[5/6] LLM extract … model=%s', getattr(settings, 'AI_MODEL', 'gpt-4o-mini'))
+        from detector.ai_client import resolve_ai_model
+        _log('[5/6] LLM extract … model=%s', resolve_ai_model())
         _emit_progress(on_progress, step=5, percent=72, emoji='🤖', message='AI가 구독 정보를 추출하는 중…')
 
         def llm_progress(current, total, subject):
@@ -546,7 +548,7 @@ def gmail_messages(request):
 
 
 def _build_scan_response(result, user):
-    subs = result['subscriptions']
+    subs = [enrich_detected_subscription(sub) for sub in result['subscriptions']]
     if subs:
         message = f'{len(subs)}개의 구독을 찾았습니다.'
     elif result['prefiltered']:

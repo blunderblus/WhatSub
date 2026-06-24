@@ -17,6 +17,7 @@ const routes = [
   { path: '/onboarding/complete', beforeEnter: backendRedirect(backendRoutes.onboardingComplete) },
   { path: '/subscriptions', component: () => import('../views/SubscriptionsView.vue'), meta: { auth: true } },
   { path: '/subscriptions/new', component: () => import('../views/AddSubscriptionView.vue'), meta: { auth: true } },
+  { path: '/subscriptions/receipt-scan', component: () => import('../views/ReceiptScanView.vue'), meta: { auth: true } },
   { path: '/subscriptions/gmail', beforeEnter: backendRedirect(backendRoutes.onboardingGmail) },
   { path: '/contents/search', component: () => import('../views/SearchView.vue') },
   { path: '/community', component: () => import('../views/CommunityView.vue') },

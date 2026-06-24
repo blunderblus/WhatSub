@@ -20,5 +20,8 @@ urlpatterns = [
     path('benchmark/platforms/<int:platform_id>/insight/', benchmark_views.benchmark_platform_insight, name='benchmark_platform_insight'),
     path('benchmark/platforms/<int:platform_id>/reviews/', benchmark_views.platform_user_reviews, name='platform_user_reviews'),
     path('benchmark/platforms/<int:platform_id>/reviews/me/', benchmark_views.platform_user_review_delete, name='platform_user_review_delete'),
+    path('benchmark/platforms/<int:platform_id>/reviews/<int:review_id>/reaction/', benchmark_views.platform_user_review_reaction, name='platform_user_review_reaction'),
+    path('benchmark/platforms/<int:platform_id>/reviews/<int:review_id>/comments/', benchmark_views.platform_user_review_comments, name='platform_user_review_comments'),
+    path('benchmark/platforms/<int:platform_id>/reviews/comments/<int:comment_id>/', benchmark_views.platform_user_review_comment_delete, name='platform_user_review_comment_delete'),
     path('streaming_platforms/', views.streaming_platforms_filter, name='streaming_platforms_filter'),
 ]
