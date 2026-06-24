@@ -168,7 +168,7 @@ onMounted(loadPage);
 <template>
   <main class="platform-page">
     <p class="back-row">
-      <RouterLink to="/benchmark">← 가성비 랭킹</RouterLink>
+      <RouterLink to="/benchmark">← OTT순위</RouterLink>
     </p>
 
     <p v-if="error" class="notice">{{ error }}</p>

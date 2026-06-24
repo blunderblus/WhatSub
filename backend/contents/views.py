@@ -12,7 +12,17 @@ from rest_framework.permissions import IsAuthenticated
 
 from subscriptions.models import Platform
 from . import watchmode as wm
+from .image_urls import find_nested_image_url, tmdb_image_url
 from .models import Content, ContentPlatform, ContentReaction, StreamingCache, TitleGenres, TitleMeta, WatchmodeUsage
+from .streaming_provider_display import (
+    CONTENT_PLATFORM_SOURCE_TYPES,
+    PROVIDER_PRIORITY,
+    decorate_providers,
+    normalized_service,
+    provider_key,
+    provider_type_label,
+    sort_providers,
+)
 from .title_display import get_title_display_map
 from .tmdb_response_cache import TMDB_DISCOVER_CACHE_TTL, TMDB_GENRE_CACHE_TTL, get_or_fetch_tmdb_json
 
@@ -22,38 +32,10 @@ SOURCES_CACHE_TTL = timedelta(hours=24)
 RAPIDAPI_MIN_INTERVAL_SEC = 0.35
 RAPIDAPI_429_MAX_RETRIES = 4
 _last_rapidapi_request_at = 0.0
-_PROVIDER_PRIORITY = {'subscription': 0, 'free': 1, 'ads': 2, 'rent': 3, 'buy': 4, 'addon': 5}
-_TYPE_TO_SOURCE = {'subscription': 'sub', 'free': 'free', 'rent': 'rent', 'buy': 'buy'}
 DISCOVER_PAGE_SIZE = 20
-
-# Maps normalized provider names (from RapidAPI / Watchmode) to a canonical
-# display name and a local icon file under MEDIA_ROOT (subscriptions/media).
-_PLATFORM_ICONS = {
-    'netflix': ('Netflix', 'Netflix_icon.png'),
-    'disney+': ('Disney+', 'DisneyPlus_icon.png'),
-    'disneyplus': ('Disney+', 'DisneyPlus_icon.png'),
-    'disney plus': ('Disney+', 'DisneyPlus_icon.png'),
-    'apple tv+': ('Apple TV+', 'AppleTV_icon.png'),
-    'apple tv plus': ('Apple TV+', 'AppleTV_icon.png'),
-    'apple tv': ('Apple TV+', 'AppleTV_icon.png'),
-    'appletv': ('Apple TV+', 'AppleTV_icon.png'),
-    'amazon prime video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'prime video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'amazon video': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'amazon': ('Amazon Prime Video', 'AmazonPrimeVideo_icon.png'),
-    'coupang play': ('Coupang Play', 'CoupangPlay_icon.png'),
-    'coupangplay': ('Coupang Play', 'CoupangPlay_icon.png'),
-    'tving': ('TVING', 'TVING_icon.png'),
-    'wavve': ('Wavve', 'Wavve_icon.png'),
-    'watcha': ('Watcha', 'Watcha_icon.webp'),
-    'spotv': ('SPOTV', 'SpotvNow_icon.png'),
-    'spotv now': ('SPOTV', 'SpotvNow_icon.png'),
-    'spotvnow': ('SPOTV', 'SpotvNow_icon.png'),
-}
 
 # TMDB discover returns empty for these KR providers — use StreamingCache instead.
 _KR_UNRELIABLE_TMDB_PROVIDER_IDS = {200, 356, 97}  # TVING, Wavve, Watcha
-_SUBSCRIPTION_TYPES = {'subscription', 'free', 'ads'}
 
 # TMDB genre APIs
 def tmdb_genres(request):
@@ -120,23 +102,26 @@ def _tmdb_discover(request, media_type):
     genre_id = request.GET.get('genre')
     platform_ids = _parse_platform_ids(request)
     page = request.GET.get('page', 1)
+    live = request.GET.get('live') == '1'
 
     if platform_ids:
         platforms = list(Platform.objects.filter(pk__in=platform_ids))
         if not platforms:
             return JsonResponse({'page': 1, 'total_pages': 1, 'results': []}, json_dumps_params={'ensure_ascii': False})
 
+        provider_ids = [p.tmdb_provider_id for p in platforms if p.tmdb_provider_id]
         use_cache = any(_platform_prefers_streaming_cache(p) for p in platforms)
+        if live and provider_ids:
+            use_cache = False
         if not use_cache:
             cache_count = StreamingCache.objects.filter(
                 platform_id__in=platform_ids, media_type=media_type, available=True,
             ).count()
-            use_cache = cache_count > 0
+            use_cache = cache_count > 0 and not live
 
         if use_cache:
             return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
 
-        provider_ids = [p.tmdb_provider_id for p in platforms if p.tmdb_provider_id]
         if not provider_ids:
             return _streaming_cache_list(request, media_type, platform_ids, genre_id=genre_id)
 
@@ -226,6 +211,7 @@ def _format_discover_response(data, media_type):
             'overview': item.get('overview') or '줄거리 정보가 아직 없습니다.',
             'release_date': item.get('release_date') or item.get('first_air_date') or '',
             'rating': item.get('vote_average') or 0,
+            'popularity': item.get('popularity') or 0,
             'poster_url': (
                 f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}"
                 if item.get('poster_path')
@@ -292,7 +278,14 @@ def _streaming_cache_list(request, media_type, platform_ids, genre_id=None):
         )
         keys = [k for k in keys if k in genre_keys]
 
-    keys.sort(key=lambda row: row[0], reverse=True)
+    popularity_by_key = {
+        (meta.tmdb_id, meta.media_type): meta.popularity or 0
+        for meta in TitleMeta.objects.filter(
+            tmdb_id__in=[tmdb_id for tmdb_id, _ in keys],
+            media_type=media_type,
+        )
+    }
+    keys.sort(key=lambda row: (popularity_by_key.get(row, 0), row[0]), reverse=True)
     page = _positive_int(page, default=1)
     visible_results = []
     target_count = page * per_page
@@ -320,6 +313,7 @@ def _streaming_cache_list(request, media_type, platform_ids, genre_id=None):
                 'overview': '',
                 'release_date': '',
                 'rating': meta.vote_average if meta else 0,
+                'popularity': meta.popularity if meta else 0,
                 'poster_url': info.get('poster_url') or '',
             }
             if _has_display_catalog_value(item):
@@ -387,7 +381,7 @@ def _tmdb_content_detail(request, tmdb_id, media_type):
             cast.append({
                 'name': person.get('name'),
                 'character': person.get('character') or '',
-                'profile_url': _tmdb_image(person.get('profile_path'), 'w185'),
+                'profile_url': tmdb_image_url(person.get('profile_path'), 'w185'),
             })
 
         runtime = detail.get('runtime') or 0
@@ -403,8 +397,8 @@ def _tmdb_content_detail(request, tmdb_id, media_type):
             'runtime': runtime,
             'rating': detail.get('vote_average') or 0,
             'genres': detail.get('genres', []),
-            'poster_url': _tmdb_image(detail.get('poster_path'), 'w500'),
-            'backdrop_url': _tmdb_image(detail.get('backdrop_path'), 'w1280'),
+            'poster_url': tmdb_image_url(detail.get('poster_path'), 'w500'),
+            'backdrop_url': tmdb_image_url(detail.get('backdrop_path'), 'w1280'),
             'cast': cast,
         }
 
@@ -435,21 +429,6 @@ def _tmdb_get(url, params=None):
     return response.json()
 
 
-def _tmdb_image(path, size):
-    if not path:
-        return None
-    return f'https://image.tmdb.org/t/p/{size}{path}'
-
-
-def _get_streaming_providers(tmdb_id, media_type):
-    data = _fetch_streaming_availability(tmdb_id, media_type)
-    return _parse_streaming_providers(data)
-
-
-def _kr_local_present(providers):
-    return any((p.get('service') or '').lower() in wm.KR_LOCAL_SERVICES for p in providers)
-
-
 def _should_augment_watchmode(providers):
     """True when KR locals are missing or present without a deep link."""
     present = {(p.get('service') or '').lower() for p in providers}
@@ -464,21 +443,11 @@ def _should_augment_watchmode(providers):
     return False
 
 
-def _normalized_service(prov):
-    svc = (prov.get('service') or prov.get('display_name') or '').lower().strip()
-    match = _PLATFORM_ICONS.get(svc)
-    return match[0].lower() if match else svc
-
-
-def _provider_key(prov):
-    return (_normalized_service(prov), prov.get('type') or 'subscription')
-
-
 def _collapse_same_platform(providers):
     """Same platform: drop link-less duplicates when a linked entry exists."""
     by_service = {}
     for prov in providers:
-        svc = _normalized_service(prov)
+        svc = normalized_service(prov)
         by_service.setdefault(svc, []).append(dict(prov))
 
     collapsed = []
@@ -497,10 +466,7 @@ def _collapse_same_platform(providers):
 
 def _dedupe_providers(providers):
     providers = _collapse_same_platform(providers)
-    return sorted(
-        providers,
-        key=lambda x: (_PROVIDER_PRIORITY.get(x.get('type'), 99), _normalized_service(x)),
-    )
+    return sort_providers(providers)
 
 
 def _preserve_deeplinks(new_providers, old_providers):
@@ -509,7 +475,7 @@ def _preserve_deeplinks(new_providers, old_providers):
     for prov in old_providers or []:
         if not (prov.get('link') or '').strip():
             continue
-        old_by_key[_provider_key(prov)] = prov
+        old_by_key[provider_key(prov)] = prov
 
     if not old_by_key:
         return new_providers
@@ -518,7 +484,7 @@ def _preserve_deeplinks(new_providers, old_providers):
     seen_keys = set()
     for prov in new_providers:
         prov = dict(prov)
-        key = _provider_key(prov)
+        key = provider_key(prov)
         seen_keys.add(key)
         if not (prov.get('link') or '').strip() and key in old_by_key:
             old = old_by_key[key]
@@ -528,7 +494,7 @@ def _preserve_deeplinks(new_providers, old_providers):
                 prov['price'] = old['price']
         merged.append(prov)
 
-    new_keys = {_provider_key(p) for p in merged}
+    new_keys = {provider_key(p) for p in merged}
     for key, old in old_by_key.items():
         if key not in new_keys:
             merged.append(dict(old))
@@ -547,7 +513,7 @@ def _enrich_provider_links(content, providers):
     for prov in providers:
         prov = dict(prov)
         if not (prov.get('link') or '').strip():
-            svc = _normalized_service(prov)
+            svc = normalized_service(prov)
             platform = resolve_official_platform(name=prov.get('service') or prov.get('display_name') or '')
             if platform and platform.name.lower() in cp_links:
                 prov['link'] = cp_links[platform.name.lower()]
@@ -562,9 +528,9 @@ def _providers_missing_links(providers):
 
 
 def _merge_providers_prefer_links(primary, secondary):
-    by_key = {_provider_key(p): dict(p) for p in primary}
+    by_key = {provider_key(p): dict(p) for p in primary}
     for prov in secondary:
-        key = _provider_key(prov)
+        key = provider_key(prov)
         if key not in by_key:
             by_key[key] = dict(prov)
             continue
@@ -576,10 +542,7 @@ def _merge_providers_prefer_links(primary, secondary):
             existing['icon_url'] = prov['icon_url']
         if existing.get('price') is None and prov.get('price') is not None:
             existing['price'] = prov['price']
-    return sorted(
-        by_key.values(),
-        key=lambda x: (_PROVIDER_PRIORITY.get(x.get('type'), 99), _normalized_service(x)),
-    )
+    return sort_providers(by_key.values())
 
 
 def _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers):
@@ -619,7 +582,7 @@ def _sync_content_platforms(content, providers):
 
     for prov in providers:
         platform = resolve_official_platform(name=prov.get('service') or '')
-        source_type = _TYPE_TO_SOURCE.get(prov.get('type'))
+        source_type = CONTENT_PLATFORM_SOURCE_TYPES.get(prov.get('type'))
         if not platform or not source_type:
             continue
         defaults = {
@@ -632,21 +595,6 @@ def _sync_content_platforms(content, providers):
             content=content, platform=platform, source_type=source_type,
             defaults=defaults,
         )
-
-
-def _decorate_providers(providers):
-    """Attach local icon URLs and normalize display names for known services."""
-    decorated = []
-    for prov in providers:
-        prov = dict(prov)
-        key = (prov.get('service') or '').lower().strip()
-        match = _PLATFORM_ICONS.get(key)
-        if match:
-            display_name, filename = match
-            prov['display_name'] = display_name
-            prov['icon_url'] = f'{settings.MEDIA_URL}{filename}'
-        decorated.append(prov)
-    return decorated
 
 
 def _augment_with_watchmode(content, tmdb_id, media_type, providers):
@@ -703,7 +651,7 @@ def get_streaming_providers(
             _sync_content_platforms(content, providers)
         if allow_rapidapi_fallback and _providers_missing_links(providers):
             providers = _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers)
-        return _decorate_providers(providers)
+        return decorate_providers(providers)
 
     old_providers = list(content.sources_cache or [])
     rapidapi_failed = False
@@ -745,7 +693,7 @@ def get_streaming_providers(
     if allow_rapidapi_fallback and _providers_missing_links(providers):
         providers = _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers)
 
-    return _decorate_providers(providers)
+    return decorate_providers(providers)
 
 
 def _providers_from_tmdb_watch(tmdb_id, media_type):
@@ -782,10 +730,10 @@ def _providers_from_tmdb_watch(tmdb_id, media_type):
                 'display_name': name,
                 'type': ptype,
                 'type_label': label,
-                'icon_url': _tmdb_image(logo, 'w45') if logo else None,
+                'icon_url': tmdb_image_url(logo, 'w45') if logo else None,
                 'source': 'tmdb',
             })
-    return sorted(providers, key=lambda x: _PROVIDER_PRIORITY.get(x.get('type'), 99))
+    return sorted(providers, key=lambda x: PROVIDER_PRIORITY.get(x.get('type'), 99))
 
 
 def _fetch_streaming_availability(tmdb_id, media_type):
@@ -862,45 +810,14 @@ def _parse_streaming_providers(data):
                 'addon': addon_name,
                 'display_name': service_name,
                 'type': provider_type,
-                'type_label': _provider_type_label(provider_type),
+                'type_label': provider_type_label(provider_type),
                 'expires_on': option.get('expiresOn'),
                 'link': option.get('videoLink') or option.get('link'),
-                'icon_url': _find_image_url(service),
+                'icon_url': find_nested_image_url(service),
             })
 
-    priority = {'subscription': 0, 'free': 1, 'ads': 2, 'rent': 3, 'buy': 4, 'addon': 5}
-    return sorted(providers, key=lambda provider: priority.get(provider.get('type'), 99))
+    return sorted(providers, key=lambda provider: PROVIDER_PRIORITY.get(provider.get('type'), 99))
 
-
-def _provider_type_label(provider_type):
-    labels = {
-        'subscription': '구독',
-        'rent': '대여',
-        'buy': '구매',
-        'free': '무료',
-        'ads': '광고 포함',
-    }
-    return labels.get(provider_type, '기타')
-
-
-def _find_image_url(value):
-    if isinstance(value, str) and value.startswith('http'):
-        return value
-    if isinstance(value, dict):
-        for key in ('lightThemeImage', 'darkThemeImage', 'whiteImage', 'imageUrl', 'url'):
-            found = _find_image_url(value.get(key))
-            if found:
-                return found
-        for child in value.values():
-            found = _find_image_url(child)
-            if found:
-                return found
-    if isinstance(value, list):
-        for child in value:
-            found = _find_image_url(child)
-            if found:
-                return found
-    return None
 
 # TMDB movie/show search API
 def tmdb_search(request):

@@ -18,6 +18,20 @@ class SignUpForm(UserCreationForm):
         fields = ['username', 'nickname', 'email']
 
 
+class PlanSelect(forms.Select):
+    """Render plan metadata for platform filtering and autofill on the page."""
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        plan = getattr(value, 'instance', None)
+        if plan:
+            option['attrs']['data-platform'] = str(plan.platform_id)
+            option['attrs']['data-plan-name'] = plan.plan_name
+            option['attrs']['data-price'] = str(plan.price)
+            option['attrs']['data-billing-period'] = plan.billing_period
+        return option
+
+
 class ManualSubscriptionForm(forms.ModelForm):
     """Add a subscription by picking a known platform/plan, or entering free-text."""
     platform = forms.ModelChoiceField(
@@ -28,6 +42,7 @@ class ManualSubscriptionForm(forms.ModelForm):
         queryset=SubscriptionPlan.objects.select_related('platform').order_by('platform__name', 'price'),
         required=False,
         empty_label='플랜 선택 (선택 사항)',
+        widget=PlanSelect,
     )
 
     class Meta:
@@ -52,7 +67,13 @@ class ManualSubscriptionForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        platform = cleaned.get('platform')
         plan = cleaned.get('plan')
+        if platform and plan and plan.platform_id != platform.id:
+            self.add_error('plan', '선택한 플랫폼의 플랜만 선택할 수 있습니다.')
+            cleaned['plan'] = None
+            plan = None
+
         # Auto-fill from the selected plan when fields are left blank.
         if plan:
             if not cleaned.get('plan_name'):

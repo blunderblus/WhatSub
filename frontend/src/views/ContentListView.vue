@@ -2,14 +2,13 @@
 import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ContentCard from '../components/ContentCard.vue';
-import PageHeader from '../components/PageHeader.vue';
 import { mediaTypeForKind } from '../api/contents';
 import { useContentCatalog } from '../composables/useContentCatalog';
+import { positivePageFromQuery } from '../utils/routeQuery';
 
 const route = useRoute();
 const router = useRouter();
 const contentKind = computed(() => (route.params.type === 'shows' ? 'shows' : 'movies'));
-const isMovie = computed(() => contentKind.value === 'movies');
 
 const {
   genres,
@@ -22,7 +21,6 @@ const {
   loading,
   error,
   label,
-  pageTitle,
   syncPlatformsFromQuery,
   syncGenreFromQuery,
   platformQuery,
@@ -34,12 +32,6 @@ const {
   clearPlatforms,
   loadItems,
 } = useContentCatalog(contentKind);
-
-function pageFromQuery(query) {
-  const value = Array.isArray(query.page) ? query.page[0] : query.page;
-  const page = Number.parseInt(value, 10);
-  return Number.isFinite(page) && page > 0 ? page : 1;
-}
 
 function syncFiltersFromQuery() {
   syncPlatformsFromQuery(route.query);
@@ -90,27 +82,25 @@ function openDetail(item) {
 
 watch(() => route.params.type, async () => {
   syncFiltersFromQuery();
-  await reset(pageFromQuery(route.query));
+  await reset(positivePageFromQuery(route.query));
 });
 
 watch(
   () => [route.query.platform_id, route.query.platform_ids, route.query.genre],
   async () => {
     syncFiltersFromQuery();
-    await loadItems(pageFromQuery(route.query));
+    await loadItems(positivePageFromQuery(route.query));
   },
 );
 
 onMounted(async () => {
   syncFiltersFromQuery();
-  await reset(pageFromQuery(route.query));
+  await reset(positivePageFromQuery(route.query));
 });
 </script>
 
 <template>
   <main>
-    <PageHeader :eyebrow="`WhatSub ${isMovie ? 'Movies' : 'Shows'}`" :title="pageTitle" />
-
     <div v-if="platforms.length" class="chip-row" style="margin-bottom: 14px">
       <span class="filter-label">플랫폼</span>
       <button class="chip" :class="{ active: selectedPlatforms.length === 0 }" type="button" @click="clearPlatformSelection">

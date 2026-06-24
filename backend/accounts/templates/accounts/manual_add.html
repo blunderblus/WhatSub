@@ -90,5 +90,62 @@
             </div>
         </form>
     </main>
+    <script>
+        (() => {
+            const platformSelect = document.getElementById('{{ form.platform.id_for_label }}');
+            const planSelect = document.getElementById('{{ form.plan.id_for_label }}');
+            const planNameInput = document.getElementById('{{ form.plan_name.id_for_label }}');
+            const amountInput = document.getElementById('{{ form.payment_amount.id_for_label }}');
+            const billingSelect = document.getElementById('{{ form.billing_cycle.id_for_label }}');
+
+            if (!platformSelect || !planSelect) return;
+
+            const planOptions = Array.from(planSelect.options);
+
+            function optionMatchesPlatform(option, platformId) {
+                const optionPlatform = option.dataset.platform || '';
+                return !option.value || !platformId || optionPlatform === platformId;
+            }
+
+            function filterPlans() {
+                const platformId = platformSelect.value;
+                let selectedPlanStillVisible = false;
+
+                for (const option of planOptions) {
+                    const visible = optionMatchesPlatform(option, platformId);
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                    if (option.selected && visible) {
+                        selectedPlanStillVisible = true;
+                    }
+                }
+
+                if (!selectedPlanStillVisible) {
+                    planSelect.value = '';
+                }
+            }
+
+            function autofillFromPlan() {
+                const option = planSelect.selectedOptions[0];
+                if (!option || !option.value) return;
+
+                if (planNameInput && !planNameInput.value) {
+                    planNameInput.value = option.dataset.planName || '';
+                }
+                if (amountInput && !amountInput.value) {
+                    amountInput.value = option.dataset.price || '';
+                }
+                if (billingSelect && option.dataset.billingPeriod) {
+                    billingSelect.value = option.dataset.billingPeriod;
+                }
+            }
+
+            platformSelect.addEventListener('change', filterPlans);
+            planSelect.addEventListener('change', autofillFromPlan);
+
+            filterPlans();
+            autofillFromPlan();
+        })();
+    </script>
 </body>
 </html>

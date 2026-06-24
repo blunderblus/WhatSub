@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 292 292" role="img" aria-label="pink profile avatar">
+  <defs>
+    <linearGradient id="bg" x1="48" x2="246" y1="24" y2="264" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F3AAC9"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="146" cy="146" r="142" fill="url(#bg)"/>
+  <circle cx="146" cy="120" r="50" fill="#ffe6d0"/>
+  <path fill="#2f2430" d="M92 119c2-44 30-70 63-70 34 0 59 25 61 70-34-26-85-25-124 0Z"/>
+  <path fill="#2f2430" d="M96 116c-6 26-1 53 18 68-4-26 2-47 15-64l-33-4Z"/>
+  <path fill="#2f2430" d="M196 116c6 26 1 53-18 68 4-26-2-47-15-64l33-4Z"/>
+  <circle cx="128" cy="128" r="7" fill="#141414"/>
+  <circle cx="165" cy="128" r="7" fill="#141414"/>
+  <path d="M130 151c11 8 24 8 35 0" fill="none" stroke="#141414" stroke-linecap="round" stroke-width="6"/>
+  <path fill="#14213D" d="M61 250c12-47 44-73 85-73s73 26 85 73H61Z"/>
+  <path fill="#F3AAC9" d="M103 216c19 13 66 13 85 0 7 9 13 20 17 34H86c4-14 10-25 17-34Z"/>
+  <circle cx="146" cy="146" r="140" fill="none" stroke="#fff" stroke-width="8"/>
+</svg>

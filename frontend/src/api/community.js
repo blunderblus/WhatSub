@@ -14,6 +14,12 @@ export async function fetchCommunityPosts({ board, platformId = '' } = {}) {
   return apiRequest(`/api/community/posts/${query ? `?${query}` : ''}`);
 }
 
+export async function fetchMyCommunityPosts({ board } = {}) {
+  const params = new URLSearchParams({ mine: '1' });
+  if (board) params.set('board', board);
+  return apiRequest(`/api/community/posts/?${params.toString()}`);
+}
+
 export async function createCommunityPost(body) {
   return apiRequest('/api/community/posts/', {
     method: 'POST',

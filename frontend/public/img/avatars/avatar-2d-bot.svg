@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 292 292" role="img" aria-label="bot profile avatar">
+  <defs>
+    <linearGradient id="bg" x1="48" x2="244" y1="28" y2="266" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4B5FD"/>
+      <stop offset="1" stop-color="#F3AAC9"/>
+    </linearGradient>
+  </defs>
+  <circle cx="146" cy="146" r="142" fill="url(#bg)"/>
+  <path stroke="#14213D" stroke-linecap="round" stroke-width="10" d="M146 72V48"/>
+  <circle cx="146" cy="39" r="12" fill="#ADEDFC" stroke="#14213D" stroke-width="6"/>
+  <rect x="71" y="78" width="150" height="118" rx="38" fill="#f8fafc" stroke="#14213D" stroke-width="8"/>
+  <rect x="95" y="103" width="102" height="64" rx="24" fill="#14213D"/>
+  <circle cx="126" cy="135" r="9" fill="#ADEDFC"/>
+  <circle cx="166" cy="135" r="9" fill="#ADEDFC"/>
+  <path d="M132 153c9 7 19 7 28 0" fill="none" stroke="#ADEDFC" stroke-linecap="round" stroke-width="6"/>
+  <path fill="#14213D" d="M75 250c13-37 39-58 71-58s58 21 71 58H75Z"/>
+  <path fill="#F3AAC9" d="M102 222c20 12 68 12 88 0 6 8 11 17 15 28H87c4-11 9-20 15-28Z"/>
+  <circle cx="146" cy="146" r="140" fill="none" stroke="#fff" stroke-width="8"/>
+</svg>

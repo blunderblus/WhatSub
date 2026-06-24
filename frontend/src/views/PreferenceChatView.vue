@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
 
@@ -94,6 +94,26 @@ function nextStep() {
 
 function prevStep() {
   if (step.value > 0) step.value -= 1;
+}
+
+function clearCurrentAnswer() {
+  const key = visibleSteps.value[step.value]?.key;
+  if (key === 'budget') {
+    answers.value.monthly_spend_cap = '';
+  } else if (key === 'genres') {
+    answers.value.preferred_genre_ids = [];
+  } else if (key === 'habits') {
+    answers.value.consumption_habits = {};
+  } else if (key === 'criteria') {
+    answers.value.platform_criteria = [];
+  } else if (key === 'free') {
+    answers.value.free_text = '';
+  }
+}
+
+function skipStep() {
+  clearCurrentAnswer();
+  nextStep();
 }
 
 onMounted(loadQuestions);
@@ -192,7 +212,7 @@ onMounted(loadQuestions);
 
         <div class="actions">
           <button v-if="step > 0" class="button" type="button" @click="prevStep">이전</button>
-          <RouterLink class="button secondary" to="/benchmark">건너뛰기</RouterLink>
+          <button class="button secondary" type="button" :disabled="saving" @click="skipStep">건너뛰기</button>
           <button class="button primary" type="button" :disabled="saving" @click="nextStep">
             {{ step < visibleSteps.length - 1 ? '다음' : (saving ? '저장 중...' : '완료') }}
           </button>

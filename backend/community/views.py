@@ -40,7 +40,14 @@ def boards(request):
 def posts(request):
     if request.method == 'GET':
         board = normalize_board(request.GET.get('board') or CommunityPost.Board.OTT)
-        queryset = post_list_queryset(board, request.GET.get('platform_id'))
+        mine = request.GET.get('mine') in ('1', 'true', 'True')
+        if mine and not request.user.is_authenticated:
+            return Response({'detail': '로그인 후 내 글을 확인할 수 있습니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+        queryset = post_list_queryset(
+            board,
+            request.GET.get('platform_id'),
+            author=request.user if mine else None,
+        )
         return Response({'board': BOARD_META[board], 'results': CommunityPostSerializer(queryset, many=True, context={'request': request}).data})
 
     if not request.user.is_authenticated:

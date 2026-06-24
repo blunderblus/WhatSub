@@ -41,17 +41,19 @@ export async function fetchStreamingPlatforms(mediaType) {
   return data.platforms || [];
 }
 
-export async function fetchContentList({ kind, page = 1, genre = '', platformIds = [] }) {
+export async function fetchContentList({ kind, page = 1, genre = '', platformIds = [], live = false }) {
   const params = new URLSearchParams({ page });
   if (genre) params.set('genre', genre);
+  if (live) params.set('live', '1');
   for (const platformId of platformIds) {
     params.append('platform_id', platformId);
   }
 
   const normalizedKind = normalizeContentKind(kind);
-  const data = await catalogCache.getOrSet(`list:${normalizedKind}:${params.toString()}`, () => (
-    apiRequest(`${endpointFor(normalizedKind).list}?${params.toString()}`)
-  ));
+  const url = `${endpointFor(normalizedKind).list}?${params.toString()}`;
+  const data = live
+    ? await apiRequest(url)
+    : await catalogCache.getOrSet(`list:${normalizedKind}:${params.toString()}`, () => apiRequest(url));
   return {
     items: data.results || [],
     page: data.page || page,

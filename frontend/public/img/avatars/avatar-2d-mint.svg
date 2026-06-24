@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 292 292" role="img" aria-label="mint profile avatar">
+  <defs>
+    <linearGradient id="bg" x1="42" x2="250" y1="32" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#99F6E4"/>
+      <stop offset="1" stop-color="#ADEDFC"/>
+    </linearGradient>
+  </defs>
+  <circle cx="146" cy="146" r="142" fill="url(#bg)"/>
+  <rect x="88" y="64" width="116" height="116" rx="44" fill="#14213D"/>
+  <circle cx="146" cy="122" r="47" fill="#ffd9bb"/>
+  <path fill="#14213D" d="M96 113c9-42 33-62 65-60 25 2 44 19 49 50-34-22-80-20-114 10Z"/>
+  <circle cx="128" cy="129" r="7" fill="#141414"/>
+  <circle cx="165" cy="129" r="7" fill="#141414"/>
+  <path d="M130 152c11 8 23 8 34 0" fill="none" stroke="#141414" stroke-linecap="round" stroke-width="6"/>
+  <path fill="#111827" d="M66 250c12-45 42-71 80-71s68 26 80 71H66Z"/>
+  <path fill="#99F6E4" d="M98 216c19 14 77 14 96 0 7 9 13 20 17 34H81c4-14 10-25 17-34Z"/>
+  <circle cx="146" cy="146" r="140" fill="none" stroke="#fff" stroke-width="8"/>
+</svg>

@@ -381,6 +381,12 @@ def manual_add(request):
         if plan is None:
             return Response({'plan': ['선택한 플랫폼의 요금제가 아닙니다.']}, status=status.HTTP_400_BAD_REQUEST)
 
+    if UserSubscription.objects.filter(user=request.user, platform=platform, is_active=True).exists():
+        return Response(
+            {'platform': ['이미 내 구독 목록에 있는 플랫폼입니다.']},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     start_dt = parse_subscription_date(data.get('start_date'), timezone.now().date())
     billing_cycle = data.get('billing_cycle') or (plan.billing_period if plan else 'monthly')
     renewal_dt = parse_subscription_date(

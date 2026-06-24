@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { backendRoutes, redirectToBackend } from '../config/backend';
 import { useSessionStore } from '../stores/session';
 
 const session = useSessionStore();
@@ -10,7 +11,7 @@ async function submit() {
   error.value = '';
   try {
     await session.signup(form.value);
-    window.location.href = 'http://127.0.0.1:8000/accounts/onboarding/';
+    redirectToBackend(backendRoutes.onboarding);
   } catch (err) {
     error.value = Object.values(err.payload?.errors || {}).flat().join(' ') || err.message;
   }

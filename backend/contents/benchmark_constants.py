@@ -1,17 +1,7 @@
 """Shared benchmark constants (avoids circular imports)."""
 from django.conf import settings
 
-_PLATFORM_LOGOS = {
-    'netflix': 'Netflix_icon.png',
-    'disney+': 'DisneyPlus_icon.png',
-    'apple tv+': 'AppleTV_icon.png',
-    'amazon prime video': 'AmazonPrimeVideo_icon.png',
-    'coupang play': 'CoupangPlay_icon.png',
-    'tving': 'TVING_icon.png',
-    'wavve': 'Wavve_icon.png',
-    'watcha': 'Watcha_icon.webp',
-    'spotv': 'SpotvNow_icon.png',
-}
+from .streaming_provider_display import PLATFORM_ICON_ALIASES
 
 GENRE_NAMES = {
     28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
@@ -32,5 +22,6 @@ AXIS_LABELS = {
 
 
 def platform_icon(name):
-    filename = _PLATFORM_LOGOS.get((name or '').lower().strip())
+    match = PLATFORM_ICON_ALIASES.get((name or '').lower().strip())
+    filename = match[1] if match else None
     return f'{settings.MEDIA_URL}{filename}' if filename else ''

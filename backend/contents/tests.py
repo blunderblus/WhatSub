@@ -2,7 +2,9 @@ from django.test import TestCase
 from django.db import IntegrityError
 
 from subscriptions.models import Platform
+from .image_urls import find_nested_image_url, tmdb_image_url
 from .models import Content, ContentPlatform
+from .streaming_provider_display import decorate_providers, provider_key, sort_providers
 
 
 class ContentModelTest(TestCase):
@@ -123,3 +125,47 @@ class ContentPlatformTest(TestCase):
         )
         self.assertIn('Netflix', str(cp))
         self.assertIn('sub', str(cp))
+
+
+class ProviderDisplayUtilityTest(TestCase):
+    def test_provider_key_normalizes_known_aliases(self):
+        self.assertEqual(
+            provider_key({'service': 'disneyplus', 'type': 'subscription'}),
+            ('disney+', 'subscription'),
+        )
+
+    def test_sort_providers_uses_provider_priority_then_service_name(self):
+        providers = [
+            {'service': 'Watcha', 'type': 'rent'},
+            {'service': 'Netflix', 'type': 'subscription'},
+            {'service': 'TVING', 'type': 'free'},
+        ]
+
+        self.assertEqual(
+            [p['service'] for p in sort_providers(providers)],
+            ['Netflix', 'TVING', 'Watcha'],
+        )
+
+    def test_decorate_providers_adds_local_icon_for_known_service(self):
+        [provider] = decorate_providers([{'service': 'coupangplay'}])
+
+        self.assertEqual(provider['display_name'], 'Coupang Play')
+        self.assertEqual(provider['icon_url'], '/media/CoupangPlay_icon.png')
+
+    def test_tmdb_image_url_builds_expected_url(self):
+        self.assertEqual(
+            tmdb_image_url('/poster.png', 'w500'),
+            'https://image.tmdb.org/t/p/w500/poster.png',
+        )
+
+    def test_find_nested_image_url_returns_first_supported_image_key(self):
+        payload = {
+            'service': {
+                'darkThemeImage': 'https://example.com/dark.png',
+            },
+        }
+
+        self.assertEqual(
+            find_nested_image_url(payload),
+            'https://example.com/dark.png',
+        )

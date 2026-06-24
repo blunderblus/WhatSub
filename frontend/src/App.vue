@@ -25,9 +25,8 @@ async function logout() {
         <RouterLink to="/contents/movies">영화</RouterLink>
         <RouterLink to="/contents/shows">시리즈</RouterLink>
         <RouterLink to="/contents/search">작품 검색</RouterLink>
-        <RouterLink to="/benchmark">가성비 랭킹</RouterLink>
+        <RouterLink to="/benchmark">OTT순위</RouterLink>
         <RouterLink to="/community">커뮤니티</RouterLink>
-        <RouterLink v-if="session.isAuthenticated" to="/subscriptions">내 구독</RouterLink>
         <NotificationBell v-if="session.isAuthenticated" />
         <RouterLink v-if="session.isAuthenticated" class="profile-link" to="/profile" aria-label="내 프로필">
           <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
@@ -53,7 +52,7 @@ async function logout() {
 }
 
 .brand-text {
-  font-family: Poppins, Pretendard, sans-serif;
+  font-family: Comfortaa, "Asta Sans", sans-serif;
   font-size: 22px;
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -64,6 +63,7 @@ async function logout() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  line-height: 1;
 }
 
 .profile-link img,
@@ -75,6 +75,7 @@ async function logout() {
 }
 
 .profile-link img {
+  display: block;
   object-fit: cover;
 }
 

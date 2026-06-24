@@ -8,7 +8,7 @@ def normalize_board(board):
     return board if board in BOARD_META else CommunityPost.Board.OTT
 
 
-def post_list_queryset(board, platform_id=None):
+def post_list_queryset(board, platform_id=None, author=None):
     queryset = (
         CommunityPost.objects.filter(board=normalize_board(board))
         .select_related('author')
@@ -18,6 +18,8 @@ def post_list_queryset(board, platform_id=None):
     )
     if platform_id:
         queryset = queryset.filter(platform_id=platform_id)
+    if author is not None:
+        queryset = queryset.filter(author=author)
     return queryset
 
 

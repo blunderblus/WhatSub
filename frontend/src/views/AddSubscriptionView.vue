@@ -103,6 +103,10 @@ async function submit() {
   }
 }
 
+function closeModal() {
+  router.push(isOnboarding.value ? '/onboarding' : '/subscriptions');
+}
+
 onMounted(async () => {
   const [platformData, planData] = await Promise.all([
     apiRequest('/api/subscriptions/platforms/'),
@@ -115,12 +119,20 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="form-card">
-    <p class="eyebrow">Add subscription</p>
-    <h1>구독 직접 추가</h1>
-    <p class="muted">플랫폼과 요금제를 고르면 금액과 결제 주기가 자동으로 채워집니다.</p>
-    <p v-if="error" class="notice">{{ error }}</p>
-    <form @submit.prevent="submit">
+  <main class="subscription-modal-backdrop" @click.self="closeModal">
+    <section
+      class="form-card subscription-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-subscription-title"
+      @click.stop
+    >
+      <button class="modal-close" type="button" aria-label="닫기" @click="closeModal">×</button>
+      <p class="eyebrow">Add subscription</p>
+      <h1 id="add-subscription-title">구독 직접 추가</h1>
+      <p class="muted">플랫폼과 요금제를 고르면 금액과 결제 주기가 자동으로 채워집니다.</p>
+      <p v-if="error" class="notice">{{ error }}</p>
+      <form @submit.prevent="submit">
       <div class="field">
         <label for="platform">플랫폼</label>
         <select id="platform" v-model="form.platform" required>
@@ -162,12 +174,50 @@ onMounted(async () => {
       </div>
       <div class="field"><label for="memo">메모</label><textarea id="memo" v-model="form.memo"></textarea></div>
       <label class="checkbox"><input v-model="form.auto_renew" type="checkbox" /> 자동 갱신</label>
-      <button class="button primary full-width" style="margin-top: 22px" type="submit">구독 추가</button>
-    </form>
+        <button class="button primary full-width" style="margin-top: 22px" type="submit">구독 추가</button>
+      </form>
+    </section>
   </main>
 </template>
 
 <style scoped>
+.subscription-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: start center;
+  overflow-y: auto;
+  padding: 72px 18px 32px;
+  background: rgba(5, 8, 13, 0.66);
+  backdrop-filter: blur(6px);
+}
+
+.subscription-modal {
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ws-border);
+  border-radius: 50%;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  border-color: var(--ws-primary);
+}
+
 .checkbox {
   display: flex;
   align-items: center;

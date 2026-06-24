@@ -1,20 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useSessionStore } from '../stores/session';
+import { backendRoutes, redirectToBackend } from '../config/backend';
 
-const BACKEND_URL = 'http://127.0.0.1:8000';
+function backendRedirect(path) {
+  return () => redirectToBackend(path);
+}
 
 const routes = [
   { path: '/', component: () => import('../views/HomeView.vue') },
   { path: '/login', component: () => import('../views/LoginView.vue') },
   { path: '/signup', component: () => import('../views/SignupView.vue') },
   { path: '/profile', component: () => import('../views/ProfileView.vue'), meta: { auth: true } },
-  { path: '/onboarding', beforeEnter: () => { window.location.href = `${BACKEND_URL}/accounts/onboarding/`; } },
-  { path: '/onboarding/gmail', beforeEnter: () => { window.location.href = `${BACKEND_URL}/accounts/onboarding/gmail/`; } },
-  { path: '/onboarding/manual', beforeEnter: () => { window.location.href = `${BACKEND_URL}/accounts/onboarding/manual/`; } },
-  { path: '/onboarding/complete', beforeEnter: () => { window.location.href = `${BACKEND_URL}/accounts/onboarding/complete/`; } },
+  { path: '/onboarding', beforeEnter: backendRedirect(backendRoutes.onboarding) },
+  { path: '/onboarding/gmail', beforeEnter: backendRedirect(backendRoutes.onboardingGmail) },
+  { path: '/onboarding/manual', beforeEnter: backendRedirect(backendRoutes.onboardingManual) },
+  { path: '/onboarding/complete', beforeEnter: backendRedirect(backendRoutes.onboardingComplete) },
   { path: '/subscriptions', component: () => import('../views/SubscriptionsView.vue'), meta: { auth: true } },
   { path: '/subscriptions/new', component: () => import('../views/AddSubscriptionView.vue'), meta: { auth: true } },
-  { path: '/subscriptions/gmail', beforeEnter: () => { window.location.href = `${BACKEND_URL}/accounts/onboarding/gmail/`; } },
+  { path: '/subscriptions/gmail', beforeEnter: backendRedirect(backendRoutes.onboardingGmail) },
   { path: '/contents/search', component: () => import('../views/SearchView.vue') },
   { path: '/community', component: () => import('../views/CommunityView.vue') },
   { path: '/benchmark', component: () => import('../views/BenchmarkView.vue') },

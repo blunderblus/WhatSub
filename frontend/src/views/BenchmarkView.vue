@@ -40,18 +40,6 @@ const axisKeys = ['availability', 'exclusivity', 'quality', 'price', 'accessibil
 const monthlyBudget = computed(() => personal.value?.monthly_spend_cap ?? null);
 const existingMonthly = computed(() => personal.value?.existing_monthly_total ?? 0);
 
-const calcMonthlyTotal = computed(() =>
-  calcItems.value.reduce((sum, item) => sum + Number(item.monthly_price || 0), 0),
-);
-
-const projectedMonthly = computed(() => existingMonthly.value + calcMonthlyTotal.value);
-
-const budgetExceeded = computed(() =>
-  monthlyBudget.value != null
-  && monthlyBudget.value > 0
-  && projectedMonthly.value > monthlyBudget.value,
-);
-
 const activeBenchmarkPlatformId = computed(() => hoverId.value ?? selectedId.value);
 
 const activeBenchmarkPlatform = computed(() =>
@@ -94,11 +82,6 @@ function confidenceLabel(level) {
   if (level === 'high') return '높음';
   if (level === 'medium') return '보통';
   return '낮음';
-}
-
-function platformBudgetWarning(platform) {
-  if (!monthlyBudget.value || monthlyBudget.value <= 0 || !platform?.min_monthly_plan) return false;
-  return existingMonthly.value + calcMonthlyTotal.value + platform.min_monthly_plan > monthlyBudget.value;
 }
 
 function addCalcItem(item) {
@@ -233,13 +216,13 @@ onMounted(async () => {
   <main class="benchmark-page">
     <PageHeader
       eyebrow="Benchmark"
-      title="OTT 가성비 & 맞춤 추천"
+      title="OTT순위 및 맞춤 추천"
       description="글로벌 벤치마크 리더보드와, 취향 기반 Personal Score를 함께 확인할 수 있습니다."
     />
 
     <nav class="tab-nav" aria-label="벤치마크 탭">
       <button type="button" class="tab-btn" :class="{ active: activeTab === 'benchmark' }" @click="activeTab = 'benchmark'">
-        가성비 랭킹
+        OTT순위
       </button>
       <button type="button" class="tab-btn" :class="{ active: activeTab === 'personal' }" @click="activeTab = 'personal'">
         나에게 맞는 OTT
@@ -380,38 +363,47 @@ onMounted(async () => {
             월 OTT 예산: {{ formatWon(monthlyBudget) }}원
             <span v-if="existingMonthly"> · 현재 구독 {{ formatWon(existingMonthly) }}원/월</span>
           </p>
-          <p v-if="budgetExceeded" class="budget-banner-warn">
-            계산기 합계가 월 예산을 초과합니다. (예상 {{ formatWon(projectedMonthly) }}원/월)
-          </p>
 
           <p v-if="personal.detail" class="notice">{{ personal.detail }}</p>
 
-          <div v-if="personal.platforms?.length" class="benchmark-layout">
-            <section class="panel leaderboard-panel">
-              <h2>맞춤 추천 순위</h2>
-              <ol class="rank-list">
-                <li
-                  v-for="(platform, index) in personal.platforms"
-                  :key="platform.platform_id"
-                  class="rank-item"
-                  :class="{ active: selectedId === platform.platform_id }"
-                >
-                  <button type="button" class="rank-button" @click="selectPlatform(platform.platform_id)">
-                    <span class="rank-num">{{ index + 1 }}</span>
-                    <img v-if="platform.icon_url" :src="platform.icon_url" :alt="platform.name" class="platform-icon" />
-                    <span v-else class="platform-icon fallback">{{ platform.name.charAt(0) }}</span>
-                    <span class="rank-info">
-                      <strong>{{ platform.name }}</strong>
-                      <span class="muted">장르 {{ formatScore(platform.genre_benefit_score) }} · 독점 {{ formatScore(platform.exclusivity_affinity_score) }}</span>
-                      <span v-if="platformBudgetWarning(platform)" class="budget-chip">예산 초과 가능</span>
-                    </span>
-                    <span class="rank-score">
-                      <strong>{{ formatScore(platform.personal_score) }}</strong>
-                    </span>
-                  </button>
-                </li>
-              </ol>
-            </section>
+          <div v-if="personal.platforms?.length" class="benchmark-layout personal-layout">
+            <div class="personal-left-column">
+              <section class="panel leaderboard-panel">
+                <h2>맞춤 추천 순위</h2>
+                <ol class="rank-list">
+                  <li
+                    v-for="(platform, index) in personal.platforms"
+                    :key="platform.platform_id"
+                    class="rank-item"
+                    :class="{ active: selectedId === platform.platform_id }"
+                  >
+                    <button type="button" class="rank-button" @click="selectPlatform(platform.platform_id)">
+                      <span class="rank-num">{{ index + 1 }}</span>
+                      <img v-if="platform.icon_url" :src="platform.icon_url" :alt="platform.name" class="platform-icon" />
+                      <span v-else class="platform-icon fallback">{{ platform.name.charAt(0) }}</span>
+                      <span class="rank-info">
+                        <strong>{{ platform.name }}</strong>
+                        <span class="muted">장르 {{ formatScore(platform.genre_benefit_score) }} · 독점 {{ formatScore(platform.exclusivity_affinity_score) }}</span>
+                      </span>
+                      <span class="rank-score">
+                        <strong>{{ formatScore(platform.personal_score) }}</strong>
+                      </span>
+                    </button>
+                  </li>
+                </ol>
+              </section>
+
+              <section class="calculator-anchor" aria-label="구독 계산기">
+                <p v-if="calcDuplicateMessage" class="calc-duplicate-warn">{{ calcDuplicateMessage }}</p>
+                <SubscriptionCalculator
+                  v-model="calcItems"
+                  :existing-monthly="existingMonthly"
+                  :monthly-budget="monthlyBudget"
+                  @add-plan="addCalcItem"
+                  @drop-plan="onCalcDropItem"
+                />
+              </section>
+            </div>
 
             <section v-if="personalSelected" class="panel detail-panel report-panel">
               <h2>{{ personalSelected.name }} 추천 리포트</h2>
@@ -482,23 +474,9 @@ onMounted(async () => {
                   :platform-name="personalSelected?.name || ''"
                   @add-item="addCalcItem"
                 />
-                <p
-                  v-if="personalSelected && platformBudgetWarning(personalSelected)"
-                  class="budget-inline-warn"
-                >
-                  이 플랫폼 최저 요금제 추가 시 월 예산 {{ formatWon(monthlyBudget) }}원을 초과할 수 있습니다.
-                </p>
               </div>
             </section>
           </div>
-
-          <p v-if="calcDuplicateMessage" class="calc-duplicate-warn">{{ calcDuplicateMessage }}</p>
-          <SubscriptionCalculator
-            v-model="calcItems"
-            :existing-monthly="existingMonthly"
-            :monthly-budget="monthlyBudget"
-            @drop-plan="onCalcDropItem"
-          />
         </template>
       </template>
     </template>
@@ -562,6 +540,23 @@ onMounted(async () => {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   gap: 20px;
   align-items: start;
+}
+
+.personal-layout {
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+}
+
+.personal-left-column {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+}
+
+.personal-layout .report-panel {
+  position: sticky;
+  top: 18px;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
 }
 
 .leaderboard-panel h2,
@@ -846,8 +841,6 @@ onMounted(async () => {
 
 .budget-hint { margin-bottom: 10px; }
 
-.budget-banner-warn,
-.budget-inline-warn,
 .calc-duplicate-warn {
   margin: 12px 0 0;
   padding: 10px 12px;
@@ -857,17 +850,6 @@ onMounted(async () => {
   color: #b91c1c;
   font-size: 13px;
   font-weight: 600;
-}
-
-.budget-chip {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #fef2f2;
-  color: #b91c1c;
 }
 
 .plan-section {
@@ -909,8 +891,22 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+.calculator-anchor {
+  min-width: 0;
+}
+
+.calculator-anchor :deep(.calc-panel) {
+  margin-top: 0;
+}
+
 @media (max-width: 860px) {
   .benchmark-layout { grid-template-columns: 1fr; }
   .confidence-badge { display: none; }
+
+  .personal-layout .report-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 </style>

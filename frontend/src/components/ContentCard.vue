@@ -88,7 +88,7 @@ const {
       </span>
       <div class="card-reactions" @click.stop @keydown.stop>
         <button
-          class="reaction-icon-button"
+          class="reaction-icon-button like"
           :class="{ active: reactions.my_reaction === 'like' }"
           type="button"
           :disabled="reactionLoading"
@@ -99,7 +99,7 @@ const {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3v11ZM9 21.9V11.2l4.9-8.1a2.1 2.1 0 0 1 3.8 1.6l-.9 5.3H20a2 2 0 0 1 1.9 2.4l-1.4 7A3 3 0 0 1 17.6 22H9Z" /></svg>
         </button>
         <button
-          class="reaction-icon-button"
+          class="reaction-icon-button dislike"
           :class="{ active: reactions.my_reaction === 'dislike' }"
           type="button"
           :disabled="reactionLoading"
@@ -171,11 +171,18 @@ const {
   fill: currentColor;
 }
 
-.reaction-icon-button:hover,
-.reaction-icon-button.active {
+.reaction-icon-button.like:hover,
+.reaction-icon-button.like.active {
   border-color: var(--ws-primary);
-  background: rgba(217, 221, 146, 0.12);
+  background: rgba(var(--ws-primary-rgb), 0.14);
   color: var(--ws-primary);
+}
+
+.reaction-icon-button.dislike:hover,
+.reaction-icon-button.dislike.active {
+  border-color: var(--ws-secondary);
+  background: rgba(var(--ws-secondary-rgb), 0.14);
+  color: var(--ws-secondary);
 }
 
 .reaction-icon-button:disabled {

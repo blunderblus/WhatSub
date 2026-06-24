@@ -5,6 +5,7 @@ import {
   fetchStreamingPlatforms,
   mediaTypeForKind,
 } from '../api/contents';
+import { platformIdsToQuery, selectedPlatformIdsFromQuery } from '../utils/routeQuery';
 
 const CONTENT_LABELS = {
   movies: '영화',
@@ -24,7 +25,7 @@ export function useContentCatalog(kind) {
 
   const label = computed(() => CONTENT_LABELS[kind.value] || CONTENT_LABELS.movies);
   const selectedGenreName = computed(() => {
-    if (!selectedGenre.value) return `전체 ${label.value}`;
+    if (!selectedGenre.value) return label.value;
     return genres.value.find((genre) => String(genre.id) === String(selectedGenre.value))?.name || label.value;
   });
   const selectedPlatformNames = computed(() => (
@@ -38,17 +39,7 @@ export function useContentCatalog(kind) {
   });
 
   function syncPlatformsFromQuery(query) {
-    const single = query.platform_id;
-    const multi = query.platform_ids;
-    if (Array.isArray(single)) {
-      selectedPlatforms.value = single.map(String);
-    } else if (single) {
-      selectedPlatforms.value = [String(single)];
-    } else if (multi) {
-      selectedPlatforms.value = String(multi).split(',').map((value) => value.trim()).filter(Boolean);
-    } else {
-      selectedPlatforms.value = [];
-    }
+    selectedPlatforms.value = selectedPlatformIdsFromQuery(query);
   }
 
   function syncGenreFromQuery(query) {
@@ -56,13 +47,7 @@ export function useContentCatalog(kind) {
   }
 
   function platformQuery() {
-    if (selectedPlatforms.value.length === 1) {
-      return { platform_id: selectedPlatforms.value[0] };
-    }
-    if (selectedPlatforms.value.length > 1) {
-      return { platform_ids: selectedPlatforms.value.join(',') };
-    }
-    return {};
+    return platformIdsToQuery(selectedPlatforms.value);
   }
 
   async function loadGenres() {
