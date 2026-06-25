@@ -24,6 +24,7 @@ from .billing_dates import build_schedule_items, default_renewal_date, parse_sub
 from .forms import SignUpForm
 from .models import UserPreferenceProfile
 from .onboarding_session import get_chat_resume, set_chat_resume, touch_method_pick
+from contents.personal_scoring import resolve_taste_titles
 
 logger = logging.getLogger(__name__)
 
@@ -132,11 +133,15 @@ def _dashboard_payload(user):
     standalone_subscriptions = [s for s in all_subscriptions if not s['is_bundle']]
     bundle_subscriptions = [s for s in all_subscriptions if s['is_bundle']]
     pref = UserPreferenceProfile.objects.filter(user=user).first()
+    pref_summary = pref.taste_summary if pref else ''
+    taste_titles = resolve_taste_titles(user)
 
     return {
         'subscription_count': len(subscriptions),
         'monthly_total': monthly_total,
         'monthly_spend_cap': pref.monthly_spend_cap if pref else None,
+        'taste_summary': pref_summary,
+        'taste_titles': taste_titles,
         'platform_count': len(platform_ids),
         'plan_count': SubscriptionPlan.objects.count(),
         'next_payment': timeline[0] if timeline else None,

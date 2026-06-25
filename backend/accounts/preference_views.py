@@ -79,6 +79,10 @@ def _profile_payload(profile):
         'platform_criteria': profile.platform_criteria,
         'genre_weights': profile.genre_weights,
         'taste_summary': profile.taste_summary,
+        'taste_titles': {
+            'habit': profile.taste_title_habit,
+            'genre': profile.taste_title_genre,
+        },
         'onboarding_chat_completed': profile.onboarding_chat_completed,
         'updated_at': profile.updated_at.isoformat() if profile.updated_at else None,
     }

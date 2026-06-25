@@ -82,9 +82,17 @@ onMounted(async () => {
           <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
           <span v-else class="avatar-initial-letter" aria-hidden="true">{{ profileAvatarInitial }}</span>
         </div>
-        <div>
+        <div class="account-copy">
           <strong>{{ session.user?.nickname || session.user?.username }}</strong>
           <span>{{ session.user?.email || '이메일 정보 없음' }}</span>
+          <div
+            v-if="dashboard.taste_titles?.habit || dashboard.taste_titles?.genre"
+            class="taste-title-row"
+          >
+            <span v-if="dashboard.taste_titles?.habit" class="taste-title habit">{{ dashboard.taste_titles.habit }}</span>
+            <span v-if="dashboard.taste_titles?.genre" class="taste-title genre">{{ dashboard.taste_titles.genre }}</span>
+          </div>
+          <p v-if="dashboard.taste_summary" class="taste-summary">{{ dashboard.taste_summary }}</p>
         </div>
       </div>
 
@@ -236,8 +244,52 @@ onMounted(async () => {
 
 .account {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+}
+
+.account-copy {
+  min-width: 0;
+}
+
+.account-copy strong {
+  display: block;
+}
+
+.taste-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.taste-title {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.taste-title.habit {
+  border: 1px solid rgba(var(--ws-secondary-rgb), 0.35);
+  background: rgba(var(--ws-secondary-rgb), 0.12);
+  color: var(--ws-secondary);
+}
+
+.taste-title.genre {
+  border: 1px solid rgba(var(--ws-primary-rgb), 0.35);
+  background: rgba(var(--ws-primary-rgb), 0.12);
+  color: var(--ws-primary);
+}
+
+.taste-summary {
+  margin: 8px 0 0;
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .avatar {

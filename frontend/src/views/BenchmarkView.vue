@@ -347,9 +347,13 @@ onMounted(async () => {
         <div v-else-if="personalLoading" class="loader">맞춤 점수를 계산하는 중입니다.</div>
 
         <template v-else-if="personal">
-          <section v-if="personal.taste_summary" class="panel taste-summary">
+          <section v-if="personal.taste_summary || personal.taste_titles?.habit || personal.taste_titles?.genre" class="panel taste-summary">
             <h3>취향 요약</h3>
-            <p>{{ personal.taste_summary }}</p>
+            <div v-if="personal.taste_titles?.habit || personal.taste_titles?.genre" class="taste-title-row">
+              <span v-if="personal.taste_titles?.habit" class="taste-title habit">{{ personal.taste_titles.habit }}</span>
+              <span v-if="personal.taste_titles?.genre" class="taste-title genre">{{ personal.taste_titles.genre }}</span>
+            </div>
+            <p v-if="personal.taste_summary">{{ personal.taste_summary }}</p>
             <p v-if="personal.taste_meta" class="muted small">
               좋아요 {{ personal.taste_meta.likes }} · 싫어요 {{ personal.taste_meta.dislikes }}
               <span v-if="personal.taste_meta.llm_available_today">
@@ -408,8 +412,18 @@ onMounted(async () => {
             </div>
 
             <section v-if="personalSelected" class="panel detail-panel report-panel">
-              <h2>{{ personalSelected.name }} 추천 리포트</h2>
-              <p class="muted">Personal Score {{ formatScore(personalSelected.personal_score) }}</p>
+              <div class="report-panel-head">
+                <div>
+                  <h2>{{ personalSelected.name }} 추천 리포트</h2>
+                  <p class="muted">Personal Score {{ formatScore(personalSelected.personal_score) }}</p>
+                </div>
+                <RouterLink
+                  class="button secondary"
+                  :to="`/benchmark/platforms/${personalSelected.platform_id}`"
+                >
+                  벤치마크 상세 보기
+                </RouterLink>
+              </div>
 
               <div class="score-pills">
                 <span>장르 편익 {{ formatScore(personalSelected.genre_benefit_score) }}</span>
@@ -762,6 +776,46 @@ onMounted(async () => {
 
 .report-panel h3 { margin: 20px 0 10px; font-size: 15px; }
 
+.report-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.report-panel-head h2 {
+  margin: 0 0 4px;
+}
+
+.taste-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.taste-title {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.taste-title.habit {
+  border: 1px solid rgba(var(--ws-secondary-rgb), 0.35);
+  background: rgba(var(--ws-secondary-rgb), 0.12);
+  color: var(--ws-secondary);
+}
+
+.taste-title.genre {
+  border: 1px solid rgba(var(--ws-primary-rgb), 0.35);
+  background: rgba(var(--ws-primary-rgb), 0.12);
+  color: var(--ws-primary);
+}
+
 .reason-list,
 .genre-match-list {
   margin: 0;
@@ -910,6 +964,11 @@ onMounted(async () => {
 @media (max-width: 860px) {
   .benchmark-layout { grid-template-columns: 1fr; }
   .confidence-badge { display: none; }
+
+  .report-panel-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
   .personal-layout .report-panel {
     position: static;

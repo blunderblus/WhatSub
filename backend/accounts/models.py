@@ -36,6 +36,8 @@ class UserPreferenceProfile(models.Model):
         help_text='LLM-parsed genre_id -> weight (0.0-1.0)',
     )
     taste_summary = models.TextField(blank=True)
+    taste_title_habit = models.CharField(max_length=40, blank=True, default='')
+    taste_title_genre = models.CharField(max_length=40, blank=True, default='')
     onboarding_chat_completed = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -74,6 +76,8 @@ class UserTasteAnalysis(models.Model):
     analysis_date = models.DateField(db_index=True)
     genre_weights = models.JSONField(default=dict, blank=True)
     llm_summary = models.TextField(blank=True)
+    taste_title_habit = models.CharField(max_length=40, blank=True, default='')
+    taste_title_genre = models.CharField(max_length=40, blank=True, default='')
     reaction_like_count = models.PositiveIntegerField(default=0)
     reaction_dislike_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

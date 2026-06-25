@@ -13,6 +13,7 @@ from subscriptions.models import Platform
 from .benchmark_constants import GENRE_NAMES, platform_icon
 from .benchmark_scoring import normalize_scores
 from .llm_judgment import get_llm_judgment, is_configured
+from .taste_titles import fallback_taste_titles, resolve_taste_titles_from_llm, taste_titles_prompt_block
 from .title_display import get_title_display_map, title_payload_from_map
 from .models import (
     ContentReaction,
@@ -34,7 +35,8 @@ DAILY_TASTE_LLM_LIMIT = 5
 
 TASTE_LLM_SCHEMA = (
     '{"genre_weights": {"<genre_id>": float 0.0-1.0}, '
-    '"summary": string, "top_genre_ids": [int]}'
+    '"summary": string, "top_genre_ids": [int], '
+    '"taste_title_habit": string, "taste_title_genre": string}'
 )
 
 ONBOARDING_PARSE_SCHEMA = (
@@ -42,7 +44,7 @@ ONBOARDING_PARSE_SCHEMA = (
     '"consumption_habits": {"binge": bool, "family": bool, "late_night": bool, '
     '"documentary_heavy": bool}, '
     '"platform_criteria": [string], "genre_weights": {"<genre_id>": float}, '
-    '"taste_summary": string}'
+    '"taste_summary": string, "taste_title_habit": string, "taste_title_genre": string}'
 )
 
 
@@ -126,6 +128,36 @@ def _preference_genre_weights(user):
     return _merge_weight_maps(explicit, parsed)
 
 
+def _save_profile_taste_titles(user, habit, genre):
+    profile, _ = UserPreferenceProfile.objects.get_or_create(user=user)
+    profile.taste_title_habit = habit or ''
+    profile.taste_title_genre = genre or ''
+    profile.save(update_fields=['taste_title_habit', 'taste_title_genre', 'updated_at'])
+
+
+def resolve_taste_titles(user):
+    today = timezone.localdate()
+    analysis = (
+        UserTasteAnalysis.objects
+        .filter(user=user, analysis_date=today)
+        .order_by('-created_at')
+        .first()
+    )
+    if analysis and (analysis.taste_title_habit or analysis.taste_title_genre):
+        return {
+            'habit': analysis.taste_title_habit,
+            'genre': analysis.taste_title_genre,
+        }
+
+    pref = UserPreferenceProfile.objects.filter(user=user).first()
+    if pref and (pref.taste_title_habit or pref.taste_title_genre):
+        return {
+            'habit': pref.taste_title_habit,
+            'genre': pref.taste_title_genre,
+        }
+    return {'habit': '', 'genre': ''}
+
+
 def taste_llm_runs_today(user, today=None):
     today = today or timezone.localdate()
     return UserTasteAnalysis.objects.filter(user=user, analysis_date=today).count()
@@ -187,7 +219,8 @@ def run_daily_taste_llm(user, reaction_weights, likes, dislikes, today=None):
         f'{json.dumps(pref_payload, ensure_ascii=False)}\n'
         f'Merge into final genre_weights (0.0-1.0 per TMDB genre id). '
         f'Disliked genres should have low/zero weight. '
-        f'Provide a one-sentence Korean summary of taste.'
+        f'Provide a one-sentence Korean summary of taste.\n\n'
+        f'{taste_titles_prompt_block()}'
     )
     cache_key = f'user_taste:{user.id}:{today.isoformat()}'
     result = get_llm_judgment(
@@ -201,15 +234,24 @@ def run_daily_taste_llm(user, reaction_weights, likes, dislikes, today=None):
 
     genre_weights = _normalize_genre_weights(result.get('genre_weights') or {})
     summary = (result.get('summary') or '').strip()
+    habit, genre = resolve_taste_titles_from_llm(
+        result,
+        consumption_habits=(pref.consumption_habits if pref else {}),
+        platform_criteria=(pref.platform_criteria if pref else []),
+        genre_weights=genre_weights,
+    )
 
     UserTasteAnalysis.objects.create(
         user=user,
         analysis_date=today,
         genre_weights=genre_weights,
         llm_summary=summary,
+        taste_title_habit=habit,
+        taste_title_genre=genre,
         reaction_like_count=likes,
         reaction_dislike_count=dislikes,
     )
+    _save_profile_taste_titles(user, habit, genre)
     return genre_weights, summary
 
 
@@ -474,6 +516,7 @@ def compute_personal_score(user, snapshot_date=None, use_llm=False, skip_cache=F
         result = {
             'snapshot_date': snapshot_date.isoformat(),
             'taste_summary': taste_summary,
+            'taste_titles': resolve_taste_titles(user),
             'taste_meta': taste_meta,
             'genre_weights': {},
             'platforms': [],
@@ -545,6 +588,7 @@ def compute_personal_score(user, snapshot_date=None, use_llm=False, skip_cache=F
     result = {
         'snapshot_date': snapshot_date.isoformat(),
         'taste_summary': taste_summary,
+        'taste_titles': resolve_taste_titles(user),
         'taste_meta': taste_meta,
         'genre_weights': {
             str(k): v for k, v in sorted(user_weights.items(), key=lambda x: -x[1])[:15]
@@ -568,7 +612,8 @@ def parse_onboarding_chat(user, structured_answers, chat_messages=None):
         f'Input JSON:\n{json.dumps(payload, ensure_ascii=False)}\n'
         'Map free-text vibes to TMDB genre ids where possible '
         '(28 Action, 18 Drama, 10749 Romance, 16 Animation, 35 Comedy, 27 Horror, '
-        '99 Documentary, 878 Sci-Fi, 10751 Family, etc.).'
+        '99 Documentary, 878 Sci-Fi, 10751 Family, etc.).\n\n'
+        f'{taste_titles_prompt_block()}'
     )
     cache_key = f'onboarding_parse:{user.id}:{hash(json.dumps(payload, sort_keys=True))}'
     result = get_llm_judgment(
@@ -600,6 +645,14 @@ def parse_onboarding_chat(user, structured_answers, chat_messages=None):
         )
         profile.genre_weights = _normalize_genre_weights(result.get('genre_weights') or {})
         profile.taste_summary = result.get('taste_summary') or ''
+        habit, genre = resolve_taste_titles_from_llm(
+            result,
+            consumption_habits=profile.consumption_habits,
+            platform_criteria=profile.platform_criteria,
+            genre_weights=profile.genre_weights,
+        )
+        profile.taste_title_habit = habit
+        profile.taste_title_genre = genre
     else:
         profile.preferred_genre_ids = structured_answers.get('preferred_genre_ids') or []
         profile.consumption_habits = structured_answers.get('consumption_habits') or {}
@@ -607,6 +660,13 @@ def parse_onboarding_chat(user, structured_answers, chat_messages=None):
         cap = structured_answers.get('monthly_spend_cap')
         if cap is not None:
             profile.monthly_spend_cap = int(cap)
+        habit, genre = fallback_taste_titles(
+            consumption_habits=profile.consumption_habits,
+            platform_criteria=profile.platform_criteria,
+            genre_weights=_preference_genre_weights(user),
+        )
+        profile.taste_title_habit = habit
+        profile.taste_title_genre = genre
 
     profile.onboarding_chat_completed = True
     profile.save()

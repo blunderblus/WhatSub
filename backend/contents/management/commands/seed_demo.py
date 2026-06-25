@@ -23,6 +23,7 @@ from contents.models import (
     PlatformUserReviewReaction,
     TitleMeta,
 )
+from contents.taste_titles import TASTE_TITLE_GENRES, TASTE_TITLE_HABITS
 from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
 
 User = get_user_model()
@@ -147,16 +148,39 @@ COMMENT_SAMPLES = [
 REVIEW_SAMPLES = [
     ('Netflix', 5, '드라마·영화 라인업이 가장 탄탄합니다. UI도 익숙하고 가족 프로필 관리 편해요.'),
     ('Netflix', 4, '가격은 올랐지만 여전히 1티어 OTT. 광고형 도입 이후 가성비는 더 좋아졌어요.'),
+    ('Netflix', 5, '오리지널 퀄리티가 안정적이에요. 주말마다 신작 알림 켜두고 봅니다.'),
+    ('Netflix', 3, '해외작 비중이 줄어든 느낌이지만 국내 드라마 라인업은 여전히 강해요.'),
+    ('Netflix', 4, '4K·HDR 지원 플랜이 있어서 거실 TV 시청엔 최적입니다.'),
     ('Disney+', 4, '마블·픽사·스타워즈 팬이면 필수. 한국 드라마 편성은 조금 아쉽습니다.'),
     ('Disney+', 5, '아이랑 보기 좋은 콘텐츠가 많아서 가족 구독 유지 중입니다.'),
+    ('Disney+', 4, 'IMAX 버전 타이틀이 많아서 블록buster 감상에 좋아요.'),
+    ('Disney+', 5, '스타 채널 편성 덕분에 성인용 드라마도 점점 늘고 있습니다.'),
+    ('Disney+', 3, '앱이 가끔 버벅이지만 콘텐츠 만족도는 높습니다.'),
     ('TVING', 5, '국내 예능·드라마는 티빙이 최고예요. 라이브 채널도 자주 씁니다.'),
     ('TVING', 4, '클립·예능 소비만 해도 월 요금 값 합니다. 해외작은 다소 부족.'),
+    ('TVING', 5, 'T4U·신서유기 등 예능 독점이 많아서 국내 OTT 1위라고 생각해요.'),
+    ('TVING', 4, '스포츠 중계 품질도 괜찮고, 다시보기 편의가 좋습니다.'),
+    ('TVING', 3, '해외 시리즈 편성표가 넷플 대비 약한 편입니다.'),
     ('Wavve', 4, '지상파·종편·스포츠까지 한 번에. 드라마 재방송 보기 좋아요.'),
+    ('Wavve', 5, 'KBL·K리그 보는 분들 wavve 스포츠 패키지 진짜 괜찮아요.'),
+    ('Wavve', 4, '예능·드라마 아카이브가 두꺼워서 티빙과 병행하기 좋습니다.'),
+    ('Wavve', 3, 'UI가 다소 구식이지만 콘텐츠 폭은 넓어요.'),
     ('Watcha', 4, '마이너·독립 영화 찾기 최고. 메인 OTT 보조용으로 추천합니다.'),
+    ('Watcha', 5, '영화 큐레이션이 센스 있어요. 평론가 리뷰도 참고하기 좋습니다.'),
+    ('Watcha', 4, '예술·독립 영화관 느낌이라 주말에 한 편씩 보기 좋아요.'),
+    ('Watcha', 3, '드라마·예능은 약하지만 영화 덕후에게는 필수입니다.'),
     ('Coupang Play', 4, '와우 멤버십이면 사실상 공짜에 가깝습니다. EPL 보는 분께 추천.'),
+    ('Coupang Play', 5, '쿠팡 쇼핑+OTT 번들이라 생활 밀착형으로 쓰기 좋아요.'),
+    ('Coupang Play', 4, '스포츠 중계 화질 괜찮고, 오리지널도 늘고 있습니다.'),
+    ('Coupang Play', 3, '작품 수는 적지만 가격 대비 만족도는 높습니다.'),
     ('Amazon Prime Video', 3, '작품은 괜찮은데 앱 UX가 아쉬워요. 프라임 혜택으로 끼워 넣기엔 OK.'),
+    ('Amazon Prime Video', 4, '「더 보이즈」「정의의 부활」 같은 작품 퀄리티는 인정합니다.'),
+    ('Amazon Prime Video', 3, '한국어 UI·검색이 불편해서 메인 OTT로 쓰긴 어렵습니다.'),
+    ('Amazon Prime Video', 4, '프라임 배송 쓰는 분이면 영상은 보너스 느낌으로 충분해요.'),
     ('Apple TV+', 4, '작품 수는 적지만 퀄리티 일정. 오리지널만 보면 만족합니다.'),
     ('Apple TV+', 5, '「Severance」「Pachinko」급 작품들 때문에 유지 중입니다.'),
+    ('Apple TV+', 4, '4K·Dolby Vision 지원이 깔끔하고 광고가 없어서 좋아요.'),
+    ('Apple TV+', 3, '편성 수가 적어서 한 달에 다 보고 쉬는 경우도 있습니다.'),
 ]
 
 REVIEW_COMMENTS = [
@@ -190,11 +214,34 @@ class Command(BaseCommand):
             help='Assign default avatar presets to demo_* users only.',
         )
 
+        parser.add_argument(
+            '--seed-reviews',
+            action='store_true',
+            help='Seed or refresh demo platform reviews only.',
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
         if options['update_avatars']:
             self._ensure_users()
             self.stdout.write(self.style.SUCCESS('Updated demo user avatars.'))
+            return
+
+        if options['seed_reviews']:
+            users = {
+                u.username: u
+                for u in User.objects.filter(username__startswith='demo_').order_by('username')
+            }
+            if not users:
+                self.stdout.write(self.style.ERROR('No demo_* users found. Run seed_demo first.'))
+                return
+            platforms = _platform_map()
+            if not platforms:
+                self.stdout.write(self.style.ERROR('Load subscriptions catalog first.'))
+                return
+            reviews = self._seed_platform_reviews(users, platforms)
+            self._seed_review_engagement(users, reviews)
+            self.stdout.write(self.style.SUCCESS(f'Seeded {len(reviews)} platform reviews.'))
             return
 
         if options['reset']:
@@ -336,11 +383,13 @@ class Command(BaseCommand):
     def _seed_platform_reviews(self, users, platforms):
         reviews = []
         user_list = list(users.values())
+        if not user_list:
+            return reviews
         for idx, (platform_name, score, body) in enumerate(REVIEW_SAMPLES):
             platform = platforms.get(platform_name)
             if not platform:
                 continue
-            author = user_list[idx % len(user_list)]
+            author = user_list[(idx * 3 + 1) % len(user_list)]
             review, _ = PlatformUserReview.objects.update_or_create(
                 platform=platform,
                 user=author,
@@ -450,13 +499,17 @@ class Command(BaseCommand):
 
     def _seed_preference_profiles(self, users):
         specs = [
-            ('demo_netflix_fan', [18, 10749, 35], {'28': 0.9, '18': 0.7, '35': 0.5}),
-            ('demo_tving_lover', [10751, 35, 99], {'35': 0.85, '10751': 0.8}),
-            ('demo_cinephile', [18, 99, 36], {'18': 0.95, '99': 0.8, '36': 0.6}),
-            ('demo_anime_kid', [16, 878, 28], {'16': 1.0, '878': 0.7}),
+            ('demo_netflix_fan', [18, 10749, 35], {'28': 0.9, '18': 0.7, '35': 0.5}, TASTE_TITLE_HABITS[2], TASTE_TITLE_GENRES[0]),
+            ('demo_tving_lover', [10751, 35, 99], {'35': 0.85, '10751': 0.8}, TASTE_TITLE_HABITS[4], TASTE_TITLE_GENRES[4]),
+            ('demo_cinephile', [18, 99, 36], {'18': 0.95, '99': 0.8, '36': 0.6}, TASTE_TITLE_HABITS[1], TASTE_TITLE_GENRES[3]),
+            ('demo_anime_kid', [16, 878, 28], {'16': 1.0, '878': 0.7}, TASTE_TITLE_HABITS[5], TASTE_TITLE_GENRES[5]),
+            ('demo_deal_hunter', [35, 18, 28], {'35': 0.6, '18': 0.5}, TASTE_TITLE_HABITS[0], TASTE_TITLE_GENRES[4]),
+            ('demo_drama_queen', [18, 10749, 9648], {'18': 0.9, '10749': 0.85}, TASTE_TITLE_HABITS[2], TASTE_TITLE_GENRES[1]),
+            ('demo_movie_buff', [28, 53, 27], {'28': 0.8, '53': 0.75}, TASTE_TITLE_HABITS[6], TASTE_TITLE_GENRES[2]),
+            ('demo_family', [10751, 16, 35], {'10751': 0.9, '16': 0.7}, TASTE_TITLE_HABITS[2], TASTE_TITLE_GENRES[1]),
         ]
         count = 0
-        for username, genre_ids, genre_weights in specs:
+        for username, genre_ids, genre_weights, title_habit, title_genre in specs:
             user = users.get(username)
             if not user:
                 continue
@@ -468,34 +521,9 @@ class Command(BaseCommand):
                     'consumption_habits': {'binge': True, 'family': username == 'demo_family'},
                     'platform_criteria': ['price', 'exclusives'],
                     'genre_weights': genre_weights,
-                    'taste_summary': f'{user.nickname}님의 시연용 취향 프로필입니다.',
-                    'onboarding_chat_completed': True,
-                },
-            )
-            count += 1
-        return count
-
-    def _seed_preference_profiles(self, users):
-        specs = [
-            ('demo_netflix_fan', [18, 10749, 35], {'28': 0.9, '18': 0.7, '35': 0.5}),
-            ('demo_tving_lover', [10751, 35, 99], {'35': 0.85, '10751': 0.8}),
-            ('demo_cinephile', [18, 99, 36], {'18': 0.95, '99': 0.8, '36': 0.6}),
-            ('demo_anime_kid', [16, 878, 28], {'16': 1.0, '878': 0.7}),
-        ]
-        count = 0
-        for username, genre_ids, genre_weights in specs:
-            user = users.get(username)
-            if not user:
-                continue
-            UserPreferenceProfile.objects.update_or_create(
-                user=user,
-                defaults={
-                    'monthly_spend_cap': random.choice([30000, 45000, 55000]),
-                    'preferred_genre_ids': genre_ids,
-                    'consumption_habits': {'binge': True, 'family': username == 'demo_family'},
-                    'platform_criteria': ['price', 'exclusives'],
-                    'genre_weights': genre_weights,
-                    'taste_summary': f'{user.nickname}님의 시연용 취향 프로필입니다.',
+                    'taste_summary': f'{user.nickname}님은 {title_genre.lstrip("#")} 스타일의 시청자입니다.',
+                    'taste_title_habit': title_habit,
+                    'taste_title_genre': title_genre,
                     'onboarding_chat_completed': True,
                 },
             )
