@@ -1,244 +1,172 @@
-# WhatSub?
+# WhatSub - 구독 관리/콘텐츠 추천 서비스
 
-> **구독을 추적하고, 스트리밍을 비교하고, 내 취향에 맞는 플랫폼을 찾아드립니다.**
+SSAFY 관통 프로젝트 제출 기준에 맞춰 작성한 README입니다.  
+WhatSub는 OTT 구독을 자동 감지하고, 콘텐츠 취향 데이터를 바탕으로 사용자 맞춤 플랫폼을 추천하는 웹 서비스입니다.
 
-WhatSub?는 구독 관리와 스트리밍 콘텐츠 탐색을 하나로 통합한 플랫폼입니다. Gmail 연동으로 구독을 자동 감지하고, 내가 좋아하는 작품 취향을 기반으로 어떤 스트리밍 서비스가 가장 나에게 맞는지 알려줍니다.
+## 1. 팀원 정보 및 역할 분담
 
----
+| 이름 | 역할 | 주요 담당 |
+| --- | --- | --- |
+| 허선율 | Backend/AI | UI 디자인 디렉션, 백엔드 로직, LLM 파이프라인, 온보딩 |
+| 유성현 | Frontend/UX | 프론트엔드 전반, UX 개선, 커뮤니티 CRUD |
 
-## ✨ Key Features
+## 2. 서비스 개요
 
-### 📬 Gmail 기반 구독 자동 감지
-Gmail을 연동하면 결제 메일을 분석해 구독 중인 서비스를 자동으로 탐지합니다. 넷플릭스부터 쿠팡 WOW, 배민클럽까지 — 직접 입력 없이 초기 구독 프로필이 구성됩니다.
+- Gmail 결제 메일과 영수증 이미지를 분석해 구독 서비스를 자동 등록
+- 영화/시리즈 검색 후 플랫폼별 시청 가능 여부(구독/대여/구매) 조회
+- 플랫폼 벤치마크(Value Score)와 개인화 추천(Personal Score) 제공
+- 커뮤니티 게시글/댓글 CRUD, 반응(좋아요/싫어요), 신고 기능 제공
 
-### 🔍 스트리밍 콘텐츠 탐색
-영화나 TV 시리즈를 검색하면 국내외 스트리밍 플랫폼 중 어디서 볼 수 있는지, 구독/대여/구매 여부와 만료일까지 한번에 확인할 수 있습니다.
+## 3. 기술 스택
 
-### 🏆 플랫폼 벤치마크 & 리더보드
-플랫폼별 Value Score를 산출해 객관적인 순위를 제공합니다.
+- Backend: Django 5.2, Django REST Framework, django-allauth
+- Frontend: Vue 3, Vite, Pinia, Vue Router
+- DB: SQLite(기본), PostgreSQL(`DATABASE_URL` 설정 시)
+- External API: TMDB, Watchmode, RapidAPI, Google OAuth/Gmail API
+- AI: OpenAI 호환 Chat API + Gemini Vision API(영수증 분석)
 
-```
-Value Score =
-  콘텐츠 수량 (40%)  ← 카탈로그 규모
-+ 콘텐츠 품질 (30%)  ← 고평점 작품 비율
-+ 가격 경쟁력 (20%)  ← 월정액 대비 효용
-+ 접근성    (10%)  ← 동시접속, 화질, 다운로드
-```
+## 4. 시스템 아키텍처
 
-### 🎯 Personal Score
-내가 좋아요를 누른 작품들의 장르 분포를 분석해, 플랫폼별 개인화 점수를 계산합니다.
-
-> 예: 로맨틱 코미디를 주로 좋아한다면 → 해당 장르 보유작이 많은 플랫폼의 Personal Score가 높아집니다.
-
----
-
-## 🛠 Tech Stack
-
-| Category | Stack |
-|---|---|
-| Backend | Django 5.x + Django REST Framework |
-| Database | PostgreSQL |
-| Auth | Google OAuth 2.0 (django-allauth) |
-| Content API | TMDB |
-| Streaming Availability | Watchmode API |
-| Gmail Integration | Google Gmail API |
-| Docs | drf-yasg (Swagger) |
-
----
-
-## 📡 API Strategy
-
-| 역할 | 도구 |
-|---|---|
-| 콘텐츠 메타데이터 | TMDB (무료, 무제한) |
-| 플랫폼 가용 여부 | Watchmode API (KR 지원, 캐싱) |
-| 벤치마크 통계 | StreamingCache 집계 |
-| 가격/접근성 데이터 | DB 관리 (수동) |
-
-**Watchmode KR 리전 커버 서비스:**
-Netflix, Prime Video, Disney+, Apple TV+, TVING, Watcha, Wavve,
-Crunchyroll Premium, MUBI, Curiosity Stream, GuideDoc, Zee5
-
----
-
-## 🗂 Project Structure
-
+```text
+[Vue 3 Frontend]
+        |
+        v
+[Django REST API]
+  | accounts / contents / subscriptions / community / detector
+  |
+  +--> [DB: User, Subscription, Content, Benchmark Snapshot ...]
+  +--> [TMDB / Watchmode / RapidAPI]
+  +--> [Google OAuth + Gmail API]
+  +--> [LLM API (취향/벤치마크/영수증 분석)]
 ```
 
-## 주요 기능
+## 5. 주요 기능 설명 (요구사항 대응)
 
-### 구독 관리
-- **Google 로그인** — django-allauth 기반 OAuth 인증
-- **Gmail 자동 감지** — 받은편지함에서 구독·결제 관련 메일을 키워드 필터링 후 LLM으로 플랫폼·요금·갱신일 추출
-- **수동 등록** — 온보딩 중 직접 구독 정보 입력
-- **구독 대시보드** — 월간 지출 합계, 갱신 일정, 플랫폼별 구독 목록 확인
+### 5.1 인증/회원 기능
+- 회원가입, 로그인, 로그아웃, 회원 탈퇴 API 제공
+- `Custom User` 기반 프로필 정보(닉네임, 이미지, bio) 관리
+- Google OAuth 로그인 + 온보딩 플로우 연결
 
-### 콘텐츠 탐색
-- **TMDB 연동** — 영화·드라마 검색, 메타데이터(포스터, 평점, 장르) 조회
-- **시청 가능 플랫폼 조회** — Watchmode·RapidAPI를 통해 구독/대여/구매/무료 시청처 확인 (24시간 DB 캐시)
+### 5.2 구독 관리
+- 수동 구독 등록/삭제, 갱신 예정 알림 피드 조회
+- Gmail 스캔 결과를 일괄 저장하는 온보딩 API 제공
+- 영수증 이미지 업로드 시 반복결제 항목 자동 추출
 
-### 플랫폼·요금제 정보
-- Netflix, Disney+, TVING, Wavve, Coupang Play 등 주요 서비스의 **요금제·번들·애드온 패스** 데이터 제공
-- 쿠팡 플레이(일반/와우), 배민클럽 번들 등 복잡한 요금 구조를 관계형 모델로 표현
+### 5.3 콘텐츠 탐색
+- 영화/TV 리스트/상세/검색 API 제공
+- 작품별 스트리밍 플랫폼 가용성 조회
+- 사용자 반응(좋아요/싫어요) 기반 선호 데이터 축적
 
----
+### 5.4 플랫폼 벤치마크
+- 플랫폼별 5축 점수 계산
+  - availability(보유량)
+  - exclusivity(독점성)
+  - quality(품질)
+  - price(가격경쟁력)
+  - accessibility(접근성)
+- 정규화 후 Value Score 산출 및 리더보드 제공
 
-## 프로젝트 구조
+### 5.5 커뮤니티
+- 게시판/게시글/댓글 CRUD
+- 게시글/댓글 반응 및 신고 기능
+- 작성자 권한 기반 수정/삭제 처리
 
-백엔드(Django)와 프론트엔드(템플릿·정적 자산·향후 Vue)를 분리한 모노레포입니다.
+## 6. 금융(구독) 추천 알고리즘 기술 설명
 
-```
-10-pjt/
-├── backend/           # Django API·비즈니스 로직
-│   ├── accounts/      # 회원가입, 로그인, 온보딩, 프로필
-│   ├── contents/      # TMDB 콘텐츠 검색·상세, 시청 가능 플랫폼
-│   ├── detector/      # Gmail API 연동, 구독 메일 감지·LLM 추출
-│   ├── subscriptions/ # 플랫폼·요금제·사용자 구독 모델
-│   ├── notifications/ # 알림 (예정)
-│   ├── whatsub/       # Django 프로젝트 설정
-│   ├── manage.py
-│   └── requirements.txt
-├── frontend/          # UI (Django 템플릿 → Vue SPA 이전 예정)
-│   ├── templates/     # HTML 템플릿
-│   ├── static/        # 이미지·파비콘
-│   ├── public/        # Vue 정적 파일
-│   └── src/           # Vue 3 SPA 소스
-├── .env               # 환경 변수 (프로젝트 루트)
-├── SETUP.md           # 상세 설치 가이드
-└── PROJECT_CONTEXT.md # 기능·아키텍처 상세 문서
-```
+본 프로젝트의 핵심 추천은 `Personal Score`입니다.
 
----
+1) 사용자 취향 벡터 생성
+- 좋아요/싫어요 반응에서 장르 가중치 계산
+- 온보딩 설문/대화에서 장르 선호도 및 소비 습관 반영
+- 필요 시 LLM으로 취향 가중치 보정(일일 호출 제한 적용)
 
-## Gmail 구독 감지 파이프라인
+2) 플랫폼별 개인 적합도 계산
+- `Genre Benefit`: 선호 장르 * 플랫폼 장르 보유량
+- `Exclusivity Affinity`: 사용자가 좋아한 작품의 독점작 매칭 정도
+- 두 축을 독립 정규화 후 평균하여 `Personal Score` 계산
 
-```
-Gmail 받은편지함 접근
-  → 메일 메타데이터 수집 (최근 1개월, 최대 100건)
-    → 키워드 기반 필터링 (Netflix, 구독, 결제, Premium 등)
-      → LLM 배치 추출 (플랫폼, 요금, 결제 주기, 갱신일)
-        → UserSubscription 생성 (사용자 확인 후 저장)
-```
+3) 추천 결과 생성
+- 점수 순 정렬된 플랫폼 목록 제공
+- 추천 사유(장르 적합, 독점작 매칭, 가격 경쟁력) 자동 생성
+- 기존 구독 월 지출 및 최소 요금제 가격을 함께 제시
 
-**키워드 예시:** Netflix, Disney+, TVING, Spotify, ChatGPT, 결제, 구독, Premium, 멤버십 등
+## 7. 생성형 AI 활용 내용
 
-**LLM 출력 스키마:**
-```json
-{
-  "platform": "Netflix",
-  "plan_name": "Standard",
-  "payment_amount": 13500,
-  "billing_cycle": "monthly",
-  "renewal_date": "2026-06-15"
-}
-```
+### 7.1 Gmail 구독 추출
+- Gmail 메일 본문에서 플랫폼/요금/결제주기/갱신일 JSON 추출
+- 캐싱/예외처리로 실패 시 안전하게 폴백 처리
 
----
+### 7.2 영수증 이미지 분석
+- Gemini Vision 기반 OCR+의미 추출로 정기결제 항목 인식
+- 단건/다건 이미지 처리 및 페이로드 크기 제한 대응
 
-## 시작하기
+### 7.3 추천/벤치마크 고도화
+- 독점작 트렌딩 가중치, 요금제 효용 판단에 LLM 활용
+- 프롬프트 해시 기반 캐시 키를 이용해 재계산 최소화
 
-> 자세한 설치 절차는 [SETUP.md](./SETUP.md)를 참고하세요.
+## 8. ERD 요약
 
-### 1. 저장소 클론 및 가상환경
+- `accounts.User`: 사용자 기본 정보
+- `accounts.UserPreferenceProfile`: 취향 프로필/설문 결과
+- `subscriptions.Platform`, `SubscriptionPlan`, `UserSubscription`: 플랫폼/요금제/개인 구독
+- `contents.ContentReaction`, `PlatformBenchmarkSnapshot`: 반응 데이터/플랫폼 점수 스냅샷
+- `community.CommunityPost`, `CommunityComment`: 커뮤니티 게시글/댓글
 
+> 상세 ERD 이미지는 `docs` 폴더 또는 발표 자료에 첨부해 제출 권장.
+
+## 9. 실행 방법
+
+### 9.1 Backend
 ```bash
-git clone <repository-url>
-cd 10-pjt
+cd backend
 python -m venv venv
-source venv/Scripts/activate   # Windows Git Bash
-pip install -r backend/requirements.txt
-```
-
-### 2. 환경 변수 설정
-
-프로젝트 루트에 `.env` 파일을 생성합니다.
-
-```env
-DEBUG=True
-SECRET_KEY='your-django-secret-key'
-TMDB_API_KEY=''
-WATCHMODE_API_KEY=''
-AI_API_KEY=''
-RAPID_API_KEY=''
-GOOGLE_CLIENT_ID=''
-GOOGLE_CLIENT_SECRET=''
-```
-
-> `.env` 파일은 Git에 커밋하지 마세요.
-
-**Google OAuth 설정:** [Google Cloud Console](https://console.cloud.google.com/)에서 OAuth 클라이언트 ID를 발급하고, Gmail API(`gmail.readonly`)를 활성화합니다. 리디렉션 URI에 `http://127.0.0.1:8000/accounts/google/login/callback/`을 등록합니다.
-
-### 3. 데이터베이스 초기화
-
-```bash
-cd backend
+source venv/Scripts/activate
+pip install -r requirements.txt
 python manage.py migrate
-python manage.py loaddata subscriptions/fixtures/platform_seed.json
-```
-
-### 4. 서버 실행
-
-```bash
-cd backend
-python manage.py check
 python manage.py runserver
 ```
 
-브라우저에서 [http://127.0.0.1:8000/](http://127.0.0.1:8000/) 접속
+### 9.2 Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
----
+### 9.3 필수 환경변수(.env)
+```env
+DEBUG=True
+SECRET_KEY=your-secret-key
+FRONTEND_URL=http://127.0.0.1:5173
+BACKEND_URL=http://127.0.0.1:8000
+DATABASE_URL=
+TMDB_API_KEY=
+WATCHMODE_API_KEY=
+RAPID_API_KEY=
+AI_API_KEY=
+AI_API_BASE=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
 
-## 주요 URL
+## 10. 비기능 요구사항 반영
 
-| 경로 | 설명 |
-|------|------|
-| `/` | 메인 페이지 |
-| `/accounts/login/` | 로그인 |
-| `/accounts/signup/` | 회원가입 |
-| `/accounts/onboarding/` | 온보딩 (Gmail 스캔 / 수동 추가 선택) |
-| `/accounts/onboarding/gmail/` | Gmail 구독 스캔 |
-| `/accounts/profile/` | 구독 대시보드 |
-| `/contents/movies/` | 영화 목록 |
-| `/contents/shows/` | 드라마 목록 |
-| `/contents/search/` | 콘텐츠 검색 |
-| `/subscriptions/platforms/` | 플랫폼·요금제 목록 |
-| `/detector/gmail_detail/` | Gmail 구독 메일 필터링 API (JSON) |
+- 환경변수 분리: 민감정보를 `.env`로 분리
+- 오류 처리: 외부 API 실패/한도 초과/인증 오류 메시지 처리
+- 문서화: README에 아키텍처, 알고리즘, AI 활용 내용 명시
+- Git 관리: 불필요 파일 제외 및 모듈별 구조 분리
 
----
+## 11. 프로젝트 후기 및 느낀 점
 
-## API 키 안내
+- 외부 API와 AI를 동시에 연동할 때 장애 포인트가 많아, 캐시/폴백 설계가 중요함을 확인
+- 추천 정확도는 단일 규칙보다 사용자 반응 + 온보딩 + LLM 보정의 결합이 더 효과적이었음
+- 실제 서비스 수준에서는 데이터 신뢰도(갱신 주기, 중복 제거, 실패 복구)가 기능 자체만큼 중요함
 
-| 변수 | 용도 |
-|------|------|
-| `TMDB_API_KEY` | 영화·드라마 메타데이터, Watch Provider |
-| `WATCHMODE_API_KEY` | 한국 지역 실시간 시청 가능 플랫폼 (월 2,500건 무료) |
-| `RAPID_API_KEY` | Streaming Availability API (보조 소스) |
-| `AI_API_KEY` | Gmail 구독 정보 LLM 추출 |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth 및 Gmail API |
+## 12. 참고 자료
 
-Watchmode는 무료 티어 한도를 위해 **작품별 24시간 DB 캐시**를 사용합니다.
-
----
-
-## 데이터 모델 개요
-
-- **Platform** — Netflix, TVING 등 구독 서비스
-- **SubscriptionPlan** — 요금제 (가격, 화질, 동시 시청 수, 번들 여부)
-- **BundleContent** — 번들에 포함된 서비스 (예: 배민클럽 → YouTube Premium)
-- **AddOnPass / AddOnPassPricing** — 애드온 패스 및 멤버십 등급별 가격
-- **UserSubscription** — 사용자별 실제 구독 내역
-- **Content / ContentPlatform** — TMDB 콘텐츠 및 플랫폼별 시청 정보
-
----
-
-## 개발 참고
-
-- 상세 기능 명세·로드맵: [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)
-- 설치·실행 체크리스트: [SETUP.md](./SETUP.md)
-- Django Admin: `/admin/` (슈퍼유저 생성 후 이용)
-
----
-
-## 라이선스
-
-이 프로젝트는 SSAFY(삼성청년 SW·AI 아카데미) 교육 과정의 팀 프로젝트입니다.
+- [Django 공식 문서](https://docs.djangoproject.com/)
+- [Django REST Framework](https://www.django-rest-framework.org/)
+- [Vue 공식 문서](https://vuejs.org/)
+- [TMDB API](https://developer.themoviedb.org/docs)
+- [YouTube Data API](https://developers.google.com/youtube/v3/getting-started?hl=ko)
+- [Google Gmail API](https://developers.google.com/gmail/api)
