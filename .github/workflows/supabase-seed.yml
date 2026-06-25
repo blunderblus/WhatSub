@@ -1,0 +1,41 @@
+# One-shot Supabase setup when local network blocks Postgres (e.g. SSAFY campus).
+# GitHub runners can reach Supabase; your PC does not need port 5432 open.
+#
+# Setup:
+#   1. Push this repo to GitHub
+#   2. Settings → Secrets → Actions → New repository secret:
+#        DATABASE_URL = Supabase Session URI (port 5432, no [] brackets)
+#   3. Actions → "Seed Supabase" → Run workflow
+#
+# Local dev: comment out DATABASE_URL in .env to keep using SQLite.
+
+name: Seed Supabase
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Migrate and load fixtures
+        env:
+          DEBUG: 'True'
+          SECRET_KEY: ci-temporary-secret-not-for-production
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bash scripts/load_seed_data.sh

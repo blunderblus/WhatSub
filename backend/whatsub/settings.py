@@ -89,17 +89,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'whatsub.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -222,6 +211,26 @@ FRONTEND_URL = env('FRONTEND_URL', default=FRONTEND_URL)
 BACKEND_URL = env('BACKEND_URL', default=BACKEND_URL)
 LOGIN_REDIRECT_URL = '/accounts/onboarding/'
 LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
+
+# Database — DATABASE_URL unset → local SQLite. Set for Supabase/Postgres.
+# migrate: use Supabase Session/direct URI (port 5432). Runtime: pooler (6543) OK.
+if env.str('DATABASE_URL', default=''):
+    DATABASES = {
+        'default': env.db('DATABASE_URL'),
+    }
+    _db = DATABASES['default']
+    if _db['ENGINE'] == 'django.db.backends.postgresql':
+        _db['CONN_MAX_AGE'] = 0  # required for Supabase pgbouncer transaction mode
+        _db.setdefault('OPTIONS', {})
+        _db['OPTIONS'].setdefault('sslmode', 'require')
+        _db['OPTIONS'].setdefault('connect_timeout', 10)
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 _DEV_VITE_PORTS = tuple(range(5173, 5200))
 
