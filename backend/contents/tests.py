@@ -153,7 +153,8 @@ class ProviderDisplayUtilityTest(TestCase):
         [provider] = decorate_providers([{'service': 'coupangplay'}])
 
         self.assertEqual(provider['display_name'], 'Coupang Play')
-        self.assertEqual(provider['icon_url'], '/media/CoupangPlay_icon.png')
+        self.assertTrue(provider['icon_url'].endswith('/media/CoupangPlay_icon.png'))
+        self.assertTrue(provider['icon_url'].startswith('http'))
 
     def test_tmdb_image_url_builds_expected_url(self):
         self.assertEqual(

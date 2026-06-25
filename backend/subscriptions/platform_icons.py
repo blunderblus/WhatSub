@@ -1,5 +1,3 @@
-"""Local platform icon mapping (files under subscriptions/media/)."""
-
 from django.conf import settings
 
 # Normalized name (lowercase) -> (display name, icon filename)
@@ -33,7 +31,18 @@ PLATFORM_ICON_ALIASES = {
 }
 
 
+def absolute_media_url(filename):
+    """Absolute URL for local media files (required when frontend is on another origin)."""
+    if not filename:
+        return ''
+    base = settings.BACKEND_URL.rstrip('/')
+    media = settings.MEDIA_URL if settings.MEDIA_URL.startswith('/') else f'/{settings.MEDIA_URL}'
+    if not media.endswith('/'):
+        media = f'{media}/'
+    return f'{base}{media}{filename}'
+
+
 def platform_icon_url(name):
     match = PLATFORM_ICON_ALIASES.get((name or '').lower().strip())
     filename = match[1] if match else None
-    return f'{settings.MEDIA_URL}{filename}' if filename else ''
+    return absolute_media_url(filename) if filename else ''

@@ -1,8 +1,6 @@
 """Provider normalization, ordering, and display decoration."""
 
-from django.conf import settings
-
-from subscriptions.platform_icons import PLATFORM_ICON_ALIASES
+from subscriptions.platform_icons import PLATFORM_ICON_ALIASES, absolute_media_url
 
 PROVIDER_PRIORITY = {
     'subscription': 0,
@@ -67,6 +65,6 @@ def decorate_providers(providers):
         if match:
             display_name, filename = match
             provider['display_name'] = display_name
-            provider['icon_url'] = f'{settings.MEDIA_URL}{filename}'
+            provider['icon_url'] = absolute_media_url(filename)
         decorated.append(provider)
     return decorated
