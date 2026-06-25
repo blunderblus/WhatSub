@@ -110,6 +110,53 @@ class ManualSubscriptionApiTest(TestCase):
         self.assertEqual(UserSubscription.objects.count(), 1)
 
 
+class WithdrawAccountTest(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username='member',
+            email='member@example.com',
+            password='password',
+            nickname='Member',
+        )
+        self.client.login(username='member', password='password')
+
+    def test_withdraw_deletes_user_and_logs_out(self):
+        response = self.client.post(
+            '/api/accounts/withdraw/',
+            data={'password': 'password'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(pk=self.user.pk).exists())
+        me = self.client.get('/api/accounts/me/')
+        self.assertFalse(me.json()['isAuthenticated'])
+
+    def test_withdraw_requires_correct_password(self):
+        response = self.client.post(
+            '/api/accounts/withdraw/',
+            data={'password': 'wrong'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(get_user_model().objects.filter(pk=self.user.pk).exists())
+
+    def test_staff_cannot_withdraw(self):
+        self.user.is_staff = True
+        self.user.save(update_fields=['is_staff'])
+
+        response = self.client.post(
+            '/api/accounts/withdraw/',
+            data={'password': 'password'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(get_user_model().objects.filter(pk=self.user.pk).exists())
+
+
 class GoogleAuthIntentTest(TestCase):
     def test_oauth_start_stores_login_intent_in_session(self):
         response = self.client.get(

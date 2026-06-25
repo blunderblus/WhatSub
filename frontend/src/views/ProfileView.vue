@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { fetchMyCommunityPosts } from '../api/community';
 import { apiRequest } from '../api/http';
 import PageHeader from '../components/PageHeader.vue';
@@ -9,8 +9,13 @@ import { profileInitial as getProfileInitial } from '../utils/formatters';
 import { useSessionStore } from '../stores/session';
 
 const session = useSessionStore();
+const router = useRouter();
 const activeTab = ref('subscriptions');
 const form = ref({ nickname: '', profile_image: '' });
+const withdrawPassword = ref('');
+const withdrawConfirmed = ref(false);
+const withdrawing = ref(false);
+const withdrawError = ref('');
 const message = ref('');
 const error = ref('');
 const saving = ref(false);
@@ -24,6 +29,8 @@ const avatarPresets = Array.from({ length: 9 }, (_, index) => ({
 
 const profileName = computed(() => session.user?.nickname || session.user?.username || '내 프로필');
 const profileInitial = computed(() => getProfileInitial(profileName.value));
+const isStaffAccount = computed(() => Boolean(session.user?.is_staff || session.user?.is_superuser));
+const requiresWithdrawPassword = computed(() => session.user?.has_password !== false);
 
 function hydrateForm() {
   form.value.nickname = session.user?.nickname || session.user?.username || '';
@@ -74,6 +81,33 @@ async function submit() {
     error.value = Object.values(err.payload || {}).flat().join(' ') || err.message;
   } finally {
     saving.value = false;
+  }
+}
+
+async function submitWithdraw() {
+  withdrawError.value = '';
+  if (!withdrawConfirmed.value) {
+    withdrawError.value = '탈퇴 안내를 확인해 주세요.';
+    return;
+  }
+  if (requiresWithdrawPassword.value && !withdrawPassword.value) {
+    withdrawError.value = '비밀번호를 입력해 주세요.';
+    return;
+  }
+  if (!window.confirm('정말 탈퇴하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) {
+    return;
+  }
+
+  withdrawing.value = true;
+  try {
+    const payload = requiresWithdrawPassword.value ? { password: withdrawPassword.value } : {};
+    await session.withdraw(payload);
+    alert('회원 탈퇴가 완료되었습니다.');
+    router.push('/');
+  } catch (err) {
+    withdrawError.value = Object.values(err.payload || {}).flat().join(' ') || err.message;
+  } finally {
+    withdrawing.value = false;
   }
 }
 
@@ -207,6 +241,32 @@ onMounted(() => {
           {{ saving ? '저장 중' : '저장하기' }}
         </button>
       </form>
+
+      <section v-if="!isStaffAccount" class="withdraw-section">
+        <h3>회원 탈퇴</h3>
+        <p class="muted small">
+          탈퇴 시 구독 정보, 취향 프로필, 커뮤니티 글·댓글, 리뷰·반응 등 계정과 연결된 데이터가 모두 삭제됩니다.
+        </p>
+        <p v-if="withdrawError" class="notice">{{ withdrawError }}</p>
+        <div v-if="requiresWithdrawPassword" class="field">
+          <label for="withdraw_password">비밀번호 확인</label>
+          <input
+            id="withdraw_password"
+            v-model="withdrawPassword"
+            type="password"
+            autocomplete="current-password"
+            placeholder="현재 비밀번호"
+          />
+        </div>
+        <label class="withdraw-confirm">
+          <input v-model="withdrawConfirmed" type="checkbox" />
+          <span>위 안내를 확인했으며, 탈퇴 후 데이터 복구가 불가능함에 동의합니다.</span>
+        </label>
+        <button class="button danger full-width" type="button" :disabled="withdrawing" @click="submitWithdraw">
+          {{ withdrawing ? '탈퇴 처리 중' : '회원 탈퇴' }}
+        </button>
+      </section>
+      <p v-else class="muted small withdraw-staff-note">관리자 계정은 탈퇴할 수 없습니다.</p>
     </section>
   </main>
 </template>
@@ -450,6 +510,50 @@ onMounted(() => {
   border-color: rgba(217, 221, 146, 0.35);
   background: rgba(217, 221, 146, 0.08);
   color: var(--ws-primary);
+}
+
+.withdraw-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 12px;
+}
+
+.withdraw-section h3 {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 16px;
+}
+
+.withdraw-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.withdraw-confirm input {
+  margin-top: 3px;
+}
+
+.button.danger {
+  background: linear-gradient(135deg, #7f1d1d, #b91c1c);
+  color: #fff;
+}
+
+.button.danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.withdraw-staff-note {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 640px) {

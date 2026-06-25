@@ -2,7 +2,7 @@ from datetime import timedelta
 import logging
 
 from django.conf import settings
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.middleware.csrf import get_token
 from django.utils import timezone
@@ -68,6 +68,19 @@ def _subscription_payload(subscription, today=None):
     data['is_bundle'] = _is_bundle_subscription(subscription)
     data['included_platforms'] = _bundle_included_platforms(subscription) if data['is_bundle'] else []
     return data
+
+
+def _serialize_user(user):
+    return {
+        'id': user.id,
+        'username': user.username,
+        'nickname': user.nickname,
+        'email': user.email,
+        'profile_image': user.profile_image,
+        'is_staff': user.is_staff,
+        'is_superuser': user.is_superuser,
+        'has_password': user.has_usable_password(),
+    }
 
 
 def _dashboard_payload(user):
@@ -153,15 +166,7 @@ def me(request):
     return Response({
         'isAuthenticated': True,
         'hasGmailConnected': has_gmail,
-        'user': {
-            'id': user.id,
-            'username': user.username,
-            'nickname': user.nickname,
-            'email': user.email,
-            'profile_image': user.profile_image,
-            'is_staff': user.is_staff,
-            'is_superuser': user.is_superuser,
-        },
+        'user': _serialize_user(user),
     })
 
 
@@ -179,17 +184,7 @@ def profile(request):
     request.user.nickname = nickname
     request.user.profile_image = profile_image or None
     request.user.save(update_fields=['nickname', 'profile_image'])
-    return Response({
-        'user': {
-            'id': request.user.id,
-            'username': request.user.username,
-            'nickname': request.user.nickname,
-            'email': request.user.email,
-            'profile_image': request.user.profile_image,
-            'is_staff': request.user.is_staff,
-            'is_superuser': request.user.is_superuser,
-        },
-    })
+    return Response({'user': _serialize_user(request.user)})
 
 
 @api_view(['POST'])
@@ -228,6 +223,35 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return Response({'detail': 'Logged out successfully'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def withdraw_account(request):
+    user = request.user
+    if user.is_staff or user.is_superuser:
+        return Response(
+            {'detail': '관리자 계정은 탈퇴할 수 없습니다.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if user.has_usable_password():
+        password = request.data.get('password', '')
+        if not password:
+            return Response(
+                {'password': ['비밀번호를 입력해 주세요.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not authenticate(request, username=user.username, password=password):
+            return Response(
+                {'password': ['비밀번호가 올바르지 않습니다.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    user_id = user.pk
+    logout(request)
+    get_user_model().objects.filter(pk=user_id).delete()
+    return Response({'detail': '회원 탈퇴가 완료되었습니다.'})
 
 
 @api_view(['GET'])

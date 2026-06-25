@@ -43,5 +43,13 @@ export const useSessionStore = defineStore('session', {
       this.isAuthenticated = false;
       this.user = null;
     },
+    async withdraw(payload = {}) {
+      await apiRequest('/api/accounts/withdraw/', {
+        method: 'POST',
+        body: payload,
+      });
+      this.isAuthenticated = false;
+      this.user = null;
+    },
   },
 });
