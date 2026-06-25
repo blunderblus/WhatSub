@@ -158,7 +158,7 @@ onMounted(async () => {
       <div v-else-if="loading" class="loader">게시글을 불러오는 중입니다.</div>
       <div v-else class="board-list">
         <RouterLink v-for="notice in showPinnedNotices ? notices.slice(0, 3) : []" :key="`notice-${notice.id}`" class="board-row notice-row" :to="`/community/${notice.id}`">
-          <span class="row-board"><CommunityFlair is-notice /></span>
+          <span class="row-board"><CommunityFlair is-notice compact /></span>
           <strong class="row-title">{{ notice.title }}</strong>
           <span class="row-author author-chip">
             <img v-if="notice.author.profile_image" :src="notice.author.profile_image" alt="" />
@@ -175,12 +175,13 @@ onMounted(async () => {
         <div v-if="currentPosts.length === 0" class="empty">아직 게시글이 없습니다.</div>
         <RouterLink v-for="post in currentPosts" :key="post.id" class="board-row" :to="`/community/${post.id}`">
           <span class="row-board">
-            <CommunityFlair v-if="post.is_notice" is-notice />
+            <CommunityFlair v-if="post.is_notice" is-notice compact />
             <CommunityFlair
               v-else-if="post.flair_label"
               :label="post.flair_label"
               :platform-name="post.platform_name"
               :flair-tag="post.flair_tag"
+              compact
             />
             <span v-else>{{ post.board_label }}</span>
           </span>
@@ -269,7 +270,7 @@ onMounted(async () => {
 
 .board-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 120px 76px 58px 58px;
+  grid-template-columns: minmax(0, 112px) minmax(0, 1fr) minmax(0, 120px) 76px 58px 58px;
   gap: 10px;
   align-items: center;
   min-height: 44px;
@@ -290,8 +291,17 @@ onMounted(async () => {
 }
 
 .row-board {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   font-size: 12px;
   font-weight: 900;
+}
+
+.row-board :deep(.community-flair) {
+  max-width: 100%;
 }
 
 .row-board > span:not(.community-flair) {
@@ -339,6 +349,7 @@ onMounted(async () => {
 }
 
 .row-title {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

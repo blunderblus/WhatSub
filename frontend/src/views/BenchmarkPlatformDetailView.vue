@@ -554,14 +554,15 @@ onMounted(loadPage);
             <ul v-if="communityBoard.threads?.length" class="thread-list">
               <li v-for="post in communityBoard.threads" :key="post.id" :class="{ 'is-notice': post.is_notice }">
                 <RouterLink :to="`/community/${post.id}`">
-                  <CommunityFlair v-if="post.is_notice" is-notice />
+                  <CommunityFlair v-if="post.is_notice" is-notice compact />
                   <CommunityFlair
                     v-else-if="post.flair_label"
                     :label="post.flair_label"
                     :platform-name="post.platform_name"
                     :flair-tag="post.flair_tag"
+                    compact
                   />
-                  <strong>{{ post.title }}</strong>
+                  <strong class="thread-title">{{ post.title }}</strong>
                 </RouterLink>
                 <span class="muted">{{ post.author.nickname }} · {{ formatDate(post.created_at) }}</span>
               </li>
@@ -1273,11 +1274,25 @@ onMounted(loadPage);
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   color: inherit;
   text-decoration: none;
 }
 
-.thread-list a:hover strong {
+.thread-list a :deep(.community-flair) {
+  flex: 0 1 auto;
+  max-width: 7.5rem;
+}
+
+.thread-title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.thread-list a:hover .thread-title {
   text-decoration: underline;
 }
 

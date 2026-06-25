@@ -1,6 +1,12 @@
 <script setup>
 import { computed } from 'vue';
-import { flairStyle, flairTheme, FLAIR_NONE_THEME } from '../utils/platformFlair';
+import {
+  flairStyle,
+  flairTheme,
+  FLAIR_NONE_THEME,
+  flairDisplayLabel,
+  flairFullLabel,
+} from '../utils/platformFlair';
 
 const props = defineProps({
   label: {
@@ -27,23 +33,34 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['select']);
 
-const displayLabel = computed(() => {
-  if (props.label) return props.label;
-  if (props.isNotice) return '공지';
-  if (props.flairTag === 'other') return '기타';
-  return props.platformName || '';
-});
+const flairProps = computed(() => ({
+  platformName: props.platformName,
+  flairTag: props.flairTag,
+  isNotice: props.isNotice,
+  label: props.label,
+}));
+
+const displayLabel = computed(() => flairDisplayLabel({
+  ...flairProps.value,
+  compact: props.compact,
+}));
+
+const tooltipLabel = computed(() => flairFullLabel(flairProps.value));
 
 const theme = computed(() => {
   if (!props.platformName && !props.flairTag && !props.isNotice && props.label) {
     return FLAIR_NONE_THEME;
   }
   return flairTheme({
-    platformName: props.platformName,
+    platformName: props.platformName || props.label,
     flairTag: props.flairTag,
     isNotice: props.isNotice,
   });
@@ -60,14 +77,15 @@ function onClick() {
   <span
     v-if="hasFlair"
     class="community-flair"
-    :class="{ selected, selectable }"
+    :class="{ selected, selectable, compact }"
     :style="flairStyle(theme)"
+    :title="compact && tooltipLabel !== displayLabel ? tooltipLabel : undefined"
     :role="selectable ? 'button' : undefined"
     :tabindex="selectable ? 0 : undefined"
     @click="onClick"
     @keydown.enter.prevent="onClick"
   >
-    {{ displayLabel }}
+    <span class="flair-label">{{ displayLabel }}</span>
   </span>
 </template>
 
@@ -76,6 +94,8 @@ function onClick() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
+  min-width: 0;
   min-height: 26px;
   padding: 4px 12px;
   border-radius: 999px;
@@ -86,7 +106,21 @@ function onClick() {
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.01em;
+  vertical-align: middle;
+}
+
+.flair-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.community-flair.compact {
+  min-height: 22px;
+  padding: 2px 8px;
+  font-size: 10px;
+  line-height: 1.1;
 }
 
 .community-flair.selectable {
