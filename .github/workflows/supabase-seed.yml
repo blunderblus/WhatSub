@@ -1,13 +1,13 @@
 # One-shot Supabase setup when local network blocks Postgres (e.g. SSAFY campus).
-# GitHub runners can reach Supabase; your PC does not need port 5432 open.
 #
-# Setup:
-#   1. Push this repo to GitHub
-#   2. Settings → Secrets → Actions → New repository secret:
-#        DATABASE_URL = Supabase Session URI (port 5432, no [] brackets)
-#   3. Actions → "Seed Supabase" → Run workflow
+# GitHub Secret DATABASE_URL — copy EXACTLY from Supabase Dashboard:
+#   Project → Connect (top) → ORM / URI → Session mode, port 5432
+#   Do NOT guess aws-0 vs aws-1 pooler host; wrong host → "tenant/user not found"
+#   Username must be postgres.[project-ref] (no [] brackets)
+#   URL-encode special chars in password (@ → %40, etc.)
+#   If URI ends with ?pgbouncer=true, settings.py strips it automatically.
 #
-# Local dev: comment out DATABASE_URL in .env to keep using SQLite.
+# Local dev: keep DATABASE_URL commented in .env → SQLite
 
 name: Seed Supabase
 

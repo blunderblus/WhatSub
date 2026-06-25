@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 # backend/ is the Django app root; 10-pjt/ is the monorepo root (frontend, .env).
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -214,9 +215,25 @@ LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
 
 # Database — DATABASE_URL unset → local SQLite. Set for Supabase/Postgres.
 # migrate: use Supabase Session/direct URI (port 5432). Runtime: pooler (6543) OK.
-if env.str('DATABASE_URL', default=''):
+
+
+def _sanitize_supabase_database_url(url: str) -> str:
+    """Remove Supabase-only query params (e.g. pgbouncer=true) that psycopg2 rejects."""
+    parsed = urlparse(url)
+    if not parsed.query:
+        return url
+    kept = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() != 'pgbouncer'
+    ]
+    return urlunparse(parsed._replace(query=urlencode(kept)))
+
+
+_database_url = env.str('DATABASE_URL', default='')
+if _database_url:
     DATABASES = {
-        'default': env.db('DATABASE_URL'),
+        'default': env.db_url_config(_sanitize_supabase_database_url(_database_url)),
     }
     _db = DATABASES['default']
     if _db['ENGINE'] == 'django.db.backends.postgresql':
