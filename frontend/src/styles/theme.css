@@ -1,16 +1,41 @@
 :root {
-  --ws-bg: #000000;
-  --ws-surface: #1c2a43;
-  --ws-surface-2: #14213d;
-  --ws-border: #2a3b54;
-  --ws-text: #ffffff;
-  --ws-muted: #8e9eba;
-  --ws-primary: #ADEDFC;
+  /* Base palette */
+  --ws-bg: #050810;
+  --ws-bg-elevated: #0a1020;
+  --ws-text: #f4f7ff;
+  --ws-muted: #9aa8c4;
+  --ws-primary: #adedfc;
   --ws-primary-rgb: 173, 237, 252;
-  --ws-primary-fg: #000000;
+  --ws-primary-fg: #041018;
   --ws-secondary: #f3aac9;
   --ws-secondary-rgb: 243, 170, 201;
-  --ws-destructive: #ff4d4d;
-  --ws-radius: 12px;
-  --ws-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  --ws-destructive: #ff6b6b;
+  --ws-radius: 16px;
+  --ws-radius-sm: 10px;
+  --ws-radius-pill: 999px;
+
+  /* Glassmorphism 2.0 tokens */
+  --ws-glass-blur: 14px;
+  --ws-glass-blur-heavy: 20px;
+  --ws-glass-saturate: 140%;
+  --ws-glass-fill: rgba(255, 255, 255, 0.07);
+  --ws-glass-fill-strong: rgba(255, 255, 255, 0.11);
+  --ws-glass-fill-muted: rgba(255, 255, 255, 0.045);
+  --ws-glass-fill-accent: rgba(var(--ws-primary-rgb), 0.1);
+  --ws-glass-border: rgba(255, 255, 255, 0.16);
+  --ws-glass-border-strong: rgba(255, 255, 255, 0.24);
+  --ws-glass-border-accent: rgba(var(--ws-primary-rgb), 0.35);
+  --ws-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --ws-glass-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --ws-glass-shadow-lg:
+    0 18px 48px rgba(0, 0, 0, 0.38),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+
+  /* Semantic aliases (used across views) */
+  --ws-surface: var(--ws-glass-fill-strong);
+  --ws-surface-2: var(--ws-glass-fill-muted);
+  --ws-border: var(--ws-glass-border);
+  --ws-shadow: var(--ws-glass-shadow-lg);
 }

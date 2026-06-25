@@ -320,21 +320,23 @@ onMounted(async () => {
 
 .step-dot {
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--ws-radius-pill);
   font-size: 12px;
-  background: var(--ws-surface-2);
-  border: 1px solid var(--ws-border);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ws-glass-border);
   color: var(--ws-muted);
+  box-shadow: var(--ws-glass-highlight);
 }
 
 .step-dot.active {
-  border-color: var(--ws-primary);
+  border-color: rgba(var(--ws-primary-rgb), 0.45);
   color: var(--ws-primary);
   font-weight: 600;
+  background: rgba(var(--ws-primary-rgb), 0.12);
 }
 
 .step-dot.done {
-  background: var(--ws-surface);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .pref-panel {
@@ -350,11 +352,12 @@ onMounted(async () => {
   width: 100%;
   margin-top: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--ws-border);
-  border-radius: 10px;
-  background: var(--ws-surface-2);
+  border: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-sm);
+  background: rgba(255, 255, 255, 0.05);
   color: inherit;
   font: inherit;
+  box-shadow: var(--ws-glass-highlight);
 }
 
 .chip-grid {

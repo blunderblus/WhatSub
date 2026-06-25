@@ -186,31 +186,36 @@ onMounted(async () => {
 .board-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
+  gap: 6px;
   margin-bottom: 14px;
-  border-bottom: 2px solid var(--ws-border);
+  padding: 6px;
+  border: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-pill);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: var(--ws-glass-highlight);
 }
 
 .board-nav-item {
   min-height: 42px;
   padding: 0 18px;
-  border: 1px solid var(--ws-border);
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  background: var(--ws-surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--ws-radius-pill);
+  background: transparent;
   color: var(--ws-muted);
   cursor: pointer;
   font-weight: 900;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 
 .board-nav-item + .board-nav-item {
-  margin-left: -1px;
+  margin-left: 0;
 }
 
 .board-nav-item.active {
-  background: var(--ws-primary);
+  background: linear-gradient(135deg, rgba(var(--ws-primary-rgb), 0.92), rgba(var(--ws-secondary-rgb), 0.78));
   color: var(--ws-primary-fg);
-  border-color: var(--ws-primary);
+  border-color: rgba(var(--ws-primary-rgb), 0.35);
+  box-shadow: 0 4px 16px rgba(var(--ws-primary-rgb), 0.2);
 }
 
 .post-list-panel h2 {
@@ -227,7 +232,8 @@ onMounted(async () => {
 
 .board-list {
   overflow: hidden;
-  border-top: 2px solid var(--ws-border);
+  border-top: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-sm);
 }
 
 .board-row {
@@ -237,17 +243,19 @@ onMounted(async () => {
   align-items: center;
   min-height: 44px;
   padding: 9px 10px;
-  border-bottom: 1px solid var(--ws-border);
-  background: var(--ws-surface);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--ws-text);
+  transition: background 0.18s, box-shadow 0.18s;
 }
 
 .board-row:hover {
-  background: rgba(217, 221, 146, 0.04);
+  background: rgba(var(--ws-primary-rgb), 0.08);
+  box-shadow: var(--ws-glass-highlight);
 }
 
 .notice-row {
-  background: rgba(252, 163, 17, 0.08);
+  background: rgba(252, 163, 17, 0.1);
 }
 
 .row-board {
@@ -262,8 +270,10 @@ onMounted(async () => {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
-  background: rgba(217, 221, 146, 0.2);
+  background: rgba(var(--ws-primary-rgb), 0.16);
+  border: 1px solid rgba(var(--ws-primary-rgb), 0.28);
   color: var(--ws-primary);
+  backdrop-filter: blur(8px);
 }
 
 .flair.notice {

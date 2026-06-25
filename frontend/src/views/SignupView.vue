@@ -78,14 +78,17 @@ async function submit() {
   justify-content: center;
   gap: 10px;
   margin-top: 4px;
-  border-color: var(--ws-border);
-  background: var(--ws-surface-2);
+  border-color: var(--ws-glass-border);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--ws-text);
   font-weight: 800;
+  box-shadow: var(--ws-glass-highlight);
+  backdrop-filter: blur(var(--ws-glass-blur));
 }
 
 .button.google:hover {
-  border-color: rgba(var(--ws-primary-rgb), 0.55);
+  border-color: rgba(var(--ws-primary-rgb), 0.45);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .google-mark {

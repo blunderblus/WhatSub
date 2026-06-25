@@ -505,18 +505,21 @@ onMounted(async () => {
 
 .tab-btn {
   padding: 10px 16px;
-  border: 1px solid var(--ws-border);
-  border-radius: 999px;
-  background: var(--ws-surface-2);
+  border: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-pill);
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
   font-weight: 600;
   color: var(--ws-text);
+  box-shadow: var(--ws-glass-highlight);
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
 }
 
 .tab-btn.active {
-  border-color: var(--ws-primary);
-  background: var(--ws-primary);
+  border-color: rgba(var(--ws-primary-rgb), 0.45);
+  background: linear-gradient(135deg, rgba(var(--ws-primary-rgb), 0.95), rgba(var(--ws-secondary-rgb), 0.75));
   color: var(--ws-primary-fg);
+  box-shadow: 0 4px 18px rgba(var(--ws-primary-rgb), 0.22);
 }
 
 .meta-bar {
@@ -591,20 +594,22 @@ onMounted(async () => {
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
-  border: 1px solid var(--ws-border);
-  border-radius: 12px;
-  background: var(--ws-surface-2);
+  border: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
   text-decoration: none;
+  box-shadow: var(--ws-glass-highlight);
 }
 
 .rank-item.active .rank-button,
 .rank-button:hover {
-  border-color: var(--ws-primary);
-  background: var(--ws-surface);
+  border-color: rgba(var(--ws-primary-rgb), 0.4);
+  background: rgba(var(--ws-primary-rgb), 0.1);
+  box-shadow: var(--ws-glass-shadow), var(--ws-glass-highlight);
 }
 
 .rank-num { font-weight: 700; color: var(--ws-muted); }
@@ -657,11 +662,12 @@ onMounted(async () => {
 .confidence-badge {
   margin-left: auto;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--ws-radius-pill);
   font-size: 12px;
   font-weight: 600;
-  background: var(--ws-surface-2);
-  border: 1px solid var(--ws-border);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ws-glass-border);
+  backdrop-filter: blur(12px);
 }
 
 .confidence-badge[data-level='high'] { color: #0f766e; border-color: #99f6e4; background: #ecfdf5; }

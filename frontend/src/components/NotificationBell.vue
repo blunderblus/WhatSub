@@ -9,10 +9,22 @@ const open = ref(false);
 const loading = ref(false);
 const notifications = ref([]);
 const readIds = ref(new Set(JSON.parse(localStorage.getItem('ws-notif-read') || '[]')));
+const bellRef = ref(null);
+const panelStyle = ref({});
 
 const unreadCount = computed(() =>
   notifications.value.filter((n) => !readIds.value.has(n.id)).length,
 );
+
+function updatePanelPosition() {
+  const el = bellRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  panelStyle.value = {
+    top: `${rect.bottom + 8}px`,
+    right: `${Math.max(12, window.innerWidth - rect.right)}px`,
+  };
+}
 
 async function loadNotifications() {
   if (!session.isAuthenticated) {
@@ -32,7 +44,10 @@ async function loadNotifications() {
 
 function togglePanel() {
   open.value = !open.value;
-  if (open.value) loadNotifications();
+  if (open.value) {
+    updatePanelPosition();
+    loadNotifications();
+  }
 }
 
 function closePanel() {
@@ -50,7 +65,13 @@ function markAllRead() {
 }
 
 function onClickOutside(event) {
-  if (!event.target.closest('.notif-wrap')) closePanel();
+  if (!event.target.closest('.notif-wrap') && !event.target.closest('.notif-panel')) {
+    closePanel();
+  }
+}
+
+function onViewportChange() {
+  if (open.value) updatePanelPosition();
 }
 
 function typeIcon(type) {
@@ -62,10 +83,14 @@ watch(() => session.isAuthenticated, loadNotifications);
 onMounted(() => {
   loadNotifications();
   document.addEventListener('click', onClickOutside);
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('scroll', onViewportChange, { passive: true });
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside);
+  window.removeEventListener('resize', onViewportChange);
+  window.removeEventListener('scroll', onViewportChange);
 });
 
 defineExpose({ loadNotifications, notifications });
@@ -74,6 +99,7 @@ defineExpose({ loadNotifications, notifications });
 <template>
   <div v-if="session.isAuthenticated" class="notif-wrap">
     <button
+      ref="bellRef"
       type="button"
       class="bell-btn"
       aria-label="알림"
@@ -86,32 +112,34 @@ defineExpose({ loadNotifications, notifications });
       <span v-if="unreadCount" class="badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
     </button>
 
-    <div v-if="open" class="notif-panel" @click.stop>
-      <div class="panel-head">
-        <strong>알림</strong>
-        <div class="panel-actions">
-          <button v-if="unreadCount" type="button" class="mark-all" @click="markAllRead">모두 읽음</button>
-          <button type="button" class="panel-close" aria-label="알림 닫기" @click="closePanel">×</button>
+    <Teleport to="body">
+      <div v-if="open" class="notif-panel" :style="panelStyle" @click.stop>
+        <div class="panel-head">
+          <strong>알림</strong>
+          <div class="panel-actions">
+            <button v-if="unreadCount" type="button" class="mark-all" @click="markAllRead">모두 읽음</button>
+            <button type="button" class="panel-close" aria-label="알림 닫기" @click="closePanel">×</button>
+          </div>
         </div>
+        <div v-if="loading" class="panel-empty">불러오는 중...</div>
+        <ul v-else-if="notifications.length" class="notif-list">
+          <li
+            v-for="n in notifications"
+            :key="n.id"
+            :class="{ unread: !readIds.has(n.id), urgent: n.urgency === 'high' }"
+          >
+            <RouterLink :to="n.link" @click="markRead(n.id); open = false">
+              <span class="icon">{{ typeIcon(n.type) }}</span>
+              <div>
+                <strong>{{ n.title }}</strong>
+                <span>{{ n.body }}</span>
+              </div>
+            </RouterLink>
+          </li>
+        </ul>
+        <p v-else class="panel-empty">새 알림이 없습니다.</p>
       </div>
-      <div v-if="loading" class="panel-empty">불러오는 중...</div>
-      <ul v-else-if="notifications.length" class="notif-list">
-        <li
-          v-for="n in notifications"
-          :key="n.id"
-          :class="{ unread: !readIds.has(n.id), urgent: n.urgency === 'high' }"
-        >
-          <RouterLink :to="n.link" @click="markRead(n.id); open = false">
-            <span class="icon">{{ typeIcon(n.type) }}</span>
-            <div>
-              <strong>{{ n.title }}</strong>
-              <span>{{ n.body }}</span>
-            </div>
-          </RouterLink>
-        </li>
-      </ul>
-      <p v-else class="panel-empty">새 알림이 없습니다.</p>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -127,11 +155,12 @@ defineExpose({ loadNotifications, notifications });
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--ws-border);
-  border-radius: 8px;
-  background: var(--ws-surface);
+  border: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-sm);
+  background: rgba(255, 255, 255, 0.06);
   cursor: pointer;
   color: var(--ws-text);
+  box-shadow: var(--ws-glass-highlight);
 }
 
 .bell-btn svg {
@@ -161,17 +190,17 @@ defineExpose({ loadNotifications, notifications });
 }
 
 .notif-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 100;
-  width: min(360px, 90vw);
-  max-height: 420px;
+  position: fixed;
+  z-index: 5000;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(420px, calc(100vh - 96px));
   overflow: auto;
-  border: 1px solid var(--ws-border);
-  border-radius: 12px;
-  background: var(--ws-surface);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--ws-glass-border-strong);
+  border-radius: var(--ws-radius);
+  background: rgba(12, 18, 32, 0.92);
+  box-shadow: var(--ws-glass-shadow-lg), var(--ws-glass-highlight);
+  backdrop-filter: blur(var(--ws-glass-blur-heavy)) saturate(var(--ws-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--ws-glass-blur-heavy)) saturate(var(--ws-glass-saturate));
 }
 
 .panel-head {
@@ -224,7 +253,7 @@ defineExpose({ loadNotifications, notifications });
 }
 
 .notif-list li.unread {
-  background: #f8fafc;
+  background: rgba(var(--ws-primary-rgb), 0.08);
 }
 
 .notif-list li.urgent a strong {

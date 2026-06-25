@@ -81,6 +81,9 @@ onMounted(async () => {
         :src="slide.image"
         alt=""
         aria-hidden="true"
+        :fetchpriority="index === 0 ? 'high' : 'low'"
+        :loading="index === 0 ? 'eager' : 'lazy'"
+        decoding="async"
       />
       <div class="hero-copy">
         <div class="hero-brand-intro">
@@ -197,12 +200,15 @@ onMounted(async () => {
 
 .landing-hero {
   position: relative;
+  z-index: 0;
   display: grid;
   min-height: 520px;
   padding: 34px;
   overflow: hidden;
   align-items: end;
-  background: var(--ws-surface);
+  background: #0a1020;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .landing-hero::after {
@@ -225,14 +231,13 @@ onMounted(async () => {
   opacity: 0;
   object-fit: cover;
   object-position: center center;
-  transition: opacity 700ms ease, transform 5200ms ease;
-  transform: scale(1.02);
-  transform-origin: center center;
+  transition: opacity 700ms ease;
+  transform: translateZ(0);
+  will-change: opacity;
 }
 
 .hero-bg.active {
   opacity: 1;
-  transform: scale(1.06);
 }
 
 .hero-copy {
@@ -285,8 +290,7 @@ onMounted(async () => {
   padding: 16px;
   border: 1px solid rgba(var(--ws-primary-rgb), 0.34);
   border-radius: 8px;
-  background: linear-gradient(145deg, rgba(12, 16, 24, 0.72), rgba(var(--ws-primary-rgb), 0.1));
-  backdrop-filter: blur(10px);
+  background: linear-gradient(145deg, rgba(12, 16, 24, 0.82), rgba(var(--ws-primary-rgb), 0.12));
 }
 
 .hero-points div:nth-child(2) {
@@ -405,6 +409,8 @@ onMounted(async () => {
 .home-content {
   overflow: hidden;
   padding: 18px 16px 16px;
+  content-visibility: auto;
+  contain-intrinsic-size: 480px;
 }
 
 .compact-head {
@@ -413,6 +419,8 @@ onMounted(async () => {
 
 .platform-recommend {
   padding: 18px;
+  content-visibility: auto;
+  contain-intrinsic-size: 360px;
 }
 
 .recommend-grid {
@@ -469,6 +477,13 @@ onMounted(async () => {
   align-self: end;
   color: var(--ws-primary);
   font-family: Comfortaa, "Asta Sans", sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg {
+    transition: none;
+    will-change: auto;
+  }
 }
 
 @media (max-width: 560px) {
