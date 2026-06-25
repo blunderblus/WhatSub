@@ -36,11 +36,12 @@ def main() -> int:
     print(f'loading {fixture_path.name}: {total} objects (batch_size={batch_size})', flush=True)
 
     for start in range(0, total, batch_size):
+        done = min(start + batch_size, total)
+        print(f'  batch start: {start + 1}-{done}/{total}', flush=True)
         batch = objects[start:start + batch_size]
         with transaction.atomic():
             for item in batch:
                 item.save()
-        done = min(start + batch_size, total)
         print(f'  progress: {done}/{total}', flush=True)
 
     print(f'loaded {total} objects from {fixture_path.name}', flush=True)

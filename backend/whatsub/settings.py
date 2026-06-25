@@ -61,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -126,6 +127,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media files (platform/provider icons live under subscriptions/media)
 MEDIA_URL = '/media/'
@@ -195,6 +198,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
 ]
+
+# Fly.io sets FLY_APP_NAME automatically in production.
+FLY_APP_NAME = ''
 
 import environ
 import os
@@ -281,8 +287,36 @@ CSRF_TRUSTED_ORIGINS = sorted({
     *_dev_frontend_origins(FRONTEND_URL),
 })
 
-CORS_ALLOWED_ORIGINS = _dev_frontend_origins(FRONTEND_URL)
+if DEBUG:
+    CORS_ALLOWED_ORIGINS = _dev_frontend_origins(FRONTEND_URL)
+else:
+    CORS_ALLOWED_ORIGINS = [FRONTEND_URL.rstrip('/')]
+    CSRF_TRUSTED_ORIGINS = sorted({
+        BACKEND_URL.rstrip('/'),
+        FRONTEND_URL.rstrip('/'),
+    })
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+
 CORS_ALLOW_CREDENTIALS = True
+
+ALLOWED_HOSTS = env.list(
+    'ALLOWED_HOSTS',
+    default=['127.0.0.1', 'localhost'],
+)
+FLY_APP_NAME = env.str('FLY_APP_NAME', default='')
+if FLY_APP_NAME:
+    ALLOWED_HOSTS.extend([
+        f'{FLY_APP_NAME}.fly.dev',
+        f'{FLY_APP_NAME}.internal',
+    ])
+_backend_host = urlparse(BACKEND_URL).hostname
+if _backend_host and _backend_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_backend_host)
 
 # 우리가 사용할 API 키들
 TMDB_API_KEY = env('TMDB_API_KEY', default='')
