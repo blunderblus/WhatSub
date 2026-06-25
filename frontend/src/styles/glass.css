@@ -20,13 +20,8 @@
 .app-glass :is(
   .topbar,
   .nav,
-  .form-card,
   .auth-card,
-  .notif-panel,
-  .toast-card,
-  .panel:not(.landing-hero),
-  .content-card,
-  .calc-panel
+  .notif-panel
 ) {
   backdrop-filter: blur(var(--ws-glass-blur)) saturate(var(--ws-glass-saturate));
   -webkit-backdrop-filter: blur(var(--ws-glass-blur)) saturate(var(--ws-glass-saturate));
@@ -36,13 +31,8 @@
   .app-glass :is(
     .topbar,
     .nav,
-    .form-card,
     .auth-card,
-    .notif-panel,
-    .toast-card,
-    .panel:not(.landing-hero),
-    .content-card,
-    .calc-panel
+    .notif-panel
   ) {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
