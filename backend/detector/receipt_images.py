@@ -8,10 +8,11 @@ _RECEIPT_MIME_TYPES = frozenset({
     'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
 })
 
-# GMS proxy fails to parse large JSON bodies (~500KB+) with a misleading
-# "Model not found in request" error. Keep each image small after base64.
+# GMS proxy rejects large generateContent JSON bodies (~90KB+) with a misleading
+# "GenerateContentRequest.contents: contents is not specified" error (not a real
+# missing-field issue). Keep each image small after base64.
 _MAX_EDGE = 1280
-_MAX_BYTES = 90_000
+_MAX_BYTES = 48_000
 
 
 def resolve_receipt_mime(upload, raw: bytes) -> str | None:

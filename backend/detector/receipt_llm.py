@@ -17,7 +17,7 @@ logger = logging.getLogger('detector.receipt')
 
 _TIMEOUT = 120
 _MAX_IMAGES = 5
-_GMS_PAYLOAD_LIMIT = 420_000
+_GMS_PAYLOAD_LIMIT = 95_000
 
 _SYSTEM_PROMPT = (
     'You are a precise assistant that extracts recurring subscription billing '
@@ -65,6 +65,11 @@ def _extract_api_error_message(response) -> str:
 
 
 def _format_gms_error(detail: str, *, payload_bytes: int) -> str:
+    if 'contents is not specified' in detail:
+        return (
+            f'영수증 이미지 전송 크기({payload_bytes // 1024}KB)가 GMS 한도를 초과했습니다. '
+            '이미지 장수를 줄이거나 더 작은 스크린샷을 업로드해 주세요.'
+        )
     if 'Model not found in request' in detail:
         return (
             f'영수증 이미지 전송 크기({payload_bytes // 1024}KB)가 GMS 한도를 초과했습니다. '
@@ -129,7 +134,7 @@ def _extract_batch(images):
     if payload_bytes > _GMS_PAYLOAD_LIMIT:
         raise RuntimeError(
             f'영수증 이미지 전송 크기({payload_bytes // 1024}KB)가 GMS 한도를 초과합니다. '
-            '이미지 장수를 줄여 주세요.'
+            '이미지 장수를 줄이거나 더 작은 스크린샷을 업로드해 주세요.'
         )
     return _call_vision_api(images, payload_bytes=payload_bytes)
 
