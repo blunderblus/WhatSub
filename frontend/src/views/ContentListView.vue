@@ -100,7 +100,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main>
+  <main class="ws-page">
     <div v-if="platforms.length" class="chip-row" style="margin-bottom: 14px">
       <span class="filter-label">플랫폼</span>
       <button class="chip" :class="{ active: selectedPlatforms.length === 0 }" type="button" @click="clearPlatformSelection">

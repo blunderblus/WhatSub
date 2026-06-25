@@ -33,7 +33,7 @@ function openDetail(item) {
 </script>
 
 <template>
-  <main>
+  <main class="ws-page">
     <section class="panel">
       <PageHeader
         eyebrow="Search"

@@ -1,5 +1,6 @@
 @import './styles/theme.css';
 @import './styles/glass.css';
+@import './styles/layout.css';
 
 :root {
   color: var(--ws-text);
@@ -66,7 +67,7 @@ a {
 }
 
 .app-shell {
-  width: min(1180px, calc(100% - 32px));
+  width: min(var(--ws-layout-max), calc(100% - var(--ws-layout-gutter)));
   margin: 0 auto;
   padding: 18px 0 48px;
 }
@@ -196,7 +197,7 @@ a {
 
 .hero,
 .band,
-.panel:not(.landing-hero),
+.panel,
 .card,
 .metric,
 .form-card {
@@ -206,7 +207,7 @@ a {
   box-shadow: var(--ws-glass-shadow-lg), var(--ws-glass-highlight);
 }
 
-.panel:not(.landing-hero),
+.panel,
 .card,
 .metric,
 .form-card {
@@ -402,12 +403,6 @@ p {
   width: 100%;
 }
 
-.poster-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 16px;
-}
-
 .content-card {
   overflow: hidden;
   border: 1px solid var(--ws-glass-border);
@@ -502,6 +497,37 @@ p {
   padding-top: 26px;
 }
 
+@media (min-width: 1280px) {
+  .topbar {
+    padding: 10px 18px;
+  }
+
+  .nav {
+    gap: 6px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-2 {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --ws-layout-max: 1520px;
+  }
+
+  .grid-2 {
+    grid-template-columns: minmax(0, 1.65fr) minmax(360px, 0.9fr);
+  }
+}
+
 @media (max-width: 900px) {
   .topbar {
     align-items: flex-start;
@@ -522,7 +548,7 @@ p {
 
 @media (max-width: 620px) {
   .app-shell {
-    width: min(100% - 20px, 1180px);
+    width: min(100% - 20px, var(--ws-layout-max));
   }
 
   h1 {
@@ -536,11 +562,6 @@ p {
 
   .form-row {
     grid-template-columns: 1fr;
-  }
-
-  .poster-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
   }
 
   .topbar {

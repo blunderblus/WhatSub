@@ -13,6 +13,8 @@
   --ws-radius: 16px;
   --ws-radius-sm: 10px;
   --ws-radius-pill: 999px;
+  --ws-layout-max: 1440px;
+  --ws-layout-gutter: clamp(16px, 2.5vw, 40px);
 
   /* Glassmorphism 2.0 tokens */
   --ws-glass-blur: 8px;

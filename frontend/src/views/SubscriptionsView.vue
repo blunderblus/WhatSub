@@ -4,7 +4,7 @@ import UserSubscriptionDashboard from '../components/UserSubscriptionDashboard.v
 </script>
 
 <template>
-  <main>
+  <main class="ws-page">
     <PageHeader eyebrow="My Subscriptions" title="내 구독 대시보드" />
     <UserSubscriptionDashboard />
   </main>

@@ -65,7 +65,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="home">
+  <main class="home ws-page">
     <section
       class="landing-hero panel"
       @mouseenter="stopHeroCarousel"
@@ -85,47 +85,35 @@ onMounted(async () => {
         :loading="index === 0 ? 'eager' : 'lazy'"
         decoding="async"
       />
-      <div class="hero-copy">
-        <div class="hero-brand-intro">
-          <div class="hero-logo-row">
-            <WLogo :size="52" />
-            <span class="hero-logo-text">WhatSub</span>
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <div class="hero-brand-intro">
+            <div class="hero-logo-row">
+              <WLogo :size="52" />
+              <span class="hero-logo-text">WhatSub</span>
+            </div>
           </div>
-        </div>
-        <h1>{{ heroSlides[activeHeroSlide].title }}</h1>
-        <p class="lead">{{ heroSlides[activeHeroSlide].description }}</p>
-        <div class="actions">
-          <a
-            v-if="session.isAuthenticated"
-            class="button primary"
-            :href="backendUrl(backendRoutes.onboardingGmail)"
-          >Gmail로 구독 찾기</a>
-          <RouterLink v-if="session.isAuthenticated" class="button secondary" to="/subscriptions">내 대시보드</RouterLink>
-          <RouterLink v-if="!session.isAuthenticated" class="button primary" to="/signup">시작하기</RouterLink>
-        </div>
-        <div class="hero-dots" aria-label="메인 이미지 선택">
-          <button
-            v-for="(slide, index) in heroSlides"
-            :key="`${slide.image}-dot`"
-            class="hero-dot"
-            :class="{ active: index === activeHeroSlide }"
-            type="button"
-            :aria-label="`${index + 1}번째 메인 이미지`"
-            @click="selectHeroSlide(index)"
-          />
-        </div>
-        <div class="hero-points">
-          <div>
-            <span>결제일</span>
-            <strong>놓치기 쉬운 갱신일을 먼저 확인</strong>
+          <h1>{{ heroSlides[activeHeroSlide].title }}</h1>
+          <p class="lead">{{ heroSlides[activeHeroSlide].description }}</p>
+          <div class="actions">
+            <a
+              v-if="session.isAuthenticated"
+              class="button primary"
+              :href="backendUrl(backendRoutes.onboardingGmail)"
+            >Gmail로 구독 찾기</a>
+            <RouterLink v-if="session.isAuthenticated" class="button secondary" to="/subscriptions">내 대시보드</RouterLink>
+            <RouterLink v-if="!session.isAuthenticated" class="button primary" to="/signup">시작하기</RouterLink>
           </div>
-          <div>
-            <span>비용</span>
-            <strong>월 구독 지출을 한 번에 계산</strong>
-          </div>
-          <div>
-            <span>콘텐츠</span>
-            <strong>볼 작품과 플랫폼을 함께 비교</strong>
+          <div class="hero-dots" aria-label="메인 이미지 선택">
+            <button
+              v-for="(slide, index) in heroSlides"
+              :key="`${slide.image}-dot`"
+              class="hero-dot"
+              :class="{ active: index === activeHeroSlide }"
+              type="button"
+              :aria-label="`${index + 1}번째 메인 이미지`"
+              @click="selectHeroSlide(index)"
+            />
           </div>
         </div>
 
@@ -141,9 +129,24 @@ onMounted(async () => {
         </aside>
       </div>
 
+      <div class="hero-points">
+        <div>
+          <span>결제일</span>
+          <strong>놓치기 쉬운 갱신일을 먼저 확인</strong>
+        </div>
+        <div>
+          <span>비용</span>
+          <strong>월 구독 지출을 한 번에 계산</strong>
+        </div>
+        <div>
+          <span>콘텐츠</span>
+          <strong>볼 작품과 플랫폼을 함께 비교</strong>
+        </div>
+      </div>
     </section>
 
-    <section class="home-content panel">
+    <div class="home-bottom">
+      <section class="home-content panel">
       <div class="section-head compact-head">
         <div>
           <h2>요즘 많이 찾는 작품</h2>
@@ -158,9 +161,9 @@ onMounted(async () => {
         @open="openContentDetail"
       />
       <div v-else class="empty">표시할 콘텐츠가 없습니다.</div>
-    </section>
+      </section>
 
-    <section class="platform-recommend panel">
+      <section class="platform-recommend panel">
       <div class="section-head compact-head">
         <div>
           <h2>플랫폼 추천</h2>
@@ -188,24 +191,32 @@ onMounted(async () => {
       </div>
       <div v-else-if="discoveryLoading" class="loader">추천 플랫폼을 불러오는 중입니다.</div>
       <div v-else class="empty">추천할 플랫폼 정보가 없습니다.</div>
-    </section>
+      </section>
+    </div>
   </main>
 </template>
 
 <style scoped>
 .home {
   display: grid;
-  gap: 18px;
+  gap: clamp(18px, 2vw, 24px);
+}
+
+.home-bottom {
+  display: grid;
+  gap: clamp(18px, 2vw, 24px);
 }
 
 .landing-hero {
   position: relative;
   z-index: 0;
   display: grid;
-  min-height: 520px;
-  padding: 34px;
+  gap: clamp(18px, 2.5vw, 28px);
+  min-height: clamp(420px, 42vw, 560px);
+  padding: clamp(22px, 3vw, 36px);
   overflow: hidden;
-  align-items: end;
+  align-content: end;
+  border-radius: var(--ws-radius);
   background: #0a1020;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -215,24 +226,25 @@ onMounted(async () => {
   position: absolute;
   inset: 0;
   content: '';
+  border-radius: inherit;
   background:
-    linear-gradient(90deg, #02040a 0%, rgba(2, 4, 10, 0.96) 22%, rgba(2, 4, 10, 0.72) 48%, rgba(2, 4, 10, 0.2) 76%, rgba(2, 4, 10, 0) 100%),
+    linear-gradient(90deg, #02040a 0%, rgba(2, 4, 10, 0.96) 28%, rgba(2, 4, 10, 0.68) 52%, rgba(2, 4, 10, 0.24) 78%, rgba(2, 4, 10, 0) 100%),
     linear-gradient(0deg, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0.08) 62%);
   pointer-events: none;
 }
 
 .hero-bg {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -8%;
-  width: 120%;
+  inset: 0;
+  width: 100%;
   height: 100%;
   opacity: 0;
+  border-radius: inherit;
   object-fit: cover;
-  object-position: center center;
+  object-position: right center;
+  transform: scale(1);
+  transform-origin: center right;
   transition: opacity 700ms ease;
-  transform: translateZ(0);
   will-change: opacity;
 }
 
@@ -240,12 +252,20 @@ onMounted(async () => {
   opacity: 1;
 }
 
+.hero-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(18px, 2.5vw, 28px);
+  align-items: end;
+}
+
 .hero-copy {
   position: relative;
   z-index: 1;
-  max-width: 760px;
   display: grid;
   gap: 18px;
+  max-width: min(760px, 100%);
 }
 
 .hero-brand-intro {
@@ -273,16 +293,17 @@ onMounted(async () => {
 }
 
 .lead {
-  max-width: 760px;
+  max-width: 56ch;
   font-size: 17px;
   font-weight: 750;
 }
 
 .hero-points {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 10px;
 }
 
 .hero-points div {
@@ -341,8 +362,6 @@ onMounted(async () => {
   display: grid;
   gap: 18px;
   align-content: center;
-  max-width: 720px;
-  margin-top: 8px;
   padding: 24px;
   border: 1px solid rgba(var(--ws-secondary-rgb), 0.38);
   border-radius: var(--ws-radius);
@@ -408,9 +427,17 @@ onMounted(async () => {
 
 .home-content {
   overflow: hidden;
-  padding: 18px 16px 16px;
+  padding: 12px 12px 10px;
   content-visibility: auto;
-  contain-intrinsic-size: 480px;
+  contain-intrinsic-size: 340px;
+}
+
+.home-content .compact-head {
+  margin-bottom: 10px;
+}
+
+.home-content .compact-head h2 {
+  font-size: clamp(18px, 2vw, 22px);
 }
 
 .compact-head {
@@ -418,21 +445,78 @@ onMounted(async () => {
 }
 
 .platform-recommend {
-  padding: 18px;
+  padding: 12px;
   content-visibility: auto;
-  contain-intrinsic-size: 360px;
+  contain-intrinsic-size: 280px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.platform-recommend .compact-head h2 {
+  font-size: clamp(18px, 2vw, 22px);
 }
 
 .recommend-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 960px) {
+  .hero-shell {
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.72fr);
+    align-items: stretch;
+  }
+
+  .hero-copy {
+    max-width: none;
+    align-self: end;
+  }
+
+  .summary-panel {
+    align-self: stretch;
+  }
+}
+
+.home-bottom {
+  display: grid;
+  gap: clamp(18px, 2vw, 24px);
+}
+
+@media (min-width: 1200px) {
+  .home-bottom {
+    grid-template-columns: minmax(0, 1.72fr) minmax(280px, 0.78fr);
+    align-items: start;
+  }
+
+  .home-content {
+    min-width: 0;
+  }
+
+  .platform-recommend .recommend-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recommend-card {
+    min-height: 108px;
+  }
+}
+
+@media (min-width: 1500px) {
+  .landing-hero {
+    min-height: clamp(440px, 36vw, 520px);
+  }
+
+  .hero-points strong {
+    font-size: 19px;
+  }
 }
 
 .recommend-card {
   display: grid;
-  min-height: 132px;
-  padding: 14px;
+  min-height: 116px;
+  padding: 12px;
   border: 1px solid var(--ws-border);
   border-radius: 8px;
   background: var(--ws-surface-2);
@@ -466,7 +550,7 @@ onMounted(async () => {
 }
 
 .recommend-main h3 {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .recommend-main p {
@@ -483,6 +567,12 @@ onMounted(async () => {
   .hero-bg {
     transition: none;
     will-change: auto;
+  }
+}
+
+@media (max-width: 959px) {
+  .hero-shell {
+    grid-template-columns: 1fr;
   }
 }
 

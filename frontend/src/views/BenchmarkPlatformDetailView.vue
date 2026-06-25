@@ -308,7 +308,7 @@ onMounted(loadPage);
 </script>
 
 <template>
-  <main class="platform-page">
+  <main class="platform-page ws-page">
     <p class="back-row">
       <RouterLink to="/benchmark">← OTT순위</RouterLink>
     </p>
@@ -616,9 +616,9 @@ onMounted(loadPage);
 
 <style scoped>
 .platform-page {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 24px 32px;
+  display: grid;
+  gap: clamp(16px, 2vw, 20px);
+  padding-bottom: 32px;
 }
 
 .back-row {
@@ -634,8 +634,14 @@ onMounted(loadPage);
 
 @media (min-width: 1024px) {
   .hero-row {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.75fr);
     gap: 20px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .hero-row {
+    grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.68fr);
   }
 }
 

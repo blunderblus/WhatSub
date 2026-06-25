@@ -32,7 +32,7 @@ SOURCES_CACHE_TTL = timedelta(hours=24)
 RAPIDAPI_MIN_INTERVAL_SEC = 0.35
 RAPIDAPI_429_MAX_RETRIES = 4
 _last_rapidapi_request_at = 0.0
-DISCOVER_PAGE_SIZE = 20
+DISCOVER_PAGE_SIZE = 24
 
 # TMDB discover returns empty for these KR providers — use StreamingCache instead.
 _KR_UNRELIABLE_TMDB_PROVIDER_IDS = {200, 356, 97}  # TVING, Wavve, Watcha
@@ -264,7 +264,7 @@ def _streaming_cache_list(request, media_type, platform_ids, genre_id=None):
         platform_ids = [platform_ids]
 
     page = int(request.GET.get('page', 1))
-    per_page = 20
+    per_page = 24
     qs = StreamingCache.objects.filter(
         platform_id__in=platform_ids, media_type=media_type, available=True,
     )

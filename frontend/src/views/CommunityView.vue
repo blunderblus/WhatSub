@@ -155,7 +155,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main>
+  <main class="ws-page">
     <PageHeader
       eyebrow="Community"
       title="커뮤니티"
@@ -520,6 +520,14 @@ onMounted(async () => {
 
 .author-chip .avatar-initial-letter {
   font-size: 11px;
+}
+
+@media (min-width: 1280px) {
+  .board-row {
+    grid-template-columns: minmax(0, 120px) minmax(0, 1fr) minmax(0, 140px) 84px 64px 64px;
+    gap: 14px;
+    padding-inline: 14px;
+  }
 }
 
 @media (max-width: 820px) {

@@ -182,14 +182,46 @@ onBeforeUnmount(stopAutoplay);
   color: var(--ws-primary);
 }
 
-.platform-title-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
 .carousel-card {
   min-width: 0;
+}
+
+.platform-title-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.carousel-card :deep(.card-body) {
+  padding: 10px;
+}
+
+.carousel-card :deep(.card-body h2) {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.carousel-card :deep(.reaction-icon-button) {
+  width: 36px;
+  height: 32px;
+}
+
+@media (min-width: 1080px) {
+  .platform-title-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .carousel-card :deep(.card-body h2) {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .platform-title-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
 }
 
 .slide-dots {
@@ -214,10 +246,6 @@ onBeforeUnmount(stopAutoplay);
 @media (max-width: 620px) {
   .platform-carousel-head {
     align-items: flex-start;
-  }
-
-  .platform-title-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

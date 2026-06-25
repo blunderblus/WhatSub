@@ -77,32 +77,35 @@ onMounted(async () => {
     <div v-else-if="!dashboard" class="loader">구독 정보를 불러오는 중입니다.</div>
 
     <template v-else>
-      <div class="account panel">
-        <div class="avatar">
-          <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
-          <span v-else class="avatar-initial-letter" aria-hidden="true">{{ profileAvatarInitial }}</span>
-        </div>
-        <div class="account-copy">
-          <strong>{{ session.user?.nickname || session.user?.username }}</strong>
-          <span>{{ session.user?.email || '이메일 정보 없음' }}</span>
-          <div
-            v-if="dashboard.taste_titles?.habit || dashboard.taste_titles?.genre"
-            class="taste-title-row"
-          >
-            <span v-if="dashboard.taste_titles?.habit" class="taste-title habit">{{ dashboard.taste_titles.habit }}</span>
-            <span v-if="dashboard.taste_titles?.genre" class="taste-title genre">{{ dashboard.taste_titles.genre }}</span>
+      <div class="dashboard-top ws-top-band">
+        <div class="account panel">
+          <div class="avatar">
+            <img v-if="session.user?.profile_image" :src="session.user.profile_image" alt="" />
+            <span v-else class="avatar-initial-letter" aria-hidden="true">{{ profileAvatarInitial }}</span>
           </div>
-          <p v-if="dashboard.taste_summary" class="taste-summary">{{ dashboard.taste_summary }}</p>
+          <div class="account-copy">
+            <strong>{{ session.user?.nickname || session.user?.username }}</strong>
+            <span>{{ session.user?.email || '이메일 정보 없음' }}</span>
+            <div
+              v-if="dashboard.taste_titles?.habit || dashboard.taste_titles?.genre"
+              class="taste-title-row"
+            >
+              <span v-if="dashboard.taste_titles?.habit" class="taste-title habit">{{ dashboard.taste_titles.habit }}</span>
+              <span v-if="dashboard.taste_titles?.genre" class="taste-title genre">{{ dashboard.taste_titles.genre }}</span>
+            </div>
+            <p v-if="dashboard.taste_summary" class="taste-summary">{{ dashboard.taste_summary }}</p>
+          </div>
         </div>
+
+        <section class="grid-3 metrics-row">
+          <article class="metric"><span>활성 구독</span><strong>{{ dashboard.subscription_count }}</strong></article>
+          <article class="metric"><span>구독 플랫폼</span><strong>{{ dashboard.platform_count }}</strong></article>
+          <article class="metric"><span>월 예상 지출</span><strong>{{ money(monthlyTotal) }}원</strong></article>
+        </section>
       </div>
 
-      <section class="grid-3">
-        <article class="metric"><span>활성 구독</span><strong>{{ dashboard.subscription_count }}</strong></article>
-        <article class="metric"><span>구독 플랫폼</span><strong>{{ dashboard.platform_count }}</strong></article>
-        <article class="metric"><span>월 예상 지출</span><strong>{{ money(monthlyTotal) }}원</strong></article>
-      </section>
-
-      <section class="panel payment-flow-panel">
+      <div class="dashboard-charts ws-split-2-balanced">
+        <section class="panel payment-flow-panel">
         <div class="payment-flow-head">
           <div>
             <h2>결제 흐름</h2>
@@ -117,18 +120,19 @@ onMounted(async () => {
           :budget="monthlyBudget"
           :monthly-estimate="monthlyTotal"
         />
-      </section>
+        </section>
 
-      <section class="panel calendar-panel">
-        <h2>결제 캘린더</h2>
-        <p class="muted small">결제일·만료일과 구독 기간을 확인하세요.</p>
-        <SubscriptionCalendar
-          :schedule-items="dashboard.schedule_items || []"
-          :subscriptions="dashboard.calendar_events || []"
-          :highlight-subscription-id="selectedCalendarSubId"
-          @select-subscription="selectCalendarSub"
-        />
-      </section>
+        <section class="panel calendar-panel">
+          <h2>결제 캘린더</h2>
+          <p class="muted small">결제일·만료일과 구독 기간을 확인하세요.</p>
+          <SubscriptionCalendar
+            :schedule-items="dashboard.schedule_items || []"
+            :subscriptions="dashboard.calendar_events || []"
+            :highlight-subscription-id="selectedCalendarSubId"
+            @select-subscription="selectCalendarSub"
+          />
+        </section>
+      </div>
 
       <section class="grid-2 dashboard-grid">
         <div class="panel">
@@ -240,6 +244,38 @@ onMounted(async () => {
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+@media (min-width: 720px) {
+  .subscription-section-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .dashboard-actions {
+    justify-content: flex-end;
+  }
+}
+
+.dashboard-top {
+  align-items: stretch;
+}
+
+.metrics-row {
+  margin: 0;
+}
+
+.metrics-row .metric {
+  min-height: 100%;
+}
+
+.dashboard-charts {
+  width: 100%;
+}
+
+.dashboard-charts .payment-flow-panel,
+.dashboard-charts .calendar-panel {
+  min-width: 0;
 }
 
 .account {

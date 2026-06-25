@@ -215,7 +215,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="benchmark-page">
+  <main class="benchmark-page ws-page">
     <PageHeader
       eyebrow="Benchmark"
       title="OTT순위 및 맞춤 추천"
@@ -501,9 +501,9 @@ onMounted(async () => {
 
 <style scoped>
 .benchmark-page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 20px 48px;
+  display: grid;
+  gap: clamp(18px, 2vw, 22px);
+  padding-bottom: 24px;
 }
 
 .tab-nav {
@@ -556,13 +556,23 @@ onMounted(async () => {
 
 .benchmark-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+  gap: clamp(16px, 2vw, 24px);
   align-items: start;
 }
 
+@media (min-width: 1280px) {
+  .benchmark-layout {
+    grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.22fr);
+  }
+
+  .charts-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .personal-layout {
-  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.2fr);
 }
 
 .personal-left-column {

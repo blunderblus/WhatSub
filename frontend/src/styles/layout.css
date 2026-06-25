@@ -1,0 +1,89 @@
+/* Shared wide-layout patterns (16:9 / ultrawide friendly) */
+
+.ws-page {
+  display: grid;
+  gap: clamp(18px, 2vw, 24px);
+}
+
+.ws-split-2 {
+  display: grid;
+  gap: clamp(18px, 2vw, 24px);
+  align-items: start;
+}
+
+.ws-split-2-balanced {
+  display: grid;
+  gap: clamp(18px, 2vw, 24px);
+  align-items: start;
+}
+
+@media (min-width: 1080px) {
+  .ws-split-2 {
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr);
+  }
+
+  .ws-split-2-balanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .ws-split-2 {
+    grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+  }
+}
+
+.ws-top-band {
+  display: grid;
+  gap: clamp(14px, 2vw, 20px);
+}
+
+@media (min-width: 960px) {
+  .ws-top-band {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 1.1fr);
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ws-top-band {
+    grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.5fr);
+  }
+}
+
+/* Cards expand to fill the row on list pages — 6 columns × 4 rows (24 items) on wide screens */
+.poster-grid {
+  display: grid;
+  gap: clamp(12px, 1.5vw, 18px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .poster-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .poster-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .poster-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.card-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: clamp(12px, 1.5vw, 16px);
+}
+
+@media (min-width: 1280px) {
+  .card-strip {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 152px), 1fr));
+  }
+}
