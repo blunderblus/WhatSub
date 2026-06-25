@@ -410,6 +410,7 @@ def _tmdb_content_detail(request, tmdb_id, media_type):
                 allow_rapidapi_fallback=True,
                 skip_rapidapi=True,
             ),
+            'reactions': _reaction_summary_for_tmdb(tmdb_id, request.user),
         }
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except requests.exceptions.HTTPError as err:
@@ -856,6 +857,13 @@ def api_streaming_info(request):
         return JsonResponse(payload, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
         return JsonResponse({'error': f"서버 오류: {str(e)}"}, status=500)
+
+
+def _reaction_summary_for_tmdb(tmdb_id, user):
+    content = Content.objects.filter(tmdb_id=tmdb_id).first()
+    if not content:
+        return {'like_count': 0, 'dislike_count': 0, 'my_reaction': None}
+    return _reaction_summary(content, user)
 
 
 def _reaction_summary(content, user):

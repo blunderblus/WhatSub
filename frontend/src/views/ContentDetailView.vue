@@ -1,17 +1,21 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { apiRequest } from '../api/http';
+import ContentReactionButtons from '../components/ContentReactionButtons.vue';
 import { formatProviderName, providerInitial } from '../utils/formatters';
 import { formatProviderTypes, groupProvidersByPlatform } from '../utils/streamingProviders';
 
 const route = useRoute();
+const router = useRouter();
 const movie = ref(null);
 const providers = ref([]);
+const detailReactions = ref(null);
 const loading = ref(true);
 const error = ref('');
 
 const isMovie = computed(() => route.params.type === 'movies');
+const mediaType = computed(() => (isMovie.value ? 'movie' : 'tv'));
 const detailUrl = computed(() => `/api/contents/${isMovie.value ? 'movie_detail' : 'show_detail'}/${route.params.id}/`);
 const listRoute = computed(() => ({
   path: `/contents/${route.params.type}`,
@@ -74,6 +78,12 @@ function formatProviderExpiry(provider) {
   return expiryLabels.join(' · ');
 }
 
+function promptLogin() {
+  if (confirm('로그인이 필요합니다.')) {
+    router.push('/login');
+  }
+}
+
 async function load() {
   loading.value = true;
   error.value = '';
@@ -81,6 +91,7 @@ async function load() {
     const data = await apiRequest(detailUrl.value);
     movie.value = data.movie;
     providers.value = data.providers || [];
+    detailReactions.value = data.reactions || null;
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -110,6 +121,12 @@ onMounted(load);
             <span class="detail-chip">평점 {{ Number(movie.rating).toFixed(1) }}</span>
             <span v-for="genre in movie.genres" :key="genre.id" class="detail-chip">{{ genre.name }}</span>
           </div>
+          <ContentReactionButtons
+            :item="movie"
+            :media-type="mediaType"
+            :initial-reactions="detailReactions"
+            :on-login-required="promptLogin"
+          />
           <p>{{ movie.overview }}</p>
         </div>
       </section>
