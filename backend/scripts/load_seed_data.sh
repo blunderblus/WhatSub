@@ -4,8 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [[ "${STREAMING_CACHE_ONLY:-}" == "1" ]]; then
-  echo "[4/4 only] streaming cache (batched)"
-  python -X utf8 scripts/load_fixture_batched.py contents/fixtures/benchmark_streaming_cache.json 150
+  echo "[4/4 only] streaming cache (batched, idempotent)"
+  python -X utf8 scripts/load_fixture_idempotent.py contents/fixtures/benchmark_streaming_cache.json 150
   python manage.py shell -c "
 from contents.models import StreamingCache
 print(StreamingCache.objects.count(), 'cache rows')
@@ -20,11 +20,11 @@ python manage.py migrate
 echo "[2/4] subscriptions catalog"
 python manage.py loaddata subscriptions/fixtures/subscriptions_catalog.json
 
-echo "[3/4] benchmark snapshot"
-python -X utf8 manage.py loaddata contents/fixtures/benchmark_snapshot.json
+echo "[3/5] benchmark snapshot (idempotent — safe to re-run)"
+python -X utf8 scripts/load_fixture_idempotent.py contents/fixtures/benchmark_snapshot.json
 
-echo "[4/4] streaming cache (batched — remote Supabase can be slow)"
-python -X utf8 scripts/load_fixture_batched.py contents/fixtures/benchmark_streaming_cache.json 150
+echo "[4/5] streaming cache (batched, idempotent — remote Supabase can be slow)"
+python -X utf8 scripts/load_fixture_idempotent.py contents/fixtures/benchmark_streaming_cache.json 150
 
 echo "[5/5] demo activity (users, community, reviews)"
 python manage.py seed_demo --reset

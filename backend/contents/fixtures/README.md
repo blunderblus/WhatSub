@@ -15,8 +15,8 @@
 cd backend
 python manage.py migrate
 python manage.py loaddata subscriptions/fixtures/subscriptions_catalog.json
-python -X utf8 manage.py loaddata contents/fixtures/benchmark_snapshot.json
-python -X utf8 manage.py loaddata contents/fixtures/benchmark_streaming_cache.json
+python -X utf8 scripts/load_fixture_idempotent.py contents/fixtures/benchmark_snapshot.json
+python -X utf8 scripts/load_fixture_idempotent.py contents/fixtures/benchmark_streaming_cache.json 150
 ```
 
 Verify:
