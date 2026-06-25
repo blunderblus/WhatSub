@@ -10,10 +10,16 @@ export const useSessionStore = defineStore('session', {
   actions: {
     async refresh() {
       this.loading = true;
-      const data = await apiRequest('/api/accounts/me/');
-      this.isAuthenticated = data.isAuthenticated;
-      this.user = data.user || null;
-      this.loading = false;
+      try {
+        const data = await apiRequest('/api/accounts/me/');
+        this.isAuthenticated = data.isAuthenticated;
+        this.user = data.user || null;
+      } catch {
+        this.isAuthenticated = false;
+        this.user = null;
+      } finally {
+        this.loading = false;
+      }
     },
     async login(credentials) {
       await apiRequest('/api/accounts/login/', {
