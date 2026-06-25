@@ -304,19 +304,21 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 
-ALLOWED_HOSTS = env.list(
-    'ALLOWED_HOSTS',
-    default=['127.0.0.1', 'localhost'],
-)
 FLY_APP_NAME = env.str('FLY_APP_NAME', default='')
 if FLY_APP_NAME:
-    ALLOWED_HOSTS.extend([
-        f'{FLY_APP_NAME}.fly.dev',
-        f'{FLY_APP_NAME}.internal',
-    ])
-_backend_host = urlparse(BACKEND_URL).hostname
-if _backend_host and _backend_host not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(_backend_host)
+    # Fly health checks and internal routing use non-public Host headers.
+    ALLOWED_HOSTS = ['*']
+    # Fly edge terminates TLS; internal HTTP health probes must not get 301.
+    SECURE_SSL_REDIRECT = False
+else:
+    ALLOWED_HOSTS = env.list(
+        'ALLOWED_HOSTS',
+        default=['127.0.0.1', 'localhost'],
+    )
+    _backend_host = urlparse(BACKEND_URL).hostname
+    if _backend_host and _backend_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_backend_host)
+    ALLOWED_HOSTS = sorted(set(ALLOWED_HOSTS))
 
 # 우리가 사용할 API 키들
 TMDB_API_KEY = env('TMDB_API_KEY', default='')

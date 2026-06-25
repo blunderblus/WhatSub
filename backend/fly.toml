@@ -1,16 +1,24 @@
-# Fly.io — deploy from backend/:  fly deploy
-# First time: fly launch --no-deploy  (pick Tokyo / nrt, do not add Postgres)
+# fly.toml app configuration file generated for whatsub-api on 2026-06-25T11:46:35+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
 app = 'whatsub-api'
 primary_region = 'nrt'
 
 [build]
   dockerfile = 'Dockerfile'
+  # Depot builder queue can be long on free tier. If deploy hangs, use:
+  #   fly deploy --depot=false
+
+[deploy]
+  # DB schema already applied via GitHub Actions seed. Re-enable after fixing DATABASE_URL:
+  # release_command = 'python manage.py migrate --noinput'
 
 [env]
-  PORT = '8000'
   DEBUG = 'False'
   GMAIL_PIPELINE_LOG = 'True'
+  PORT = '8000'
 
 [http_service]
   internal_port = 8000
@@ -20,15 +28,14 @@ primary_region = 'nrt'
   min_machines_running = 1
 
   [[http_service.checks]]
-    interval = '30s'
-    timeout = '5s'
-    grace_period = '20s'
-    method = 'GET'
-    path = '/api/accounts/csrf/'
+    grace_period = "60s"
+    interval = "30s"
+    method = "GET"
+    path = "/health/"
+    timeout = "5s"
 
 [[vm]]
   size = 'shared-cpu-1x'
   memory = '512mb'
-
-[deploy]
-  release_command = 'python manage.py migrate --noinput'
+  cpus = 1
+  memory_mb = 512

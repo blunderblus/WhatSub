@@ -1,12 +1,23 @@
+import { BACKEND_URL } from '../config/backend';
+
 let csrfPromise = null;
 
 function resetCsrfToken() {
   csrfPromise = null;
 }
 
+function apiUrl(path) {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+  const base = BACKEND_URL.replace(/\/$/, '');
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalized}`;
+}
+
 async function csrfToken() {
   if (!csrfPromise) {
-    csrfPromise = fetch('/api/accounts/csrf/', { credentials: 'include' })
+    csrfPromise = fetch(apiUrl('/api/accounts/csrf/'), { credentials: 'include' })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error('CSRF token fetch failed');
@@ -42,7 +53,7 @@ export async function apiRequest(path, options = {}, retried = false) {
     headers['X-CSRFToken'] = await csrfToken();
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     credentials: 'include',
     ...options,
     headers,
