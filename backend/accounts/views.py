@@ -1,5 +1,6 @@
 from datetime import timedelta
 import logging
+import re
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -27,6 +28,7 @@ from .onboarding_session import get_chat_resume, set_chat_resume, touch_method_p
 from contents.personal_scoring import resolve_taste_titles
 
 logger = logging.getLogger(__name__)
+_ENGLISH_PATTERN = re.compile(r'[A-Za-z]')
 
 
 def _monthly_amount(subscription):
@@ -72,16 +74,37 @@ def _subscription_payload(subscription, today=None):
 
 
 def _serialize_user(user):
+    taste_titles = resolve_taste_titles(user)
+    pref = UserPreferenceProfile.objects.filter(user=user).only('taste_summary').first()
+    taste_summary = _localized_taste_summary(pref.taste_summary if pref else '', taste_titles)
     return {
         'id': user.id,
         'username': user.username,
         'nickname': user.nickname,
         'email': user.email,
         'profile_image': user.profile_image,
+        'bio': user.bio or '',
+        'taste_titles': taste_titles,
+        'taste_summary': taste_summary,
         'is_staff': user.is_staff,
         'is_superuser': user.is_superuser,
         'has_password': user.has_usable_password(),
     }
+
+
+def _localized_taste_summary(summary, taste_titles):
+    text = (summary or '').strip()
+    if text and not _ENGLISH_PATTERN.search(text):
+        return text
+    habit = (taste_titles.get('habit') or '').lstrip('#')
+    genre = (taste_titles.get('genre') or '').lstrip('#')
+    if habit and genre:
+        return f'{habit} 성향의 {genre} 취향 시청자입니다.'
+    if habit:
+        return f'{habit} 성향의 시청자입니다.'
+    if genre:
+        return f'{genre} 취향 시청자입니다.'
+    return '취향 데이터를 기반으로 맞춤 분석이 준비되었습니다.'
 
 
 def _dashboard_payload(user):
@@ -133,8 +156,8 @@ def _dashboard_payload(user):
     standalone_subscriptions = [s for s in all_subscriptions if not s['is_bundle']]
     bundle_subscriptions = [s for s in all_subscriptions if s['is_bundle']]
     pref = UserPreferenceProfile.objects.filter(user=user).first()
-    pref_summary = pref.taste_summary if pref else ''
     taste_titles = resolve_taste_titles(user)
+    pref_summary = _localized_taste_summary(pref.taste_summary if pref else '', taste_titles)
 
     return {
         'subscription_count': len(subscriptions),
@@ -180,15 +203,19 @@ def me(request):
 def profile(request):
     nickname = (request.data.get('nickname') or '').strip()
     profile_image = (request.data.get('profile_image') or '').strip()
+    bio = (request.data.get('bio') or '').strip()
 
     if not nickname:
         return Response({'nickname': ['닉네임을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if len(nickname) > 30:
         return Response({'nickname': ['닉네임은 30자 이하로 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+    if len(bio) > 200:
+        return Response({'bio': ['소개글은 200자 이하로 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
 
     request.user.nickname = nickname
     request.user.profile_image = profile_image or None
-    request.user.save(update_fields=['nickname', 'profile_image'])
+    request.user.bio = bio
+    request.user.save(update_fields=['nickname', 'profile_image', 'bio'])
     return Response({'user': _serialize_user(request.user)})
 
 

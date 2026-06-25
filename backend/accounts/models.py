@@ -6,6 +6,7 @@ from django.db import models
 class User(AbstractUser):
     nickname = models.CharField(max_length=30)
     profile_image = models.URLField(blank=True, null=True)
+    bio = models.CharField(max_length=200, blank=True, default='')
 
 
 class UserPreferenceProfile(models.Model):

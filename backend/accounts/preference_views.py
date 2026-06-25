@@ -1,4 +1,5 @@
 """Onboarding preference chat API."""
+import re
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -69,6 +70,24 @@ GENRE_OPTIONS = [
 ]
 
 
+_ENGLISH_PATTERN = re.compile(r'[A-Za-z]')
+
+
+def _localized_taste_summary(summary, profile):
+    text = (summary or '').strip()
+    if text and not _ENGLISH_PATTERN.search(text):
+        return text
+    habit = (profile.taste_title_habit or '').lstrip('#')
+    genre = (profile.taste_title_genre or '').lstrip('#')
+    if habit and genre:
+        return f'{habit} 성향의 {genre} 취향 시청자입니다.'
+    if habit:
+        return f'{habit} 성향의 시청자입니다.'
+    if genre:
+        return f'{genre} 취향 시청자입니다.'
+    return '취향 데이터가 수집되면 요약이 표시됩니다.'
+
+
 def _profile_payload(profile):
     if not profile:
         return None
@@ -78,7 +97,7 @@ def _profile_payload(profile):
         'consumption_habits': profile.consumption_habits,
         'platform_criteria': profile.platform_criteria,
         'genre_weights': profile.genre_weights,
-        'taste_summary': profile.taste_summary,
+        'taste_summary': _localized_taste_summary(profile.taste_summary, profile),
         'taste_titles': {
             'habit': profile.taste_title_habit,
             'genre': profile.taste_title_genre,

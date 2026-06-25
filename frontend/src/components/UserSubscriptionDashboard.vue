@@ -68,8 +68,14 @@ onMounted(async () => {
       </div>
       <div class="dashboard-actions">
         <RouterLink class="button primary" to="/subscriptions/new">구독 추가</RouterLink>
-        <RouterLink class="button" to="/subscriptions/receipt-scan">결제내역·이미지 스캔</RouterLink>
-        <a class="button" :href="backendUrl(backendRoutes.onboardingGmail)">Gmail에서 찾기</a>
+        <RouterLink class="button with-icon" to="/subscriptions/receipt-scan">
+          <img src="/img/icons/receipt-scan.png" alt="" aria-hidden="true" />
+          결제내역·이미지 스캔
+        </RouterLink>
+        <a class="button with-icon" :href="backendUrl(backendRoutes.onboardingGmail)">
+          <img src="/img/icons/gmail-scan.png" alt="" aria-hidden="true" />
+          Gmail에서 찾기
+        </a>
       </div>
     </header>
 
@@ -104,7 +110,7 @@ onMounted(async () => {
         </section>
       </div>
 
-      <div class="dashboard-charts ws-split-2-balanced">
+      <div class="dashboard-charts">
         <section class="panel payment-flow-panel">
         <div class="payment-flow-head">
           <div>
@@ -246,6 +252,17 @@ onMounted(async () => {
   gap: 10px;
 }
 
+.dashboard-actions .with-icon {
+  gap: 8px;
+}
+
+.dashboard-actions .with-icon img {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
 @media (min-width: 720px) {
   .subscription-section-head {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -271,11 +288,26 @@ onMounted(async () => {
 
 .dashboard-charts {
   width: 100%;
+  display: grid;
+  gap: 14px;
 }
 
 .dashboard-charts .payment-flow-panel,
 .dashboard-charts .calendar-panel {
   min-width: 0;
+}
+
+.payment-flow-panel {
+  padding: 16px;
+}
+
+.payment-flow-panel :deep(.payment-flow-chart) {
+  gap: 12px;
+}
+
+.payment-flow-panel :deep(.chart-svg) {
+  max-height: min(52vw, 420px);
+  min-height: 320px;
 }
 
 .account {

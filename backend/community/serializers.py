@@ -24,11 +24,16 @@ BOARD_META = {
 
 
 def author_payload(user):
+    pref = getattr(user, 'preference_profile', None)
+    taste_title = ''
+    if pref:
+        taste_title = (pref.taste_title_habit or pref.taste_title_genre or '').lstrip('#')
     return {
         'id': user.id,
         'username': user.username,
         'nickname': user.nickname or user.username,
         'profile_image': user.profile_image,
+        'taste_title': taste_title,
     }
 
 
@@ -153,7 +158,7 @@ class CommunityPostDetailSerializer(CommunityPostSerializer):
 
     def get_comments(self, obj):
         return CommunityCommentSerializer(
-            obj.comments.select_related('author').prefetch_related('reactions', 'reports'),
+            obj.comments.select_related('author', 'author__preference_profile').prefetch_related('reactions', 'reports'),
             many=True,
             context=self.context,
         ).data

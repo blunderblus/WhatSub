@@ -1,6 +1,7 @@
 """Personal Score: genre benefit + exclusivity affinity (axes normalized independently)."""
 import json
 import logging
+import re
 from collections import defaultdict
 
 from django.core.cache import cache
@@ -32,6 +33,7 @@ PERSONAL_SCORE_CACHE_TTL = 60 * 60 * 6
 LIKE_WEIGHT = 1.0
 DISLIKE_WEIGHT = -0.5
 DAILY_TASTE_LLM_LIMIT = 5
+_ENGLISH_PATTERN = re.compile(r'[A-Za-z]')
 
 TASTE_LLM_SCHEMA = (
     '{"genre_weights": {"<genre_id>": float 0.0-1.0}, '
@@ -158,6 +160,22 @@ def resolve_taste_titles(user):
     return {'habit': '', 'genre': ''}
 
 
+def _localized_summary(summary, *, user=None):
+    text = (summary or '').strip()
+    if text and not _ENGLISH_PATTERN.search(text):
+        return text
+    titles = resolve_taste_titles(user) if user is not None else {'habit': '', 'genre': ''}
+    habit = (titles.get('habit') or '').lstrip('#')
+    genre = (titles.get('genre') or '').lstrip('#')
+    if habit and genre:
+        return f'{habit} 성향의 {genre} 취향 시청자입니다.'
+    if habit:
+        return f'{habit} 성향의 시청자입니다.'
+    if genre:
+        return f'{genre} 취향 시청자입니다.'
+    return ''
+
+
 def taste_llm_runs_today(user, today=None):
     today = today or timezone.localdate()
     return UserTasteAnalysis.objects.filter(user=user, analysis_date=today).count()
@@ -269,14 +287,14 @@ def resolve_user_genre_weights(user, use_llm=True):
     )
     if analysis:
         merged = _merge_weight_maps(base, analysis.genre_weights)
-        return merged, analysis.llm_summary, _taste_meta(user, likes, dislikes, today)
+        return merged, _localized_summary(analysis.llm_summary, user=user), _taste_meta(user, likes, dislikes, today)
 
     if use_llm and can_run_daily_taste_llm(user, today):
         llm_weights, summary = run_daily_taste_llm(
             user, reaction_weights, likes, dislikes, today,
         )
         if llm_weights:
-            return _merge_weight_maps(base, llm_weights), summary, _taste_meta(user, likes, dislikes, today)
+            return _merge_weight_maps(base, llm_weights), _localized_summary(summary, user=user), _taste_meta(user, likes, dislikes, today)
 
     return base, '', _taste_meta(user, likes, dislikes, today)
 

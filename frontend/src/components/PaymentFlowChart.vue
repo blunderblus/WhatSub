@@ -560,6 +560,7 @@ watch([viewMode, focusMonthKey, () => props.scheduleItems, linePath], () => {
 
 .chart-wrap {
   position: relative;
+  padding: 8px 8px 2px;
 }
 
 .chart-svg {
@@ -770,9 +771,9 @@ watch([viewMode, focusMonthKey, () => props.scheduleItems, linePath], () => {
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 18px 20px;
   list-style: none;
-  margin: 0;
+  margin: 10px 0 0;
   padding: 0;
   font-size: 13px;
   font-weight: 700;

@@ -98,9 +98,12 @@ onMounted(async () => {
           <div class="actions">
             <a
               v-if="session.isAuthenticated"
-              class="button primary"
+              class="button primary with-icon"
               :href="backendUrl(backendRoutes.onboardingGmail)"
-            >Gmail로 구독 찾기</a>
+            >
+              <img src="/img/icons/gmail-scan.png" alt="" aria-hidden="true" />
+              Gmail로 구독 찾기
+            </a>
             <RouterLink v-if="session.isAuthenticated" class="button secondary" to="/subscriptions">내 대시보드</RouterLink>
             <RouterLink v-if="!session.isAuthenticated" class="button primary" to="/signup">시작하기</RouterLink>
           </div>
@@ -423,6 +426,17 @@ onMounted(async () => {
 
 .button.full {
   width: 100%;
+}
+
+.actions .with-icon {
+  gap: 8px;
+}
+
+.actions .with-icon img {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  object-fit: cover;
 }
 
 .home-content {

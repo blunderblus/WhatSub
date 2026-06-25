@@ -11,7 +11,7 @@ import { useSessionStore } from '../stores/session';
 const session = useSessionStore();
 const router = useRouter();
 const activeTab = ref('subscriptions');
-const form = ref({ nickname: '', profile_image: '' });
+const form = ref({ nickname: '', profile_image: '', bio: '' });
 const withdrawPassword = ref('');
 const withdrawConfirmed = ref(false);
 const withdrawing = ref(false);
@@ -35,6 +35,7 @@ const requiresWithdrawPassword = computed(() => session.user?.has_password !== f
 function hydrateForm() {
   form.value.nickname = session.user?.nickname || session.user?.username || '';
   form.value.profile_image = session.user?.profile_image || '';
+  form.value.bio = session.user?.bio || '';
 }
 
 function switchTab(tab) {
@@ -128,6 +129,12 @@ onMounted(() => {
       <div class="profile-copy">
         <strong>{{ profileName }}</strong>
         <span>{{ session.user?.email || '이메일 정보 없음' }}</span>
+        <div v-if="session.user?.taste_titles?.habit || session.user?.taste_titles?.genre" class="taste-title-row">
+          <span v-if="session.user?.taste_titles?.habit" class="taste-title habit">{{ session.user.taste_titles.habit }}</span>
+          <span v-if="session.user?.taste_titles?.genre" class="taste-title genre">{{ session.user.taste_titles.genre }}</span>
+        </div>
+        <p v-if="session.user?.taste_summary" class="taste-summary">{{ session.user.taste_summary }}</p>
+        <p v-if="form.bio" class="intro-text">{{ form.bio }}</p>
       </div>
     </section>
 
@@ -237,6 +244,16 @@ onMounted(() => {
           <label for="profile_image">프로필 이미지 URL 또는 기본 이미지 경로</label>
           <input id="profile_image" v-model.trim="form.profile_image" type="text" placeholder="https://... 또는 /img/avatars/..." />
         </div>
+        <div class="field">
+          <label for="bio">소개글</label>
+          <textarea
+            id="bio"
+            v-model.trim="form.bio"
+            maxlength="200"
+            rows="4"
+            placeholder="나를 소개하는 한 줄 (최대 200자)"
+          />
+        </div>
         <button class="button primary full-width" style="margin-top: 22px" type="submit" :disabled="saving">
           {{ saving ? '저장 중' : '저장하기' }}
         </button>
@@ -328,6 +345,49 @@ onMounted(() => {
   line-height: 1.4;
   margin-top: 3px;
   overflow-wrap: anywhere;
+}
+
+.taste-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.taste-title {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.taste-title.habit {
+  border: 1px solid rgba(var(--ws-secondary-rgb), 0.35);
+  background: rgba(var(--ws-secondary-rgb), 0.12);
+  color: var(--ws-secondary);
+}
+
+.taste-title.genre {
+  border: 1px solid rgba(var(--ws-primary-rgb), 0.35);
+  background: rgba(var(--ws-primary-rgb), 0.12);
+  color: var(--ws-primary);
+}
+
+.taste-summary {
+  margin: 8px 0 0;
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.intro-text {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ws-text);
 }
 
 .profile-tabs {

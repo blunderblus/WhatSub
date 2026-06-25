@@ -198,6 +198,7 @@ onMounted(loadPost);
               {{ profileInitial(post.author.nickname) }}
             </span>
             <strong>{{ post.author.nickname }}</strong>
+            <span v-if="post.author.taste_title" class="taste-badge">{{ post.author.taste_title }}</span>
           </span>
           <span>조회 {{ post.view_count }}</span>
           <span v-if="!isNotice">댓글 {{ post.comments.length }}</span>
@@ -283,6 +284,7 @@ onMounted(loadPost);
                   {{ profileInitial(item.author.nickname) }}
                 </span>
                 <strong>{{ item.author.nickname }}</strong>
+                <span v-if="item.author.taste_title" class="taste-badge">{{ item.author.taste_title }}</span>
               </span>
               <p v-if="editingCommentId !== item.id">{{ item.content }}</p>
               <div v-else class="edit-block compact">
@@ -432,6 +434,19 @@ onMounted(loadPost);
   align-items: center;
   gap: 7px;
   min-width: 0;
+}
+
+.taste-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--ws-secondary-rgb), 0.35);
+  background: rgba(var(--ws-secondary-rgb), 0.14);
+  color: var(--ws-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .author-chip img,

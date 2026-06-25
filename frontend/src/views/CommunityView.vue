@@ -247,6 +247,7 @@ onMounted(async () => {
               {{ profileInitial(notice.author.nickname) }}
             </span>
             <span>{{ notice.author.nickname }}</span>
+            <span v-if="notice.author.taste_title" class="taste-badge">{{ notice.author.taste_title }}</span>
           </span>
           <span class="row-date">{{ formatDate(notice.created_at) }}</span>
           <span class="row-count">{{ notice.view_count }}</span>
@@ -273,6 +274,7 @@ onMounted(async () => {
               {{ profileInitial(post.author.nickname) }}
             </span>
             <span>{{ post.author.nickname }}</span>
+            <span v-if="post.author.taste_title" class="taste-badge">{{ post.author.taste_title }}</span>
           </span>
           <span class="row-date">{{ formatDate(post.created_at) }}</span>
           <span class="row-count">{{ post.view_count }}</span>
@@ -502,6 +504,19 @@ onMounted(async () => {
   justify-content: flex-end;
   gap: 6px;
   min-width: 0;
+}
+
+.taste-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--ws-secondary-rgb), 0.35);
+  background: rgba(var(--ws-secondary-rgb), 0.14);
+  color: var(--ws-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .author-chip img,
