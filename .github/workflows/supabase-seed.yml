@@ -33,9 +33,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Sanitize DATABASE_URL (drop pgbouncer param)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/sanitize_database_url.py
+
       - name: Migrate and load fixtures
         env:
           DEBUG: 'True'
           SECRET_KEY: ci-temporary-secret-not-for-production
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: bash scripts/load_seed_data.sh

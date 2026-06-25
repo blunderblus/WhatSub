@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import re
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 # backend/ is the Django app root; 10-pjt/ is the monorepo root (frontend, .env).
@@ -219,15 +220,27 @@ LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
 
 def _sanitize_supabase_database_url(url: str) -> str:
     """Remove Supabase-only query params (e.g. pgbouncer=true) that psycopg2 rejects."""
+    url = url.strip().strip('"').strip("'")
     parsed = urlparse(url)
-    if not parsed.query:
-        return url
     kept = [
         (key, value)
         for key, value in parse_qsl(parsed.query, keep_blank_values=True)
         if key.lower() != 'pgbouncer'
     ]
-    return urlunparse(parsed._replace(query=urlencode(kept)))
+    clean = urlunparse(parsed._replace(query=urlencode(kept)))
+    clean = re.sub(r'([?&])pgbouncer(=[^&]*)?&?', r'\1', clean, flags=re.IGNORECASE)
+    return clean.rstrip('?&')
+
+
+def _strip_pgbouncer_option(db_config: dict) -> None:
+    options = db_config.get('OPTIONS') or {}
+    for key in list(options):
+        if key.lower() == 'pgbouncer':
+            del options[key]
+    if options:
+        db_config['OPTIONS'] = options
+    elif 'OPTIONS' in db_config:
+        del db_config['OPTIONS']
 
 
 _database_url = env.str('DATABASE_URL', default='')
@@ -237,6 +250,7 @@ if _database_url:
     }
     _db = DATABASES['default']
     if _db['ENGINE'] == 'django.db.backends.postgresql':
+        _strip_pgbouncer_option(_db)
         _db['CONN_MAX_AGE'] = 0  # required for Supabase pgbouncer transaction mode
         _db.setdefault('OPTIONS', {})
         _db['OPTIONS'].setdefault('sslmode', 'require')
