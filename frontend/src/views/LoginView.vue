@@ -10,7 +10,7 @@ const route = useRoute();
 const username = ref('');
 const password = ref('');
 const error = ref('');
-const googleHref = googleAuthUrl();
+const googleHref = googleAuthUrl(undefined, 'login');
 
 onMounted(() => {
   if (route.query.error === 'google') {

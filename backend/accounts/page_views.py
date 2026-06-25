@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from subscriptions.models import Platform, UserSubscription
 from .forms import ManualSubscriptionForm
-from .google_auth import conflicting_google_owner, google_link_status
+from .google_auth import conflicting_google_owner, clear_google_auth_intent, google_link_status, set_google_auth_intent
 from .models import UserPreferenceProfile
 from .onboarding_session import (
     ONBOARDING_METHOD_KEYS,
@@ -104,8 +104,17 @@ def _page_context(request=None):
     return ctx
 
 
+def google_oauth_start(request):
+    """Store login vs signup intent, then hand off to django-allauth Google OAuth."""
+    intent = request.GET.get('intent', 'signup')
+    set_google_auth_intent(request, intent)
+    next_url = request.GET.get('next') or f'{settings.BACKEND_URL.rstrip("/")}{reverse("accounts:google_auth_done")}'
+    return redirect(f'{reverse("google_login")}?next={quote(next_url, safe="")}')
+
+
 def google_auth_done(request):
     """OAuth callback landing: send users to onboarding or the Vue app."""
+    clear_google_auth_intent(request)
     if not request.user.is_authenticated:
         return redirect(f'{settings.FRONTEND_URL.rstrip("/")}/login?error=google')
 

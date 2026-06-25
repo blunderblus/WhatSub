@@ -1,5 +1,45 @@
 """Helpers for Google OAuth / Gmail token lookup."""
+from django.contrib.auth import get_user_model
+
 from allauth.socialaccount.models import SocialAccount, SocialToken
+
+GOOGLE_AUTH_INTENT_SESSION_KEY = 'google_auth_intent'
+GOOGLE_AUTH_INTENT_LOGIN = 'login'
+GOOGLE_AUTH_INTENT_SIGNUP = 'signup'
+
+
+def get_google_auth_intent(request):
+    intent = request.session.get(GOOGLE_AUTH_INTENT_SESSION_KEY, GOOGLE_AUTH_INTENT_SIGNUP)
+    if intent not in (GOOGLE_AUTH_INTENT_LOGIN, GOOGLE_AUTH_INTENT_SIGNUP):
+        return GOOGLE_AUTH_INTENT_SIGNUP
+    return intent
+
+
+def set_google_auth_intent(request, intent):
+    if intent not in (GOOGLE_AUTH_INTENT_LOGIN, GOOGLE_AUTH_INTENT_SIGNUP):
+        intent = GOOGLE_AUTH_INTENT_SIGNUP
+    request.session[GOOGLE_AUTH_INTENT_SESSION_KEY] = intent
+    request.session.modified = True
+
+
+def clear_google_auth_intent(request):
+    request.session.pop(GOOGLE_AUTH_INTENT_SESSION_KEY, None)
+
+
+def social_login_matches_existing_user(sociallogin):
+    """True when OAuth should sign in an existing WhatSub account instead of registering."""
+    if sociallogin.is_existing:
+        return True
+
+    account = sociallogin.account
+    if SocialAccount.objects.filter(provider=account.provider, uid=account.uid).exists():
+        return True
+
+    extra = account.extra_data or {}
+    email = (extra.get('email') or getattr(sociallogin.user, 'email', None) or '').strip()
+    if email and get_user_model().objects.filter(email__iexact=email).exists():
+        return True
+    return False
 
 
 def user_has_google_token(user):

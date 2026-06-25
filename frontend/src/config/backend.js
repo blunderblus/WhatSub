@@ -6,6 +6,7 @@ export const backendRoutes = {
   onboardingManual: '/accounts/onboarding/manual/',
   onboardingComplete: '/accounts/onboarding/complete/',
   googleAuthDone: '/accounts/auth/google/done/',
+  googleAuthStart: '/accounts/auth/google/start/',
   googleLogin: '/accounts/google/login/',
 };
 
@@ -17,8 +18,11 @@ export function redirectToBackend(path) {
   window.location.href = backendUrl(path);
 }
 
-/** Start Google OAuth (signup/login). Lands on googleAuthDone, then onboarding or /subscriptions. */
-export function googleAuthUrl(nextPath = backendRoutes.googleAuthDone) {
-  const next = encodeURIComponent(backendUrl(nextPath));
-  return `${backendUrl(backendRoutes.googleLogin)}?next=${next}`;
+/** Start Google OAuth. intent: 'login' | 'signup' */
+export function googleAuthUrl(nextPath = backendRoutes.googleAuthDone, intent = 'signup') {
+  const params = new URLSearchParams({
+    next: backendUrl(nextPath),
+    intent,
+  });
+  return `${backendUrl(backendRoutes.googleAuthStart)}?${params.toString()}`;
 }

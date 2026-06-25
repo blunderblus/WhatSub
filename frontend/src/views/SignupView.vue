@@ -1,13 +1,20 @@
 <script setup>
-import { ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { backendRoutes, googleAuthUrl, redirectToBackend } from '../config/backend';
 import { useSessionStore } from '../stores/session';
 
 const session = useSessionStore();
+const route = useRoute();
 const form = ref({ username: '', nickname: '', email: '', password1: '', password2: '' });
 const error = ref('');
-const googleHref = googleAuthUrl();
+const googleHref = googleAuthUrl(undefined, 'signup');
+
+onMounted(() => {
+  if (route.query.error === 'no_account') {
+    error.value = 'WhatSub에 가입된 Google 계정이 없습니다. Google로 가입하기를 진행해 주세요.';
+  }
+});
 
 async function submit() {
   error.value = '';

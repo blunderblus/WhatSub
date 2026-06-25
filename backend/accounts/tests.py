@@ -1,7 +1,9 @@
+from types import SimpleNamespace
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from accounts.forms import ManualSubscriptionForm
+from accounts.google_auth import GOOGLE_AUTH_INTENT_LOGIN, social_login_matches_existing_user
 from subscriptions.models import Category, Platform, SubscriptionPlan, UserSubscription
 
 
@@ -106,3 +108,32 @@ class ManualSubscriptionApiTest(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(UserSubscription.objects.count(), 1)
+
+
+class GoogleAuthIntentTest(TestCase):
+    def test_oauth_start_stores_login_intent_in_session(self):
+        response = self.client.get(
+            '/accounts/auth/google/start/?intent=login&next=http://testserver/accounts/auth/google/done/',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.session.get('google_auth_intent'), GOOGLE_AUTH_INTENT_LOGIN)
+
+    def test_social_login_matches_existing_user_by_email(self):
+        user = get_user_model().objects.create_user(
+            username='member',
+            email='member@example.com',
+            password='password',
+            nickname='Member',
+        )
+        sociallogin = SimpleNamespace(
+            is_existing=False,
+            user=SimpleNamespace(email=''),
+            account=SimpleNamespace(
+                provider='google',
+                uid='google-uid-1',
+                extra_data={'email': user.email},
+            ),
+        )
+
+        self.assertTrue(social_login_matches_existing_user(sociallogin))
