@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import CommunityComment, CommunityPost, Reaction
+from .permissions import can_manage_comment, can_manage_post
 
 
 BOARD_META = {
@@ -57,12 +58,16 @@ def report_payload(obj, request):
 class CommunityCommentSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
     reactions = serializers.SerializerMethodField()
     reports = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunityComment
-        fields = ['id', 'author', 'content', 'created_at', 'updated_at', 'is_owner', 'reactions', 'reports']
+        fields = [
+            'id', 'author', 'content', 'created_at', 'updated_at',
+            'is_owner', 'can_edit', 'reactions', 'reports',
+        ]
 
     def get_author(self, obj):
         return author_payload(obj.author)
@@ -70,6 +75,10 @@ class CommunityCommentSerializer(serializers.ModelSerializer):
     def get_is_owner(self, obj):
         request = self.context.get('request')
         return bool(request and request.user.is_authenticated and obj.author_id == request.user.id)
+
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        return bool(request and can_manage_comment(request.user, obj))
 
     def get_reactions(self, obj):
         return reaction_payload(obj, self.context.get('request'))
@@ -86,6 +95,7 @@ class CommunityPostSerializer(serializers.ModelSerializer):
     is_notice = serializers.SerializerMethodField()
     comment_count = serializers.IntegerField(read_only=True)
     is_owner = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
     reactions = serializers.SerializerMethodField()
     reports = serializers.SerializerMethodField()
 
@@ -95,7 +105,8 @@ class CommunityPostSerializer(serializers.ModelSerializer):
             'id', 'board', 'board_label', 'platform_id', 'platform_name',
             'flair_tag', 'flair_label', 'is_notice',
             'title', 'content', 'author',
-            'view_count', 'comment_count', 'created_at', 'updated_at', 'is_owner', 'reactions', 'reports',
+            'view_count', 'comment_count', 'created_at', 'updated_at',
+            'is_owner', 'can_edit', 'reactions', 'reports',
         ]
 
     def get_author(self, obj):
@@ -122,6 +133,10 @@ class CommunityPostSerializer(serializers.ModelSerializer):
     def get_is_owner(self, obj):
         request = self.context.get('request')
         return bool(request and request.user.is_authenticated and obj.author_id == request.user.id)
+
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        return bool(request and can_manage_post(request.user, obj))
 
     def get_reactions(self, obj):
         return reaction_payload(obj, self.context.get('request'))

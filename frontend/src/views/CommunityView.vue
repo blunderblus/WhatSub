@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { fetchCommunityBoards, fetchCommunityPosts } from '../api/community';
-import { fetchSubscriptionPlatforms } from '../api/subscriptions';
+import { fetchBenchmarkLeaderboard } from '../api/benchmark';
 import { profileInitial } from '../utils/formatters';
+import { FLAIR_OTHER } from '../utils/platformFlair';
 import { useSessionStore } from '../stores/session';
 import PageHeader from '../components/PageHeader.vue';
 import CommunityFlair from '../components/CommunityFlair.vue';
@@ -13,7 +14,10 @@ const router = useRouter();
 const session = useSessionStore();
 const boards = ref([]);
 const selectedBoard = ref(typeof route.query.board === 'string' ? route.query.board : 'ott');
-const platformFilterId = ref(route.query.platform_id ? String(route.query.platform_id) : '');
+const flairFilter = ref(resolveFlairFilterFromRoute());
+const searchInput = ref(typeof route.query.q === 'string' ? route.query.q : '');
+const appliedSearch = ref(searchInput.value);
+const flairPlatforms = ref([]);
 const posts = ref([]);
 const notices = ref([]);
 const loading = ref(false);
@@ -22,21 +26,39 @@ const error = ref('');
 const isAdmin = computed(() => Boolean(session.user?.is_staff || session.user?.is_superuser));
 const activeBoard = computed(() => boards.value.find((board) => board.key === selectedBoard.value));
 const currentPosts = computed(() => posts.value);
-const showPinnedNotices = computed(() => selectedBoard.value !== 'notice' && notices.value.length > 0);
+const showPinnedNotices = computed(() => selectedBoard.value !== 'notice' && notices.value.length > 0 && !appliedSearch.value);
 const canWriteCurrentBoard = computed(() => selectedBoard.value !== 'notice' || isAdmin.value);
-const platformFilterName = ref('');
-const platformFlairName = computed(() => {
-  if (selectedBoard.value !== 'ott' || !platformFilterId.value) return '';
-  if (platformFilterName.value) return platformFilterName.value;
-  const match = posts.value.find((post) => String(post.platform_id) === platformFilterId.value);
-  return match?.platform_name || '';
-});
+const showOttFilters = computed(() => selectedBoard.value === 'ott');
+const hasActiveFilters = computed(() => flairFilter.value !== 'all' || Boolean(appliedSearch.value));
+
+function resolveFlairFilterFromRoute() {
+  if (route.query.no_flair === '1') return 'none';
+  if (route.query.flair_tag === FLAIR_OTHER) return FLAIR_OTHER;
+  if (route.query.platform_id) return String(route.query.platform_id);
+  return 'all';
+}
 
 function formatDate(value) {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+}
+
+function flairFilterParams() {
+  if (flairFilter.value === 'none') return { noFlair: true };
+  if (flairFilter.value === FLAIR_OTHER) return { flairTag: FLAIR_OTHER };
+  if (flairFilter.value !== 'all') return { platformId: flairFilter.value };
+  return {};
+}
+
+function syncRouteQuery() {
+  const query = { board: selectedBoard.value };
+  if (appliedSearch.value) query.q = appliedSearch.value;
+  if (flairFilter.value === 'none') query.no_flair = '1';
+  else if (flairFilter.value === FLAIR_OTHER) query.flair_tag = FLAIR_OTHER;
+  else if (flairFilter.value !== 'all') query.platform_id = flairFilter.value;
+  router.replace({ path: '/community', query });
 }
 
 function goWriteNotice() {
@@ -57,8 +79,8 @@ function goWrite() {
   }
   if (!canWriteCurrentBoard.value) return;
   const query = { board: selectedBoard.value };
-  if (selectedBoard.value === 'ott' && platformFilterId.value) {
-    query.platform_id = platformFilterId.value;
+  if (flairFilter.value !== 'all' && flairFilter.value !== 'none' && flairFilter.value !== FLAIR_OTHER) {
+    query.platform_id = flairFilter.value;
   }
   router.push({ path: '/community/write', query });
 }
@@ -67,17 +89,12 @@ async function loadBoards() {
   boards.value = await fetchCommunityBoards();
 }
 
-async function loadPlatformFilterName() {
-  if (!platformFilterId.value) {
-    platformFilterName.value = '';
-    return;
-  }
+async function loadFlairPlatforms() {
   try {
-    const platforms = await fetchSubscriptionPlatforms();
-    const match = platforms.find((item) => String(item.id) === platformFilterId.value);
-    platformFilterName.value = match?.name || '';
+    const payload = await fetchBenchmarkLeaderboard();
+    flairPlatforms.value = payload?.platforms || [];
   } catch {
-    platformFilterName.value = '';
+    flairPlatforms.value = [];
   }
 }
 
@@ -93,7 +110,8 @@ async function loadPosts(board = selectedBoard.value) {
   try {
     const data = await fetchCommunityPosts({
       board,
-      platformId: board === 'ott' ? platformFilterId.value : '',
+      q: appliedSearch.value,
+      ...(board === 'ott' ? flairFilterParams() : {}),
     });
     posts.value = data.results || [];
   } catch (err) {
@@ -104,15 +122,34 @@ async function loadPosts(board = selectedBoard.value) {
   }
 }
 
-function clearPlatformFilter() {
-  platformFilterId.value = '';
-  router.replace({ path: '/community', query: { board: selectedBoard.value } });
-  loadPosts(selectedBoard.value);
+function selectFlairFilter(key) {
+  flairFilter.value = key;
+  syncRouteQuery();
+  loadPosts();
 }
 
+function submitSearch() {
+  appliedSearch.value = searchInput.value.trim();
+  syncRouteQuery();
+  loadPosts();
+}
+
+function clearFilters() {
+  flairFilter.value = 'all';
+  searchInput.value = '';
+  appliedSearch.value = '';
+  syncRouteQuery();
+  loadPosts();
+}
+
+watch(() => route.query.board, (board) => {
+  if (typeof board === 'string' && board !== selectedBoard.value) {
+    loadPosts(board);
+  }
+});
+
 onMounted(async () => {
-  await loadBoards();
-  await loadPlatformFilterName();
+  await Promise.all([loadBoards(), loadFlairPlatforms()]);
   await Promise.all([loadPosts(selectedBoard.value), loadNotices()]);
 });
 </script>
@@ -139,14 +176,58 @@ onMounted(async () => {
     </nav>
 
     <section class="panel post-list-panel">
+      <div class="board-toolbar">
+        <form class="search-form" @submit.prevent="submitSearch">
+          <input
+            v-model="searchInput"
+            type="search"
+            placeholder="제목, 내용, 작성자 검색"
+            aria-label="게시글 검색"
+          />
+          <button class="button" type="submit">검색</button>
+        </form>
+        <button v-if="hasActiveFilters" class="button linkish" type="button" @click="clearFilters">필터 초기화</button>
+      </div>
+
+      <div v-if="showOttFilters" class="flair-filter-bar" aria-label="플레어 필터">
+        <CommunityFlair
+          label="전체"
+          selectable
+          compact
+          :selected="flairFilter === 'all'"
+          @select="selectFlairFilter('all')"
+        />
+        <CommunityFlair
+          label="없음"
+          selectable
+          compact
+          :selected="flairFilter === 'none'"
+          @select="selectFlairFilter('none')"
+        />
+        <CommunityFlair
+          v-for="platform in flairPlatforms"
+          :key="platform.platform_id"
+          :label="platform.name"
+          :platform-name="platform.name"
+          selectable
+          compact
+          :selected="flairFilter === String(platform.platform_id)"
+          @select="selectFlairFilter(String(platform.platform_id))"
+        />
+        <CommunityFlair
+          label="기타"
+          flair-tag="other"
+          selectable
+          compact
+          :selected="flairFilter === FLAIR_OTHER"
+          @select="selectFlairFilter(FLAIR_OTHER)"
+        />
+      </div>
+
       <div class="board-heading">
         <div>
           <h2>{{ activeBoard?.name || '게시판' }}</h2>
           <p class="muted">{{ activeBoard?.description }}</p>
-          <p v-if="platformFlairName" class="platform-filter-chip">
-            <CommunityFlair :label="platformFlairName" :platform-name="platformFlairName" /> 플랫폼 글만 보는 중
-            <button type="button" class="link-btn" @click="clearPlatformFilter">필터 해제</button>
-          </p>
         </div>
         <div class="board-actions">
           <button v-if="isAdmin" class="button notice-write" type="button" @click="goWriteNotice">공지 작성</button>
@@ -172,7 +253,7 @@ onMounted(async () => {
           <span class="row-count">{{ notice.comment_count }}</span>
         </RouterLink>
 
-        <div v-if="currentPosts.length === 0" class="empty">아직 게시글이 없습니다.</div>
+        <div v-if="currentPosts.length === 0" class="empty">조건에 맞는 게시글이 없습니다.</div>
         <RouterLink v-for="post in currentPosts" :key="post.id" class="board-row" :to="`/community/${post.id}`">
           <span class="row-board">
             <CommunityFlair v-if="post.is_notice" is-notice compact />
@@ -260,6 +341,46 @@ onMounted(async () => {
 .notice-write {
   border-color: rgba(251, 191, 36, 0.45);
   color: #fbbf24;
+}
+
+.board-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.search-form {
+  display: flex;
+  flex: 1 1 280px;
+  gap: 8px;
+}
+
+.search-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+}
+
+.button.linkish {
+  background: transparent;
+  color: var(--ws-muted);
+}
+
+.flair-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px;
+  border: 1px solid var(--ws-glass-border);
+  border-radius: var(--ws-radius-sm);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .board-list {

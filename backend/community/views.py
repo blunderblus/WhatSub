@@ -11,8 +11,10 @@ from .models import (
     CommunityPostReport,
     Reaction,
 )
+from .permissions import can_manage_comment, can_manage_post
 from .selectors import (
     get_comment,
+    get_comment_for_moderation,
     get_post,
     get_post_detail,
     increment_post_views,
@@ -23,10 +25,9 @@ from .selectors import (
     reload_post_reactions,
     reload_post_reports,
     reload_post_with_comments,
-    get_user_comment,
 )
 from .serializers import BOARD_META, CommunityPostDetailSerializer, CommunityPostSerializer, reaction_payload, report_payload
-from .services import apply_reaction, create_comment, create_post, report_once, update_post
+from .services import apply_reaction, create_comment, create_post, report_once, update_comment, update_post
 
 ALLOWED_FLAIR_TAGS = {'other'}
 
@@ -64,6 +65,9 @@ def posts(request):
         queryset = post_list_queryset(
             board,
             request.GET.get('platform_id'),
+            flair_tag=request.GET.get('flair_tag'),
+            no_flair=request.GET.get('no_flair') in ('1', 'true', 'True'),
+            q=request.GET.get('q'),
             author=request.user if mine else None,
         )
         return Response({'board': BOARD_META[board], 'results': CommunityPostSerializer(queryset, many=True, context={'request': request}).data})
@@ -108,8 +112,8 @@ def post_detail(request, pk):
     if request.method == 'GET':
         increment_post_views(post)
         return Response(CommunityPostDetailSerializer(post, context={'request': request}).data)
-    if not request.user.is_authenticated or post.author_id != request.user.id:
-        return Response({'detail': '작성자만 수정하거나 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+    if not request.user.is_authenticated or not can_manage_post(request.user, post):
+        return Response({'detail': '작성자 또는 관리자만 수정하거나 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
     if request.method == 'DELETE':
         post.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -166,14 +170,21 @@ def comments(request, pk):
     return Response(CommunityPostDetailSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
-@api_view(['DELETE'])
+@api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def comment_detail(request, pk):
-    comment = get_user_comment(pk, request.user)
+    comment = get_comment_for_moderation(pk, request.user)
     if comment is None:
-        return Response({'detail': '댓글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
-    comment.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'detail': '댓글을 찾을 수 없거나 수정 권한이 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'DELETE':
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    content = (request.data.get('content') or '').strip()
+    if not content:
+        return Response({'content': ['댓글 내용을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
+    update_comment(comment, content=content)
+    post = reload_post_with_comments(comment.post_id)
+    return Response(CommunityPostDetailSerializer(post, context={'request': request}).data)
 
 
 @api_view(['POST'])

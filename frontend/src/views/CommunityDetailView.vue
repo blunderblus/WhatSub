@@ -8,7 +8,9 @@ import {
   fetchCommunityPost,
   reportCommunityComment,
   reportCommunityPost,
+  updateCommunityComment,
   updateCommunityCommentReaction,
+  updateCommunityPost,
   updateCommunityPostReaction,
 } from '../api/community';
 import { profileInitial } from '../utils/formatters';
@@ -24,6 +26,10 @@ const error = ref('');
 const comment = ref('');
 const commentMessage = ref('');
 const submitting = ref(false);
+const editingPost = ref(false);
+const postEditForm = ref({ title: '', content: '' });
+const editingCommentId = ref(null);
+const commentEditText = ref('');
 
 const isNotice = computed(() => post.value?.board === 'notice');
 
@@ -99,6 +105,53 @@ async function deletePost() {
   router.push('/community');
 }
 
+function startEditPost() {
+  if (!post.value?.can_edit) return;
+  postEditForm.value = { title: post.value.title, content: post.value.content };
+  editingPost.value = true;
+}
+
+function cancelEditPost() {
+  editingPost.value = false;
+}
+
+async function savePostEdit() {
+  if (!post.value?.can_edit) return;
+  submitting.value = true;
+  try {
+    post.value = await updateCommunityPost(post.value.id, postEditForm.value);
+    editingPost.value = false;
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    submitting.value = false;
+  }
+}
+
+function startEditComment(item) {
+  if (!item.can_edit) return;
+  editingCommentId.value = item.id;
+  commentEditText.value = item.content;
+}
+
+function cancelEditComment() {
+  editingCommentId.value = null;
+  commentEditText.value = '';
+}
+
+async function saveCommentEdit(item) {
+  if (!item.can_edit) return;
+  submitting.value = true;
+  try {
+    post.value = await updateCommunityComment(item.id, commentEditText.value);
+    cancelEditComment();
+  } catch (err) {
+    commentMessage.value = err.message;
+  } finally {
+    submitting.value = false;
+  }
+}
+
 async function deleteComment(id) {
   if (!confirm('삭제하시겠습니까?')) return;
   await deleteCommunityComment(id);
@@ -127,7 +180,17 @@ onMounted(loadPost);
           />
           <span v-else class="board-badge">{{ post.board_label }}</span>
         </div>
-        <h1>{{ post.title }}</h1>
+        <h1 v-if="!editingPost">{{ post.title }}</h1>
+        <div v-else class="edit-block">
+          <label for="edit-title">제목</label>
+          <input id="edit-title" v-model="postEditForm.title" maxlength="120" />
+          <label for="edit-content">내용</label>
+          <textarea id="edit-content" v-model="postEditForm.content" rows="10"></textarea>
+          <div class="edit-actions">
+            <button class="button" type="button" @click="cancelEditPost">취소</button>
+            <button class="button primary" type="button" :disabled="submitting" @click="savePostEdit">저장</button>
+          </div>
+        </div>
         <div class="detail-meta">
           <span class="author-chip">
             <img v-if="post.author.profile_image" :src="post.author.profile_image" alt="" />
@@ -139,7 +202,7 @@ onMounted(loadPost);
           <span>조회 {{ post.view_count }}</span>
           <span v-if="!isNotice">댓글 {{ post.comments.length }}</span>
         </div>
-        <p>{{ post.content }}</p>
+        <p v-if="!editingPost">{{ post.content }}</p>
 
         <div class="post-actions">
           <div class="reaction-bar" aria-label="게시글 추천 비추천">
@@ -180,7 +243,17 @@ onMounted(loadPost);
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18v-5a5 5 0 0 1 10 0v5M5 21h14M12 3v2M4.2 6.2l1.4 1.4M19.8 6.2l-1.4 1.4M9 18h6" /></svg>
             </button>
             <button
-              v-if="post.is_owner"
+              v-if="post.can_edit"
+              class="icon-button"
+              type="button"
+              aria-label="수정"
+              title="수정"
+              @click="startEditPost"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+            </button>
+            <button
+              v-if="post.can_edit"
               class="icon-button danger"
               type="button"
               aria-label="삭제"
@@ -211,7 +284,14 @@ onMounted(loadPost);
                 </span>
                 <strong>{{ item.author.nickname }}</strong>
               </span>
-              <p>{{ item.content }}</p>
+              <p v-if="editingCommentId !== item.id">{{ item.content }}</p>
+              <div v-else class="edit-block compact">
+                <textarea v-model="commentEditText" rows="3" aria-label="댓글 수정"></textarea>
+                <div class="edit-actions">
+                  <button class="button" type="button" @click="cancelEditComment">취소</button>
+                  <button class="button primary" type="button" :disabled="submitting" @click="saveCommentEdit(item)">저장</button>
+                </div>
+              </div>
               <div class="comment-reactions" aria-label="댓글 추천 비추천">
                 <button
                   class="icon-button reaction small"
@@ -250,7 +330,17 @@ onMounted(loadPost);
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18v-5a5 5 0 0 1 10 0v5M5 21h14M12 3v2M4.2 6.2l1.4 1.4M19.8 6.2l-1.4 1.4M9 18h6" /></svg>
               </button>
               <button
-                v-if="item.is_owner"
+                v-if="item.can_edit"
+                class="icon-button small-tool"
+                type="button"
+                aria-label="수정"
+                title="수정"
+                @click="startEditComment(item)"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              </button>
+              <button
+                v-if="item.can_edit"
                 class="icon-button danger small-tool"
                 type="button"
                 aria-label="삭제"
@@ -303,6 +393,38 @@ onMounted(loadPost);
 
 .detail-post p {
   white-space: pre-wrap;
+}
+
+.edit-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.edit-block.compact {
+  margin-top: 8px;
+}
+
+.edit-block label {
+  color: var(--ws-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.edit-block input,
+.edit-block textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .author-chip {

@@ -28,6 +28,7 @@ from subscriptions.models import Platform, SubscriptionPlan, UserSubscription
 User = get_user_model()
 
 DEMO_PASSWORD = 'demo1234'
+DEMO_AVATARS = [f'/img/avatars/avatar-3d-{index:02d}.png' for index in range(1, 10)]
 DEMO_USER_SPECS = [
     ('demo_netflix_fan', '넷플릭스덕', 'netflix@demo.local'),
     ('demo_tving_lover', '티빙러버', 'tving@demo.local'),
@@ -183,9 +184,19 @@ class Command(BaseCommand):
             action='store_true',
             help='Delete existing demo_* users and recreate all demo activity.',
         )
+        parser.add_argument(
+            '--update-avatars',
+            action='store_true',
+            help='Assign default avatar presets to demo_* users only.',
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if options['update_avatars']:
+            self._ensure_users()
+            self.stdout.write(self.style.SUCCESS('Updated demo user avatars.'))
+            return
+
         if options['reset']:
             deleted, _ = User.objects.filter(username__startswith='demo_').delete()
             self.stdout.write(f'Removed demo users ({deleted} related rows).')
@@ -219,13 +230,14 @@ class Command(BaseCommand):
 
     def _ensure_users(self):
         users = {}
-        for username, nickname, email in DEMO_USER_SPECS:
+        for idx, (username, nickname, email) in enumerate(DEMO_USER_SPECS):
             user, created = User.objects.get_or_create(
                 username=username,
                 defaults={'nickname': nickname, 'email': email, 'is_active': True},
             )
             if not created and user.nickname != nickname:
                 user.nickname = nickname
+            user.profile_image = DEMO_AVATARS[idx % len(DEMO_AVATARS)]
             user.set_password(DEMO_PASSWORD)
             user.save()
             users[username] = user

@@ -1,4 +1,4 @@
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 
 from .models import CommunityComment, CommunityPost
 from .serializers import BOARD_META
@@ -8,7 +8,7 @@ def normalize_board(board):
     return board if board in BOARD_META else CommunityPost.Board.OTT
 
 
-def post_list_queryset(board, platform_id=None, author=None):
+def post_list_queryset(board, platform_id=None, flair_tag=None, no_flair=False, q=None, author=None):
     queryset = (
         CommunityPost.objects.filter(board=normalize_board(board))
         .select_related('author', 'platform')
@@ -16,10 +16,22 @@ def post_list_queryset(board, platform_id=None, author=None):
         .annotate(comment_count=Count('comments'))
         .order_by('-created_at')
     )
-    if platform_id:
+    if flair_tag == 'other':
+        queryset = queryset.filter(flair_tag='other')
+    elif platform_id:
         queryset = queryset.filter(platform_id=platform_id)
+    elif no_flair:
+        queryset = queryset.filter(platform_id__isnull=True, flair_tag='')
     if author is not None:
         queryset = queryset.filter(author=author)
+    term = (q or '').strip()
+    if term:
+        queryset = queryset.filter(
+            Q(title__icontains=term)
+            | Q(content__icontains=term)
+            | Q(author__nickname__icontains=term)
+            | Q(author__username__icontains=term)
+        )
     return queryset
 
 
@@ -51,6 +63,16 @@ def get_comment(pk):
 
 def get_user_comment(pk, user):
     return CommunityComment.objects.filter(pk=pk, author=user).first()
+
+
+def get_comment_for_moderation(pk, user):
+    comment = CommunityComment.objects.filter(pk=pk).first()
+    if comment is None:
+        return None
+    from .permissions import can_manage_comment
+    if not can_manage_comment(user, comment):
+        return None
+    return comment
 
 
 def reload_post_with_comments(pk):

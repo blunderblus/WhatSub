@@ -5,10 +5,13 @@ export async function fetchCommunityBoards() {
   return data.boards || [];
 }
 
-export async function fetchCommunityPosts({ board, platformId = '' } = {}) {
+export async function fetchCommunityPosts({ board, platformId = '', flairTag = '', noFlair = false, q = '' } = {}) {
   const params = new URLSearchParams();
   if (board) params.set('board', board);
   if (platformId) params.set('platform_id', platformId);
+  if (flairTag) params.set('flair_tag', flairTag);
+  if (noFlair) params.set('no_flair', '1');
+  if (q) params.set('q', q);
 
   const query = params.toString();
   return apiRequest(`/api/community/posts/${query ? `?${query}` : ''}`);
@@ -29,6 +32,13 @@ export async function createCommunityPost(body) {
 
 export async function fetchCommunityPost(postId) {
   return apiRequest(`/api/community/posts/${postId}/`);
+}
+
+export async function updateCommunityPost(postId, { title, content }) {
+  return apiRequest(`/api/community/posts/${postId}/`, {
+    method: 'PATCH',
+    body: { title, content },
+  });
 }
 
 export async function deleteCommunityPost(postId) {
@@ -55,6 +65,13 @@ export async function reportCommunityPost(postId) {
 export async function addCommunityComment(postId, content) {
   return apiRequest(`/api/community/posts/${postId}/comments/`, {
     method: 'POST',
+    body: { content },
+  });
+}
+
+export async function updateCommunityComment(commentId, content) {
+  return apiRequest(`/api/community/comments/${commentId}/`, {
+    method: 'PATCH',
     body: { content },
   });
 }

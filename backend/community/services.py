@@ -26,6 +26,12 @@ def create_comment(*, post, author, content):
     return CommunityComment.objects.create(post=post, author=author, content=content)
 
 
+def update_comment(comment, *, content):
+    comment.content = content
+    comment.save(update_fields=['content', 'updated_at'])
+    return comment
+
+
 def apply_reaction(model, lookup, user, reaction):
     existing = model.objects.filter(**lookup, user=user).first()
     if not reaction or (existing and existing.reaction == reaction):
