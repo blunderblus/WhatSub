@@ -1,7 +1,10 @@
 from django.test import TestCase
 from django.db import IntegrityError
+from django.utils import timezone
+from unittest.mock import patch
 
 from subscriptions.models import Platform
+from . import views
 from .image_urls import find_nested_image_url, tmdb_image_url
 from .models import Content, ContentPlatform
 from .streaming_provider_display import decorate_providers, provider_key, sort_providers
@@ -169,3 +172,45 @@ class ProviderDisplayUtilityTest(TestCase):
             find_nested_image_url(payload),
             'https://example.com/dark.png',
         )
+
+
+class StreamingProviderCacheTest(TestCase):
+    fixtures = ['platform_seed']
+
+    def setUp(self):
+        self.content = Content.objects.create(
+            tmdb_id=777001,
+            title='Cached Title',
+            content_type='movie',
+            sources_cache=[{
+                'service': 'Netflix',
+                'display_name': 'Netflix',
+                'type': 'subscription',
+                'type_label': '구독',
+                'source': 'tmdb',
+            }],
+            sources_synced_at=timezone.now(),
+        )
+
+    def test_fresh_sources_cache_returns_without_paid_availability_calls(self):
+        with (
+            patch.object(views, '_providers_from_tmdb_watch') as tmdb_watch,
+            patch.object(views, '_fetch_streaming_availability') as rapidapi,
+            patch.object(views.wm, 'resolve_watchmode_id') as watchmode_resolve,
+            patch.object(views.wm, 'fetch_sources') as watchmode_sources,
+            patch.object(views.wm, 'is_configured', return_value=True),
+            patch.object(views.WatchmodeUsage, 'can_call', return_value=True),
+        ):
+            providers = views.get_streaming_providers(
+                self.content.tmdb_id,
+                'movie',
+                allow_watchmode=True,
+                allow_rapidapi_fallback=True,
+                skip_rapidapi=True,
+            )
+
+        self.assertEqual([provider['service'] for provider in providers], ['Netflix'])
+        tmdb_watch.assert_not_called()
+        rapidapi.assert_not_called()
+        watchmode_resolve.assert_not_called()
+        watchmode_sources.assert_not_called()

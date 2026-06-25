@@ -635,22 +635,6 @@ def get_streaming_providers(
 
     if is_fresh:
         providers = _finalize_providers(content, content.sources_cache or [])
-        if (
-            allow_watchmode
-            and wm.is_configured()
-            and WatchmodeUsage.can_call()
-            and _should_augment_watchmode(providers)
-        ):
-            providers, calls = _augment_with_watchmode(content, tmdb_id, media_type, providers)
-            if calls:
-                WatchmodeUsage.increment(calls)
-            providers = _finalize_providers(content, providers)
-            content.sources_cache = providers
-            content.sources_synced_at = timezone.now()
-            content.save(update_fields=['sources_cache', 'sources_synced_at', 'watchmode_id'])
-            _sync_content_platforms(content, providers)
-        if allow_rapidapi_fallback and _providers_missing_links(providers):
-            providers = _try_rapidapi_link_fallback(content, tmdb_id, media_type, providers)
         return decorate_providers(providers)
 
     old_providers = list(content.sources_cache or [])
