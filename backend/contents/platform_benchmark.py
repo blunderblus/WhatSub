@@ -38,6 +38,79 @@ def _month_key(d: date) -> str:
     return d.strftime('%Y-%m')
 
 
+def gather_insight_context(platform, snapshot_date):
+    """Shared inputs for LLM value insight (genres, plans, exclusives)."""
+    from .benchmark_scoring import compute_availability_raw
+
+    avail = compute_availability_raw()
+    title_count = avail.get(platform.id, 0)
+    genre_rows = PlatformGenreStats.objects.filter(
+        platform=platform, snapshot_date=snapshot_date,
+    ).order_by('-title_count')
+    genres = [
+        {
+            'genre_id': row.genre_id,
+            'genre_name': GENRE_NAMES.get(row.genre_id, f'Genre {row.genre_id}'),
+            'title_count': row.title_count,
+        }
+        for row in genre_rows
+    ]
+
+    plan_lines = _plans_prompt_lines(platform)
+    exclusive_lines = _exclusive_prompt_lines(platform.id)
+
+    return {
+        'title_count': title_count,
+        'genres': genres,
+        'plan_lines': plan_lines,
+        'exclusive_lines': exclusive_lines,
+    }
+
+
+def _plans_prompt_lines(platform, limit=12):
+    plans = (
+        SubscriptionPlan.objects
+        .filter(platform=platform)
+        .select_related('requires_membership__platform')
+        .order_by('price')[:limit]
+    )
+    lines = []
+    for plan in plans:
+        parts = [
+            plan.plan_name,
+            f'{plan.price}원/{plan.billing_period}',
+            plan.max_quality or '화질 미정',
+            f'동시 {plan.max_streams}',
+            '광고 있음' if plan.has_ads else '광고 없음',
+        ]
+        if plan.is_bundle:
+            parts.append('번들')
+        if plan.requires_membership:
+            parts.append(
+                f'조건: {plan.requires_membership.platform.name} {plan.requires_membership.plan_name}',
+            )
+        note = (plan.notes or '').strip()
+        if note:
+            parts.append(f'메모: {note[:160]}')
+        lines.append(f'    - {" · ".join(parts)}')
+    return lines
+
+
+def _exclusive_prompt_lines(platform_id, limit=10):
+    ex_keys = list(_exclusive_titles_by_platform().get(platform_id, set()))[:limit]
+    if not ex_keys:
+        return []
+    display_map = get_title_display_map(ex_keys, max_tmdb_fetches=limit)
+    lines = []
+    for tmdb_id, media_type in ex_keys:
+        info = display_map.get((tmdb_id, media_type), {})
+        title = info.get('title') or f'작품 #{tmdb_id}'
+        rating = info.get('vote_average')
+        rating_text = f' · ★{float(rating):.1f}' if rating else ''
+        lines.append(f'    - {title}{rating_text}')
+    return lines
+
+
 def _previous_snapshot(platform, snapshot_date):
     return (
         PlatformBenchmarkSnapshot.objects
@@ -55,7 +128,7 @@ def _score_delta_line(label, current_val, previous_val):
     return f'  {label}={current_val} (delta {sign}{delta} vs prior snapshot)'
 
 
-def _build_insight_prompt(platform, snap, snapshot_date, title_count, genres):
+def _build_insight_prompt(platform, snap, snapshot_date, title_count, genres, plan_lines=None, exclusive_lines=None):
     prev = _previous_snapshot(platform, snapshot_date)
     genre_lines = [
         f"    {g['genre_name']}: {g['title_count']} titles"
@@ -70,6 +143,8 @@ def _build_insight_prompt(platform, snap, snapshot_date, title_count, genres):
         _score_delta_line('accessibility', snap.accessibility_score, prev.accessibility_score if prev else None),
     ]
     prior_date = prev.snapshot_date.isoformat() if prev else 'none'
+    plan_lines = plan_lines or []
+    exclusive_lines = exclusive_lines or []
 
     return (
         f'Platform: {platform.name}\n'
@@ -78,23 +153,33 @@ def _build_insight_prompt(platform, snap, snapshot_date, title_count, genres):
         f'Cached title count (available): {title_count}\n'
         f'Top genres (PlatformGenreStats, snapshot {snapshot_date}):\n'
         f'{chr(10).join(genre_lines) or "    (none)"}\n'
+        f'Subscription plans & promos (SubscriptionPlan, up to {len(plan_lines)}):\n'
+        f'{chr(10).join(plan_lines) or "    (none registered)"}\n'
+        f'Exclusive highlights (StreamingCache-only titles, up to {len(exclusive_lines)}):\n'
+        f'{chr(10).join(exclusive_lines) or "    (none listed)"}\n'
         f'Benchmark snapshot ({snapshot_date}), prior snapshot ({prior_date}):\n'
         f'{chr(10).join(score_lines)}\n'
         f'  confidence={snap.confidence_level}\n'
         f'Write a concise consumer-facing value insight for Korean users.\n'
         f'For axis_explanations: one Korean sentence per axis explaining WHY the score '
-        f'is at this level, referencing the data above (genre mix, deltas, confidence).\n'
+        f'is at this level, referencing genres, plan value, exclusive titles, deltas, confidence.\n'
         f'REQUIRED: All text fields must be written in Korean only. '
         f'Do not use English except proper nouns (Netflix, Disney+, etc.). JSON only.'
     )
 
 
-def get_platform_llm_insight(platform, snap, snapshot_date, use_llm=True, title_count=0, genres=None):
+def get_platform_llm_insight(
+    platform, snap, snapshot_date, use_llm=True, title_count=0, genres=None,
+    plan_lines=None, exclusive_lines=None,
+):
     """Platform value insight (temperature=0, content-hash cached)."""
     if not use_llm or not is_configured() or not snap:
         return None
 
-    prompt = _build_insight_prompt(platform, snap, snapshot_date, title_count, genres)
+    prompt = _build_insight_prompt(
+        platform, snap, snapshot_date, title_count, genres,
+        plan_lines=plan_lines, exclusive_lines=exclusive_lines,
+    )
     cache_key = build_cache_key(
         LLMJudgmentCache.JudgmentType.PLATFORM_INSIGHT,
         snapshot_date,
@@ -192,17 +277,8 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
 
     avail = compute_availability_raw()
     title_count = avail.get(platform.id, 0)
-    genre_rows = PlatformGenreStats.objects.filter(
-        platform=platform, snapshot_date=snapshot_date,
-    ).order_by('-title_count')
-    genres = [
-        {
-            'genre_id': row.genre_id,
-            'genre_name': GENRE_NAMES.get(row.genre_id, f'Genre {row.genre_id}'),
-            'title_count': row.title_count,
-        }
-        for row in genre_rows
-    ]
+    insight_ctx = gather_insight_context(platform, snapshot_date)
+    genres = insight_ctx['genres']
 
     plans_qs = (
         SubscriptionPlan.objects
@@ -254,7 +330,10 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
     insight = (
         get_platform_llm_insight(
             platform, snap, snapshot_date, use_llm=use_llm,
-            title_count=title_count, genres=genres,
+            title_count=title_count,
+            genres=genres,
+            plan_lines=insight_ctx['plan_lines'],
+            exclusive_lines=insight_ctx['exclusive_lines'],
         )
         if use_llm else None
     )

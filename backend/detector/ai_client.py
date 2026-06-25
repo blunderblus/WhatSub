@@ -4,7 +4,7 @@ from django.conf import settings
 
 DEFAULT_AI_MODEL = 'gpt-4o-mini'
 DEFAULT_SCORING_MODEL = 'gpt-5.2'
-DEFAULT_INSIGHT_MODEL = 'gpt-5.5'
+DEFAULT_INSIGHT_MODEL = 'gpt-5.2'
 
 
 def _resolve_model_setting(name: str, default: str) -> str:

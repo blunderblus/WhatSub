@@ -263,10 +263,10 @@ AI_SCORING_MODEL = (
 if not AI_SCORING_MODEL:
     AI_SCORING_MODEL = 'gpt-5.2'
 AI_INSIGHT_MODEL = (
-    env('AI_INSIGHT_MODEL', default='gpt-5.5') or 'gpt-5.5'
+    env('AI_INSIGHT_MODEL', default='gpt-5.2') or 'gpt-5.2'
 ).strip().strip("'\"")
 if not AI_INSIGHT_MODEL:
-    AI_INSIGHT_MODEL = 'gpt-5.5'
+    AI_INSIGHT_MODEL = 'gpt-5.2'
 AI_VISION_MODEL = (
     env('AI_VISION_MODEL', default='gemini-2.5-flash') or 'gemini-2.5-flash'
 ).strip().strip("'\"")

@@ -226,7 +226,8 @@ def benchmark_platform_page(request, platform_id):
 @permission_classes([AllowAny])
 def benchmark_platform_insight(request, platform_id):
     """LLM insight only (cached monthly) — avoids full page rebuild."""
-    from .platform_benchmark import _month_key, get_platform_llm_insight
+    from .platform_benchmark import _month_key, gather_insight_context, get_platform_llm_insight
+    from .llm_judgment import is_configured
 
     snapshot_date = _resolve_snapshot_date(request)
     if not snapshot_date:
@@ -250,31 +251,31 @@ def benchmark_platform_insight(request, platform_id):
         return Response({'detail': '해당 플랫폼 스냅샷이 없습니다.'}, status=404)
 
     from .benchmark_scoring import compute_availability_raw
-    from .models import PlatformGenreStats
-    from .benchmark_constants import GENRE_NAMES
 
-    avail = compute_availability_raw()
-    title_count = avail.get(platform.id, 0)
-    genre_rows = PlatformGenreStats.objects.filter(
-        platform=platform, snapshot_date=snapshot_date,
-    ).order_by('-title_count')
-    genres = [
-        {
-            'genre_id': row.genre_id,
-            'genre_name': GENRE_NAMES.get(row.genre_id, f'Genre {row.genre_id}'),
-            'title_count': row.title_count,
-        }
-        for row in genre_rows
-    ]
+    if not is_configured():
+        return Response({
+            'platform_id': platform.id,
+            'llm_insight': None,
+            'llm_insight_month': _month_key(snapshot_date),
+            'insight_error': 'AI API가 설정되지 않았습니다.',
+        })
+
+    insight_ctx = gather_insight_context(platform, snapshot_date)
     insight = get_platform_llm_insight(
         platform, snap, snapshot_date, use_llm=True,
-        title_count=title_count, genres=genres,
+        title_count=insight_ctx['title_count'],
+        genres=insight_ctx['genres'],
+        plan_lines=insight_ctx['plan_lines'],
+        exclusive_lines=insight_ctx['exclusive_lines'],
     )
-    return Response({
+    payload = {
         'platform_id': platform.id,
         'llm_insight': insight,
         'llm_insight_month': _month_key(snapshot_date),
-    })
+    }
+    if insight is None:
+        payload['insight_error'] = 'AI 분석을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+    return Response(payload)
 
 
 @api_view(['GET', 'POST'])

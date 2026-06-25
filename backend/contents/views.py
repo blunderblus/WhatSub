@@ -814,6 +814,7 @@ def tmdb_search(request):
         'api_key': settings.TMDB_API_KEY,
         'query': query,
         'language': 'ko-KR',
+        'include_adult': 'false',
     }
 
     try:
@@ -830,8 +831,9 @@ def tmdb_search(request):
                 'title': item.get('title') or item.get('name'),
                 'media_type': item.get('media_type'),
                 'release_date': item.get('release_date') or item.get('first_air_date'),
-                'poster_url': (f"https://image.tmdb.org/t/p/w200{item.get('poster_path')}" if item.get('poster_path') else None)
+                'poster_url': (f"https://image.tmdb.org/t/p/w200{item.get('poster_path')}" if item.get('poster_path') else None),
             })
+
         return JsonResponse({'results': results}, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

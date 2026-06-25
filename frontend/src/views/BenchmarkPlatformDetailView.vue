@@ -23,6 +23,7 @@ const session = useSessionStore();
 
 const loading = ref(true);
 const insightLoading = ref(false);
+const insightError = ref('');
 const error = ref('');
 const page = ref(null);
 const reviewScore = ref(0);
@@ -180,14 +181,19 @@ async function loadPage() {
 async function loadInsight() {
   if (!page.value || insightLoading.value) return;
   insightLoading.value = true;
+  insightError.value = '';
   try {
     const data = await fetchBenchmarkPlatformInsight(platformId.value);
     if (page.value && data.platform_id === page.value.platform_id) {
       page.value.llm_insight = data.llm_insight;
       page.value.llm_insight_month = data.llm_insight_month;
+      insightError.value = data.insight_error || '';
+      if (!data.llm_insight && !data.insight_error) {
+        insightError.value = 'AI 분석을 불러오지 못했습니다.';
+      }
     }
-  } catch {
-    /* insight is optional */
+  } catch (err) {
+    insightError.value = err.message || 'AI 분석을 불러오지 못했습니다.';
   } finally {
     insightLoading.value = false;
   }
@@ -355,6 +361,53 @@ onMounted(loadPage);
                 <span>{{ formatScore(page.scores[key]) }}</span>
               </div>
               <p v-if="insightLoading" class="muted axis-hint">AI 점수 설명을 불러오는 중...</p>
+              <p v-else-if="insightError" class="notice axis-hint">{{ insightError }}</p>
+            </section>
+
+            <section class="panel compact insight">
+              <h2>AI 분석 <small class="muted">({{ page.llm_insight_month || '로딩 중' }})</small></h2>
+              <p v-if="insightLoading && !page.llm_insight" class="muted">AI 분석을 불러오는 중입니다.</p>
+              <p v-else-if="insightError && !page.llm_insight" class="notice">{{ insightError }}</p>
+              <template v-else-if="page.llm_insight">
+                <p class="insight-summary">{{ page.llm_insight.summary }}</p>
+
+                <div
+                  v-if="page.llm_insight.strengths?.length || page.llm_insight.weaknesses?.length"
+                  class="insight-sw-grid"
+                >
+                  <div v-if="page.llm_insight.strengths?.length" class="insight-sw-card strength">
+                    <h3 class="insight-sw-title">
+                      <span class="insight-sw-icon" aria-hidden="true">+</span>
+                      강점
+                    </h3>
+                    <ul class="insight-sw-list">
+                      <li v-for="(s, i) in page.llm_insight.strengths" :key="`s-${i}`">{{ s }}</li>
+                    </ul>
+                  </div>
+
+                  <div v-if="page.llm_insight.weaknesses?.length" class="insight-sw-card weakness">
+                    <h3 class="insight-sw-title">
+                      <span class="insight-sw-icon" aria-hidden="true">−</span>
+                      약점
+                    </h3>
+                    <ul class="insight-sw-list">
+                      <li v-for="(w, i) in page.llm_insight.weaknesses" :key="`w-${i}`">{{ w }}</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div v-if="page.llm_insight.best_for || page.llm_insight.plan_tip" class="insight-footnotes">
+                  <p v-if="page.llm_insight.best_for" class="insight-note recommend">
+                    <span class="insight-note-label">추천 대상</span>
+                    <span>{{ page.llm_insight.best_for }}</span>
+                  </p>
+                  <p v-if="page.llm_insight.plan_tip" class="insight-note tip">
+                    <span class="insight-note-label">플랜 팁</span>
+                    <span>{{ page.llm_insight.plan_tip }}</span>
+                  </p>
+                </div>
+              </template>
+              <p v-else class="muted">AI 분석 데이터가 없습니다.</p>
             </section>
 
             <section class="panel compact">
@@ -512,22 +565,6 @@ onMounted(loadPage);
         </aside>
       </div>
 
-      <section v-if="page.llm_insight || insightLoading" class="panel compact insight">
-        <h2>AI 분석 <small class="muted">({{ page.llm_insight_month || '로딩 중' }})</small></h2>
-        <p v-if="insightLoading && !page.llm_insight" class="muted">AI 분석을 불러오는 중입니다.</p>
-        <template v-else-if="page.llm_insight">
-          <p>{{ page.llm_insight.summary }}</p>
-          <ul v-if="page.llm_insight.strengths?.length">
-            <li v-for="(s, i) in page.llm_insight.strengths" :key="`s-${i}`">강점: {{ s }}</li>
-          </ul>
-          <ul v-if="page.llm_insight.weaknesses?.length">
-            <li v-for="(w, i) in page.llm_insight.weaknesses" :key="`w-${i}`">약점: {{ w }}</li>
-          </ul>
-          <p v-if="page.llm_insight.best_for" class="muted">추천 대상: {{ page.llm_insight.best_for }}</p>
-          <p v-if="page.llm_insight.plan_tip" class="muted">플랜 팁: {{ page.llm_insight.plan_tip }}</p>
-        </template>
-      </section>
-
       <section class="panel compact pricing-section">
         <div class="section-head">
           <h2>구독 플랜·번들·프로모션</h2>
@@ -610,6 +647,164 @@ onMounted(loadPage);
 
 .hero-charts .panel.compact {
   margin-bottom: 0;
+  overflow: visible;
+}
+
+.insight h2 {
+  margin-bottom: 12px;
+}
+
+.insight-summary {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ws-primary-rgb), 0.22);
+  background: rgba(var(--ws-primary-rgb), 0.07);
+  color: var(--ws-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.insight-sw-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.insight-sw-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-surface-2);
+}
+
+.insight-sw-card.strength {
+  border-color: rgba(var(--ws-primary-rgb), 0.35);
+  background: linear-gradient(
+    145deg,
+    rgba(var(--ws-primary-rgb), 0.14),
+    rgba(var(--ws-primary-rgb), 0.04)
+  );
+}
+
+.insight-sw-card.weakness {
+  border-color: rgba(var(--ws-secondary-rgb), 0.38);
+  background: linear-gradient(
+    145deg,
+    rgba(var(--ws-secondary-rgb), 0.16),
+    rgba(var(--ws-secondary-rgb), 0.05)
+  );
+}
+
+.insight-sw-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.insight-sw-card.strength .insight-sw-title {
+  color: var(--ws-primary);
+}
+
+.insight-sw-card.weakness .insight-sw-title {
+  color: var(--ws-secondary);
+}
+
+.insight-sw-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.insight-sw-card.strength .insight-sw-icon {
+  background: rgba(var(--ws-primary-rgb), 0.22);
+  color: var(--ws-primary);
+}
+
+.insight-sw-card.weakness .insight-sw-icon {
+  background: rgba(var(--ws-secondary-rgb), 0.24);
+  color: var(--ws-secondary);
+}
+
+.insight-sw-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.insight-sw-list li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--ws-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.insight-sw-list li::before {
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  content: '';
+}
+
+.insight-sw-card.strength .insight-sw-list li::before {
+  background: var(--ws-primary);
+  box-shadow: 0 0 8px rgba(var(--ws-primary-rgb), 0.55);
+}
+
+.insight-sw-card.weakness .insight-sw-list li::before {
+  background: var(--ws-secondary);
+  box-shadow: 0 0 8px rgba(var(--ws-secondary-rgb), 0.45);
+}
+
+.insight-footnotes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.insight-note {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ws-border);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.insight-note-label {
+  color: var(--ws-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.insight-note.recommend .insight-note-label {
+  color: var(--ws-primary);
+}
+
+.insight-note.tip .insight-note-label {
+  color: var(--ws-secondary);
 }
 
 .hero-side {
