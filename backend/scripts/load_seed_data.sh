@@ -26,14 +26,25 @@ python -X utf8 manage.py loaddata contents/fixtures/benchmark_snapshot.json
 echo "[4/4] streaming cache (batched — remote Supabase can be slow)"
 python -X utf8 scripts/load_fixture_batched.py contents/fixtures/benchmark_streaming_cache.json 150
 
+echo "[5/5] demo activity (users, community, reviews)"
+python manage.py seed_demo --reset
+
 python manage.py shell -c "
-from contents.models import PlatformBenchmarkSnapshot, StreamingCache
+from contents.models import PlatformBenchmarkSnapshot, StreamingCache, PlatformUserReview, ContentReaction
+from community.models import CommunityPost, CommunityComment
 from subscriptions.models import Platform, SubscriptionPlan
+from django.contrib.auth import get_user_model
+User = get_user_model()
 print(
     Platform.objects.count(), 'platforms,',
     SubscriptionPlan.objects.count(), 'plans,',
     PlatformBenchmarkSnapshot.objects.count(), 'snapshots,',
-    StreamingCache.objects.count(), 'cache rows',
+    StreamingCache.objects.count(), 'cache rows,',
+    User.objects.filter(username__startswith='demo_').count(), 'demo users,',
+    CommunityPost.objects.count(), 'posts,',
+    CommunityComment.objects.count(), 'comments,',
+    PlatformUserReview.objects.count(), 'platform reviews,',
+    ContentReaction.objects.count(), 'content reactions,',
 )
 "
 
