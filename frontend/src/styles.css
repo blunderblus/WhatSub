@@ -24,24 +24,6 @@ body {
     radial-gradient(ellipse 70% 50% at 95% 8%, rgba(var(--ws-secondary-rgb), 0.18), transparent 50%),
     radial-gradient(ellipse 50% 40% at 50% 100%, rgba(var(--ws-primary-rgb), 0.08), transparent 60%),
     linear-gradient(180deg, #070c18 0%, #050810 45%, #030508 100%);
-  background-attachment: fixed;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.12;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before {
-    display: none;
-  }
 }
 
 #app {
@@ -102,10 +84,10 @@ a {
   padding: 10px 14px;
   border: 1px solid var(--ws-glass-border);
   border-radius: calc(var(--ws-radius) + 4px);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(10, 16, 32, 0.92);
   box-shadow: var(--ws-glass-shadow), var(--ws-glass-highlight);
-  backdrop-filter: blur(var(--ws-glass-blur-heavy)) saturate(var(--ws-glass-saturate));
-  -webkit-backdrop-filter: blur(var(--ws-glass-blur-heavy)) saturate(var(--ws-glass-saturate));
+  backdrop-filter: blur(var(--ws-glass-blur)) saturate(var(--ws-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--ws-glass-blur)) saturate(var(--ws-glass-saturate));
 }
 
 .brand {
@@ -431,7 +413,7 @@ p {
   border: 1px solid var(--ws-glass-border);
   border-radius: var(--ws-radius-sm);
   background: var(--ws-glass-fill);
-  box-shadow: var(--ws-glass-shadow), var(--ws-glass-highlight);
+  box-shadow: var(--ws-glass-highlight);
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   content-visibility: auto;
@@ -441,7 +423,7 @@ p {
 .content-card:hover {
   border-color: rgba(var(--ws-primary-rgb), 0.45);
   transform: translateY(-3px);
-  box-shadow: var(--ws-glass-shadow-lg), 0 0 0 1px rgba(var(--ws-primary-rgb), 0.15);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(var(--ws-primary-rgb), 0.15);
 }
 
 .poster,
