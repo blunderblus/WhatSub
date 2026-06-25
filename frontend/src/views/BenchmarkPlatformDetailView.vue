@@ -12,6 +12,7 @@ import {
   saveBenchmarkPlatformReview,
 } from '../api/benchmark';
 import PieChart from '../components/PieChart.vue';
+import CommunityFlair from '../components/CommunityFlair.vue';
 import PlanCatalogPickers from '../components/PlanCatalogPickers.vue';
 import { useBenchmarkAxisTooltips } from '../composables/useBenchmarkAxisTooltips';
 import { billingLabel, formatWon, parsePromoNotes } from '../utils/billing';
@@ -553,8 +554,13 @@ onMounted(loadPage);
             <ul v-if="communityBoard.threads?.length" class="thread-list">
               <li v-for="post in communityBoard.threads" :key="post.id" :class="{ 'is-notice': post.is_notice }">
                 <RouterLink :to="`/community/${post.id}`">
-                  <span v-if="post.is_notice" class="flair notice">공지</span>
-                  <span v-else-if="post.platform_name" class="flair">{{ post.platform_name }}</span>
+                  <CommunityFlair v-if="post.is_notice" is-notice />
+                  <CommunityFlair
+                    v-else-if="post.flair_label"
+                    :label="post.flair_label"
+                    :platform-name="post.platform_name"
+                    :flair-tag="post.flair_tag"
+                  />
                   <strong>{{ post.title }}</strong>
                 </RouterLink>
                 <span class="muted">{{ post.author.nickname }} · {{ formatDate(post.created_at) }}</span>

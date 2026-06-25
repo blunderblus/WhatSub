@@ -8,8 +8,9 @@ export function fetchBenchmarkPlatform(platformId) {
   return apiRequest(`/api/contents/benchmark/platforms/${platformId}/`);
 }
 
-export function fetchPersonalBenchmark() {
-  return apiRequest('/api/contents/benchmark/personal/');
+export function fetchPersonalBenchmark({ useLlm = false } = {}) {
+  const params = new URLSearchParams({ use_llm: useLlm ? '1' : '0' });
+  return apiRequest(`/api/contents/benchmark/personal/?${params.toString()}`);
 }
 
 export function fetchBenchmarkPlatformPage(platformId, { useLlm = false } = {}) {

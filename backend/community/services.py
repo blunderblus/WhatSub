@@ -1,13 +1,14 @@
 from .models import CommunityComment, CommunityPost
 
 
-def create_post(*, author, board, title, content, platform_id=None):
+def create_post(*, author, board, title, content, platform_id=None, flair_tag=''):
     post = CommunityPost.objects.create(
         board=board,
         title=title,
         content=content,
         author=author,
         platform_id=platform_id if platform_id else None,
+        flair_tag=flair_tag or '',
     )
     post.comment_count = 0
     return post

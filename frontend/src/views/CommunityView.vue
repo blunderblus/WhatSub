@@ -6,6 +6,7 @@ import { fetchSubscriptionPlatforms } from '../api/subscriptions';
 import { profileInitial } from '../utils/formatters';
 import { useSessionStore } from '../stores/session';
 import PageHeader from '../components/PageHeader.vue';
+import CommunityFlair from '../components/CommunityFlair.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -133,7 +134,7 @@ onMounted(async () => {
           <h2>{{ activeBoard?.name || '게시판' }}</h2>
           <p class="muted">{{ activeBoard?.description }}</p>
           <p v-if="platformFlairName" class="platform-filter-chip">
-            <span class="flair">{{ platformFlairName }}</span> 플랫폼 글만 보는 중
+            <CommunityFlair :label="platformFlairName" :platform-name="platformFlairName" /> 플랫폼 글만 보는 중
             <button type="button" class="link-btn" @click="clearPlatformFilter">필터 해제</button>
           </p>
         </div>
@@ -144,7 +145,7 @@ onMounted(async () => {
       <div v-else-if="loading" class="loader">게시글을 불러오는 중입니다.</div>
       <div v-else class="board-list">
         <RouterLink v-for="notice in showPinnedNotices ? notices.slice(0, 3) : []" :key="`notice-${notice.id}`" class="board-row notice-row" :to="`/community/${notice.id}`">
-          <span class="row-board">공지</span>
+          <span class="row-board"><CommunityFlair is-notice /></span>
           <strong class="row-title">{{ notice.title }}</strong>
           <span class="row-author author-chip">
             <img v-if="notice.author.profile_image" :src="notice.author.profile_image" alt="" />
@@ -161,8 +162,13 @@ onMounted(async () => {
         <div v-if="currentPosts.length === 0" class="empty">아직 게시글이 없습니다.</div>
         <RouterLink v-for="post in currentPosts" :key="post.id" class="board-row" :to="`/community/${post.id}`">
           <span class="row-board">
-            <span v-if="post.is_notice" class="flair notice">공지</span>
-            <span v-else-if="post.platform_name" class="flair">{{ post.platform_name }}</span>
+            <CommunityFlair v-if="post.is_notice" is-notice />
+            <CommunityFlair
+              v-else-if="post.flair_label"
+              :label="post.flair_label"
+              :platform-name="post.platform_name"
+              :flair-tag="post.flair_tag"
+            />
             <span v-else>{{ post.board_label }}</span>
           </span>
           <strong class="row-title">{{ post.title }}</strong>
@@ -259,9 +265,12 @@ onMounted(async () => {
 }
 
 .row-board {
-  color: var(--ws-primary);
   font-size: 12px;
   font-weight: 900;
+}
+
+.row-board > span:not(.community-flair) {
+  color: var(--ws-primary);
 }
 
 .flair {

@@ -21,6 +21,7 @@ class CommunityPost(models.Model):
         blank=True,
         related_name='community_posts',
     )
+    flair_tag = models.CharField(max_length=20, blank=True, default='')
     title = models.CharField(max_length=120)
     content = models.TextField()
     author = models.ForeignKey(

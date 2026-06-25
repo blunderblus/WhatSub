@@ -3,6 +3,7 @@ import json
 import logging
 from collections import defaultdict
 
+from django.core.cache import cache
 from django.db.models import Count
 from django.utils import timezone
 
@@ -24,6 +25,8 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+PERSONAL_SCORE_CACHE_TTL = 60 * 60 * 6
 
 LIKE_WEIGHT = 1.0
 DISLIKE_WEIGHT = -0.5
@@ -437,10 +440,30 @@ def _latest_benchmark_date():
     )
 
 
-def compute_personal_score(user, snapshot_date=None, use_llm=True):
+def _personal_score_cache_version(user_id):
+    return cache.get(f'personal_score_v:{user_id}', 0)
+
+
+def invalidate_personal_score_cache(user_id):
+    version = _personal_score_cache_version(user_id) + 1
+    cache.set(f'personal_score_v:{user_id}', version, None)
+
+
+def _personal_score_cache_key(user_id, snapshot_date):
+    version = _personal_score_cache_version(user_id)
+    return f'personal_score:{user_id}:{version}:{snapshot_date}'
+
+
+def compute_personal_score(user, snapshot_date=None, use_llm=False, skip_cache=False):
     snapshot_date = snapshot_date or _latest_benchmark_date()
     if not snapshot_date:
         return None
+
+    cache_key = _personal_score_cache_key(user.id, snapshot_date.isoformat())
+    if not skip_cache:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
 
     user_weights, taste_summary, taste_meta = resolve_user_genre_weights(user, use_llm=use_llm)
     pref = UserPreferenceProfile.objects.filter(user=user).first()
@@ -448,7 +471,7 @@ def compute_personal_score(user, snapshot_date=None, use_llm=True):
     existing_monthly_total = _user_existing_monthly_total(user)
 
     if not user_weights:
-        return {
+        result = {
             'snapshot_date': snapshot_date.isoformat(),
             'taste_summary': taste_summary,
             'taste_meta': taste_meta,
@@ -458,6 +481,9 @@ def compute_personal_score(user, snapshot_date=None, use_llm=True):
             'existing_monthly_total': existing_monthly_total,
             'detail': '좋아요/싫어요 또는 취향 설정이 필요합니다.',
         }
+        if not skip_cache:
+            cache.set(cache_key, result, PERSONAL_SCORE_CACHE_TTL)
+        return result
 
     genre_raw = compute_genre_benefit_raw(user_weights, snapshot_date)
     exclusivity_raw = compute_exclusivity_affinity_raw(user, user_weights)
@@ -516,7 +542,7 @@ def compute_personal_score(user, snapshot_date=None, use_llm=True):
 
     platforms_out.sort(key=lambda x: -x['personal_score'])
 
-    return {
+    result = {
         'snapshot_date': snapshot_date.isoformat(),
         'taste_summary': taste_summary,
         'taste_meta': taste_meta,
@@ -527,6 +553,9 @@ def compute_personal_score(user, snapshot_date=None, use_llm=True):
         'existing_monthly_total': existing_monthly_total,
         'platforms': platforms_out,
     }
+    if not skip_cache:
+        cache.set(cache_key, result, PERSONAL_SCORE_CACHE_TTL)
+    return result
 
 
 def parse_onboarding_chat(user, structured_answers, chat_messages=None):

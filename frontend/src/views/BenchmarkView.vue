@@ -4,7 +4,6 @@ import { RouterLink, useRoute } from 'vue-router';
 import {
   fetchBenchmarkLeaderboard,
   fetchBenchmarkPlatform,
-  fetchPersonalBenchmark,
   fetchPlatformCatalog,
 } from '../api/benchmark';
 import PageHeader from '../components/PageHeader.vue';
@@ -14,9 +13,11 @@ import PlanCatalogPickers from '../components/PlanCatalogPickers.vue';
 import { useBenchmarkAxisTooltips } from '../composables/useBenchmarkAxisTooltips';
 import { canAddCalcItem, formatWon } from '../utils/billing';
 import { useSessionStore } from '../stores/session';
+import { usePersonalBenchmarkStore } from '../stores/personalBenchmark';
 
 const route = useRoute();
 const session = useSessionStore();
+const personalStore = usePersonalBenchmarkStore();
 const activeTab = ref(route.query.tab === 'personal' ? 'personal' : 'benchmark');
 const initialPlatformId = route.query.platform_id ? Number(route.query.platform_id) : null;
 const loading = ref(false);
@@ -26,9 +27,9 @@ const selectedId = ref(null);
 const hoverId = ref(null);
 const detail = ref(null);
 const detailLoading = ref(false);
-const personal = ref(null);
-const personalLoading = ref(false);
-const personalError = ref('');
+const personal = computed(() => personalStore.data);
+const personalLoading = computed(() => personalStore.loading);
+const personalError = computed(() => personalStore.error);
 const platformCatalog = ref(null);
 const plansLoading = ref(false);
 const calcItems = ref([]);
@@ -145,12 +146,10 @@ async function loadDetail(platformId) {
   }
 }
 
-async function loadPersonal() {
+async function loadPersonal({ refresh = false } = {}) {
   if (!session.isAuthenticated) return;
-  personalLoading.value = true;
-  personalError.value = '';
   try {
-    personal.value = await fetchPersonalBenchmark();
+    await personalStore.load({ refresh });
     if (personal.value?.platforms?.length) {
       const exists = personal.value.platforms.some((p) => p.platform_id === selectedId.value);
       if (!exists) {
@@ -158,11 +157,8 @@ async function loadPersonal() {
       }
       await loadPlatformCatalog(selectedId.value);
     }
-  } catch (err) {
-    personal.value = null;
-    personalError.value = err.message;
-  } finally {
-    personalLoading.value = false;
+  } catch {
+    // personalError is set in store
   }
 }
 
@@ -200,8 +196,7 @@ watch(() => route.query.tab, (tab) => {
 
 watch(activeTab, (tab) => {
   if (tab === 'personal' && session.isAuthenticated) {
-    if (!personal.value) loadPersonal();
-    else if (selectedId.value) loadPlatformCatalog(selectedId.value);
+    loadPersonal();
   }
 });
 
@@ -345,7 +340,7 @@ onMounted(async () => {
       <template v-else>
         <div class="pref-actions">
           <RouterLink class="button secondary" to="/onboarding/preferences">취향 설정하기</RouterLink>
-          <button class="button" type="button" :disabled="personalLoading" @click="loadPersonal">새로고침</button>
+          <button class="button" type="button" :disabled="personalLoading" @click="loadPersonal({ refresh: true })">취향 새로고침</button>
         </div>
 
         <p v-if="personalError" class="notice">{{ personalError }}</p>

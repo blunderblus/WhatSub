@@ -195,11 +195,14 @@ def benchmark_genre_stats(request):
 def benchmark_personal(request):
     """
     Personal Score leaderboard for the authenticated user.
-    ?use_llm=1 (default) — run daily LLM taste analysis if not yet done today
+    ?use_llm=1 — run daily LLM taste analysis if not yet done today (새로고침 시에만)
     """
     from .personal_scoring import compute_personal_score
 
-    use_llm = request.GET.get('use_llm', '1') != '0'
+    use_llm = request.GET.get('use_llm', '0') == '1'
+    if use_llm:
+        from .personal_scoring import invalidate_personal_score_cache
+        invalidate_personal_score_cache(request.user.id)
     payload = compute_personal_score(request.user, use_llm=use_llm)
     if not payload:
         return Response({'detail': '벤치마크 스냅샷이 없습니다.'}, status=404)

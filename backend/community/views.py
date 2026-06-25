@@ -28,6 +28,24 @@ from .selectors import (
 from .serializers import BOARD_META, CommunityPostDetailSerializer, CommunityPostSerializer, reaction_payload, report_payload
 from .services import apply_reaction, create_comment, create_post, report_once, update_post
 
+ALLOWED_FLAIR_TAGS = {'other'}
+
+
+def _parse_ott_flair(data):
+    flair_tag = (data.get('flair_tag') or '').strip()
+    platform_id = data.get('platform_id')
+    if flair_tag:
+        if flair_tag not in ALLOWED_FLAIR_TAGS:
+            return None, None, {'flair_tag': ['올바른 플레어를 선택해 주세요.']}
+        if flair_tag == 'other':
+            return None, 'other', None
+    if platform_id in (None, ''):
+        return None, '', None
+    try:
+        return int(platform_id), '', None
+    except (TypeError, ValueError):
+        return None, None, {'platform_id': ['플랫폼을 올바르게 선택해 주세요.']}
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -56,7 +74,12 @@ def posts(request):
     board = request.data.get('board')
     title = (request.data.get('title') or '').strip()
     content = (request.data.get('content') or '').strip()
-    platform_id = request.data.get('platform_id')
+    platform_id = None
+    flair_tag = ''
+    if board == CommunityPost.Board.OTT:
+        platform_id, flair_tag, flair_errors = _parse_ott_flair(request.data)
+        if flair_errors:
+            return Response(flair_errors, status=status.HTTP_400_BAD_REQUEST)
     if board not in BOARD_META:
         return Response({'board': ['게시판을 선택해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if board == CommunityPost.Board.NOTICE and not request.user.is_staff:
@@ -65,14 +88,13 @@ def posts(request):
         return Response({'title': ['제목을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     if not content:
         return Response({'content': ['내용을 입력해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
-    if board == CommunityPost.Board.OTT and not platform_id:
-        return Response({'platform_id': ['OTT 게시판에서는 플랫폼을 선택해 주세요.']}, status=status.HTTP_400_BAD_REQUEST)
     post = create_post(
         board=board,
         title=title,
         content=content,
         author=request.user,
         platform_id=platform_id,
+        flair_tag=flair_tag,
     )
     return Response(CommunityPostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 

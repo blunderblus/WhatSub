@@ -12,6 +12,7 @@ import {
   updateCommunityPostReaction,
 } from '../api/community';
 import { profileInitial } from '../utils/formatters';
+import CommunityFlair from '../components/CommunityFlair.vue';
 import { useSessionStore } from '../stores/session';
 
 const route = useRoute();
@@ -116,7 +117,16 @@ onMounted(loadPost);
 
     <template v-else-if="post">
       <article class="panel detail-post">
-        <span class="board-badge">{{ post.board_label }}</span>
+        <div class="detail-head">
+          <CommunityFlair v-if="post.is_notice" is-notice />
+          <CommunityFlair
+            v-else-if="post.flair_label"
+            :label="post.flair_label"
+            :platform-name="post.platform_name"
+            :flair-tag="post.flair_tag"
+          />
+          <span v-else class="board-badge">{{ post.board_label }}</span>
+        </div>
         <h1>{{ post.title }}</h1>
         <div class="detail-meta">
           <span class="author-chip">
@@ -261,6 +271,13 @@ onMounted(loadPost);
 <style scoped>
 .detail-post {
   margin-top: 18px;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .board-badge {

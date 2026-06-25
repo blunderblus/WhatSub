@@ -82,6 +82,7 @@ class CommunityPostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     board_label = serializers.SerializerMethodField()
     platform_name = serializers.SerializerMethodField()
+    flair_label = serializers.SerializerMethodField()
     is_notice = serializers.SerializerMethodField()
     comment_count = serializers.IntegerField(read_only=True)
     is_owner = serializers.SerializerMethodField()
@@ -91,7 +92,8 @@ class CommunityPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityPost
         fields = [
-            'id', 'board', 'board_label', 'platform_id', 'platform_name', 'is_notice',
+            'id', 'board', 'board_label', 'platform_id', 'platform_name',
+            'flair_tag', 'flair_label', 'is_notice',
             'title', 'content', 'author',
             'view_count', 'comment_count', 'created_at', 'updated_at', 'is_owner', 'reactions', 'reports',
         ]
@@ -103,8 +105,13 @@ class CommunityPostSerializer(serializers.ModelSerializer):
         return BOARD_META.get(obj.board, {}).get('name', obj.board)
 
     def get_platform_name(self, obj):
+        return self.get_flair_label(obj)
+
+    def get_flair_label(self, obj):
         if obj.board == CommunityPost.Board.NOTICE:
             return None
+        if obj.flair_tag == 'other':
+            return '기타'
         if obj.platform_id and getattr(obj, 'platform', None):
             return obj.platform.name
         return None
