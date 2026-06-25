@@ -26,12 +26,25 @@ const form = ref({
 const isAdmin = computed(() => Boolean(session.user?.is_staff || session.user?.is_superuser));
 const activeBoard = computed(() => boards.value.find((board) => board.key === form.value.board));
 const showPlatformPicker = computed(() => form.value.board === 'ott');
+const writableBoards = computed(() => {
+  if (isAdmin.value) return boards.value;
+  return boards.value.filter((board) => board.key !== 'notice');
+});
+const showBoardPicker = computed(() => writableBoards.value.length > 1);
 
 const activeFlairKey = computed(() => {
   if (form.value.flair_tag === FLAIR_OTHER) return FLAIR_OTHER;
   if (form.value.platform_id) return String(form.value.platform_id);
   return 'none';
 });
+
+function selectBoard(boardKey) {
+  form.value.board = boardKey;
+  if (boardKey !== 'ott') {
+    form.value.platform_id = null;
+    form.value.flair_tag = '';
+  }
+}
 
 function normalizeBoardSelection() {
   const requestedBoard = boards.value.find((board) => board.key === form.value.board);
@@ -127,7 +140,23 @@ onMounted(async () => {
     <section class="panel write-page">
       <p v-if="error" class="notice">{{ error }}</p>
       <form class="write-form" @submit.prevent="submit">
-        <div class="board-chip">
+        <div v-if="showBoardPicker" class="field">
+          <label>게시판</label>
+          <div class="board-picker">
+            <button
+              v-for="board in writableBoards"
+              :key="board.key"
+              type="button"
+              class="board-pick"
+              :class="{ active: form.board === board.key, notice: board.key === 'notice' }"
+              @click="selectBoard(board.key)"
+            >
+              {{ board.name }}
+            </button>
+          </div>
+          <p v-if="form.board === 'notice'" class="muted">공지사항은 관리자만 작성할 수 있으며, 다른 게시판 상단에 고정 표시됩니다.</p>
+        </div>
+        <div v-else class="board-chip">
           <span>게시판</span>
           <strong>{{ activeBoard?.name || '게시판' }}</strong>
         </div>
@@ -208,6 +237,36 @@ onMounted(async () => {
 
 .board-chip strong {
   color: var(--ws-text);
+}
+
+.board-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.board-pick {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ws-border);
+  border-radius: 999px;
+  background: var(--ws-surface-2);
+  color: var(--ws-text);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.board-pick.active {
+  border-color: rgba(var(--ws-primary-rgb), 0.45);
+  background: rgba(var(--ws-primary-rgb), 0.14);
+  color: var(--ws-primary);
+}
+
+.board-pick.notice.active {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(180, 83, 9, 0.18);
+  color: #fbbf24;
 }
 
 .field {

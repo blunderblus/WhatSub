@@ -39,6 +39,16 @@ function formatDate(value) {
   return date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
 }
 
+function goWriteNotice() {
+  if (!session.isAuthenticated) {
+    alert('로그인 후 공지를 작성할 수 있습니다.');
+    router.push('/login');
+    return;
+  }
+  if (!isAdmin.value) return;
+  router.push({ path: '/community/write', query: { board: 'notice' } });
+}
+
 function goWrite() {
   if (!session.isAuthenticated) {
     alert('로그인 후 글을 작성할 수 있습니다.');
@@ -138,7 +148,10 @@ onMounted(async () => {
             <button type="button" class="link-btn" @click="clearPlatformFilter">필터 해제</button>
           </p>
         </div>
-        <button v-if="canWriteCurrentBoard" class="button primary" type="button" @click="goWrite">글쓰기</button>
+        <div class="board-actions">
+          <button v-if="isAdmin" class="button notice-write" type="button" @click="goWriteNotice">공지 작성</button>
+          <button v-if="canWriteCurrentBoard" class="button primary" type="button" @click="goWrite">글쓰기</button>
+        </div>
       </div>
 
       <p v-if="error" class="notice">{{ error }}</p>
@@ -234,6 +247,18 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 12px;
+}
+
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.notice-write {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fbbf24;
 }
 
 .board-list {
