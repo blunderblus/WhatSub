@@ -13,6 +13,7 @@ import {
 } from '../api/benchmark';
 import PieChart from '../components/PieChart.vue';
 import PlanCatalogPickers from '../components/PlanCatalogPickers.vue';
+import { useBenchmarkAxisTooltips } from '../composables/useBenchmarkAxisTooltips';
 import { billingLabel, formatWon, parsePromoNotes } from '../utils/billing';
 import { useSessionStore } from '../stores/session';
 
@@ -68,6 +69,14 @@ const displayReviews = computed(() => {
   if (!hasMyReview.value) return reviews;
   return reviews.filter((r) => !r.is_owner);
 });
+
+const { activeTooltip, axisTooltips, toggleTooltip } = useBenchmarkAxisTooltips();
+
+function axisExplanation(key) {
+  const llmText = page.value?.llm_insight?.axis_explanations?.[key];
+  if (llmText) return llmText;
+  return axisTooltips[key] || '';
+}
 
 function formatScore(v) {
   return Number(v || 0).toFixed(2);
@@ -301,44 +310,206 @@ onMounted(loadPage);
     <div v-else-if="loading" class="loader">플랫폼 정보를 불러오는 중입니다.</div>
 
     <template v-else-if="page">
-      <section class="platform-hero panel">
-        <div class="hero-head">
-          <img v-if="page.icon_url" :src="page.icon_url" :alt="page.name" class="hero-icon" />
-          <div class="hero-copy">
-            <p class="eyebrow">Benchmark · {{ page.snapshot_date }}</p>
-            <h1>{{ page.name }}</h1>
-            <p class="muted">{{ heroDescription }}</p>
+      <div class="hero-row">
+        <div class="hero-main">
+          <section class="platform-hero panel">
+            <div class="hero-head">
+              <img v-if="page.icon_url" :src="page.icon_url" :alt="page.name" class="hero-icon" />
+              <div class="hero-copy">
+                <p class="eyebrow">Benchmark · {{ page.snapshot_date }}</p>
+                <h1>{{ page.name }}</h1>
+                <p class="muted">{{ heroDescription }}</p>
+              </div>
+            </div>
+
+            <div class="hero-stats">
+              <div><span>Value Score</span><strong>{{ formatScore(page.value_score) }}</strong></div>
+              <div><span>유저 평점</span><strong>{{ page.user_score.average || '-' }} <small>({{ page.user_score.count }}명)</small></strong></div>
+              <div><span>콘텐츠</span><strong>{{ page.title_count }}편</strong></div>
+            </div>
+
+            <div class="hero-actions">
+              <RouterLink class="button primary" :to="page.content_links.movies">영화 보기</RouterLink>
+              <RouterLink class="button secondary" :to="page.content_links.shows">시리즈 보기</RouterLink>
+              <a v-if="page.website_url" class="button" :href="page.website_url" target="_blank" rel="noopener">공식 사이트</a>
+            </div>
+          </section>
+
+          <div class="hero-charts">
+            <section class="panel compact">
+              <h2>5축 벤치마크</h2>
+              <div v-for="key in axisKeys" :key="key" class="axis-row">
+                <span class="axis-label">
+                  {{ page.axis_labels[key] }}
+                  <span
+                    class="info-icon"
+                    tabindex="0"
+                    :class="{ active: activeTooltip === key, 'has-llm': page.llm_insight?.axis_explanations?.[key] }"
+                    @click.stop="toggleTooltip(key)"
+                  >
+                    ⓘ
+                    <span class="tooltip">{{ axisExplanation(key) }}</span>
+                  </span>
+                </span>
+                <div class="bar"><span :style="{ width: `${Math.round((page.scores[key] || 0) * 100)}%` }"></span></div>
+                <span>{{ formatScore(page.scores[key]) }}</span>
+              </div>
+              <p v-if="insightLoading" class="muted axis-hint">AI 점수 설명을 불러오는 중...</p>
+            </section>
+
+            <section class="panel compact">
+              <h2>장르 분포</h2>
+              <PieChart v-if="genreSegments.length" :segments="genreSegments" :size="180" />
+              <p v-else class="muted">장르 데이터 없음</p>
+            </section>
           </div>
         </div>
 
-        <div class="hero-stats">
-          <div><span>Value Score</span><strong>{{ formatScore(page.value_score) }}</strong></div>
-          <div><span>유저 평점</span><strong>{{ page.user_score.average || '-' }} <small>({{ page.user_score.count }}명)</small></strong></div>
-          <div><span>콘텐츠</span><strong>{{ page.title_count }}편</strong></div>
-        </div>
+        <aside class="hero-side">
+          <section class="panel compact reviews-section">
+            <h2>유저 평가</h2>
 
-        <div class="hero-actions">
-          <RouterLink class="button primary" :to="page.content_links.movies">영화 보기</RouterLink>
-          <RouterLink class="button secondary" :to="page.content_links.shows">시리즈 보기</RouterLink>
-          <a v-if="page.website_url" class="button" :href="page.website_url" target="_blank" rel="noopener">공식 사이트</a>
-        </div>
-      </section>
+            <div class="reviews-wide">
+              <div v-if="page.score_summary" class="steam-score">
+                <div class="score-tabs" role="tablist">
+                  <button type="button" :class="{ active: scoreTab === 'recent' }" @click="scoreTab = 'recent'">최근 평가</button>
+                  <button type="button" :class="{ active: scoreTab === 'all' }" @click="scoreTab = 'all'">전체 평가</button>
+                </div>
+                <template v-if="activeScoreSummary">
+                  <p class="score-verdict" :data-key="activeScoreSummary.verdict?.key">
+                    {{ activeScoreSummary.verdict?.label || '평가 없음' }}
+                    <small v-if="activeScoreSummary.total">({{ activeScoreSummary.total }}명)</small>
+                  </p>
+                  <div class="score-bars">
+                    <div v-for="key in scoreBucketOrder" :key="key" class="score-bar-row">
+                      <span class="score-bar-label">{{ scoreBucketLabels[key] }}</span>
+                      <div class="score-bar-track">
+                        <span :style="{ width: `${bucketPercent(activeScoreSummary.distribution, key)}%` }"></span>
+                      </div>
+                      <span class="score-bar-pct">{{ bucketPercent(activeScoreSummary.distribution, key) }}%</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
 
-      <div class="grid-2">
-        <section class="panel compact">
-          <h2>5축 벤치마크</h2>
-          <div v-for="key in axisKeys" :key="key" class="axis-row">
-            <span>{{ page.axis_labels[key] }}</span>
-            <div class="bar"><span :style="{ width: `${Math.round((page.scores[key] || 0) * 100)}%` }"></span></div>
-            <span>{{ formatScore(page.scores[key]) }}</span>
-          </div>
-        </section>
+              <div class="review-compose">
+                <template v-if="session.isAuthenticated">
+                  <div v-if="hasMyReview && !reviewEditing" class="my-review-card">
+                    <div class="review-head">
+                      <span class="review-stars">
+                        <span v-for="(on, i) in renderStars(page.my_review.score)" :key="i" :class="{ on }">★</span>
+                      </span>
+                      <strong>내 평가</strong>
+                    </div>
+                    <p>{{ page.my_review.body || '(코멘트 없음)' }}</p>
+                    <div class="review-actions">
+                      <button type="button" class="button" @click="startEditReview">수정</button>
+                      <button type="button" class="button" :disabled="reviewSaving" @click="deleteMyReview">삭제</button>
+                    </div>
+                  </div>
 
-        <section class="panel compact">
-          <h2>장르 분포</h2>
-          <PieChart v-if="genreSegments.length" :segments="genreSegments" :size="180" />
-          <p v-else class="muted">장르 데이터 없음</p>
-        </section>
+                  <div v-else class="review-form" @submit.prevent="submitReview">
+                    <p class="form-label">{{ hasMyReview ? '내 평가 수정' : '평가 작성' }}</p>
+                    <p v-if="!hasMyReview" class="muted form-hint">플랫폼당 1개의 평가만 작성할 수 있습니다.</p>
+                    <div class="star-input" role="group" aria-label="별점 선택">
+                      <button
+                        v-for="star in 5"
+                        :key="star"
+                        type="button"
+                        class="star-btn"
+                        :class="{ active: star <= reviewScore }"
+                        :aria-label="`${star}점`"
+                        @click.prevent="setReviewScore(star)"
+                      >★</button>
+                    </div>
+                    <textarea v-model="reviewBody" rows="3" placeholder="이 플랫폼에 대한 의견을 남겨주세요."></textarea>
+                    <div class="review-actions">
+                      <button class="button primary" type="button" :disabled="reviewSaving" @click.prevent="submitReview">
+                        {{ reviewSaving ? '저장 중...' : '평가 저장' }}
+                      </button>
+                      <button v-if="hasMyReview" type="button" class="button" @click="cancelEditReview">취소</button>
+                    </div>
+                    <p v-if="reviewSaved" class="review-saved muted">평가가 저장되었습니다.</p>
+                  </div>
+                </template>
+                <p v-else class="muted"><RouterLink to="/login">로그인</RouterLink> 후 평가할 수 있습니다.</p>
+              </div>
+            </div>
+
+            <h3 class="reviews-heading">주요 유저 평가</h3>
+            <ul v-if="displayReviews.length" class="review-list review-list-compact">
+              <li v-for="r in displayReviews" :key="r.id" class="review-item">
+                <div class="review-head">
+                  <span class="review-stars">
+                    <span v-for="(on, i) in renderStars(r.score)" :key="i" :class="{ on }">★</span>
+                  </span>
+                  <strong>{{ r.author.nickname }}</strong>
+                  <span class="muted review-date">{{ formatDate(r.updated_at) }}</span>
+                </div>
+                <p class="review-body">{{ r.body || '(코멘트 없음)' }}</p>
+                <div class="review-social">
+                  <button
+                    type="button"
+                    class="react-btn"
+                    :class="{ active: r.reactions?.my_reaction === 'like' }"
+                    :disabled="reactionSaving[r.id]"
+                    @click="toggleReaction(r, 'like')"
+                  >👍 {{ r.reactions?.like_count || 0 }}</button>
+                  <button
+                    type="button"
+                    class="react-btn"
+                    :class="{ active: r.reactions?.my_reaction === 'dislike' }"
+                    :disabled="reactionSaving[r.id]"
+                    @click="toggleReaction(r, 'dislike')"
+                  >👎 {{ r.reactions?.dislike_count || 0 }}</button>
+                  <button type="button" class="react-btn plain" @click="toggleComments(r.id)">
+                    댓글 {{ r.comment_count || 0 }}
+                  </button>
+                </div>
+                <div v-if="isCommentsOpen(r.id)" class="comment-block">
+                  <ul v-if="r.comments?.length" class="comment-list">
+                    <li v-for="c in r.comments" :key="c.id">
+                      <strong>{{ c.author.nickname }}</strong>
+                      <span class="muted">{{ formatDate(c.created_at) }}</span>
+                      <p>{{ c.content }}</p>
+                      <button v-if="c.is_owner" type="button" class="link-btn" @click="removeComment(r, c)">삭제</button>
+                    </li>
+                  </ul>
+                  <div v-if="session.isAuthenticated" class="comment-form">
+                    <textarea v-model="commentDrafts[r.id]" rows="2" placeholder="댓글을 입력하세요"></textarea>
+                    <button type="button" class="button" :disabled="commentSaving[r.id]" @click="submitComment(r)">
+                      {{ commentSaving[r.id] ? '등록 중...' : '댓글 등록' }}
+                    </button>
+                  </div>
+                  <p v-else class="muted"><RouterLink to="/login">로그인</RouterLink> 후 댓글을 남길 수 있습니다.</p>
+                </div>
+              </li>
+            </ul>
+            <p v-else class="muted">아직 다른 유저의 평가가 없습니다.</p>
+          </section>
+
+          <section v-if="communityBoard" class="panel compact community-section">
+            <div class="section-head">
+              <h2>{{ communityBoard.platform_name }} 게시판</h2>
+              <div class="community-links">
+                <RouterLink class="button" :to="communityBoard.platform_board_url">게시판 바로가기</RouterLink>
+                <RouterLink v-if="session.isAuthenticated" class="button primary" :to="communityBoard.platform_write_url">글쓰기</RouterLink>
+              </div>
+            </div>
+            <p class="muted">OTT 게시판 · {{ communityBoard.platform_name }} 플레어</p>
+            <ul v-if="communityBoard.threads?.length" class="thread-list">
+              <li v-for="post in communityBoard.threads" :key="post.id" :class="{ 'is-notice': post.is_notice }">
+                <RouterLink :to="`/community/${post.id}`">
+                  <span v-if="post.is_notice" class="flair notice">공지</span>
+                  <span v-else-if="post.platform_name" class="flair">{{ post.platform_name }}</span>
+                  <strong>{{ post.title }}</strong>
+                </RouterLink>
+                <span class="muted">{{ post.author.nickname }} · {{ formatDate(post.created_at) }}</span>
+              </li>
+            </ul>
+            <p v-else class="muted">아직 게시글이 없습니다. 첫 글을 작성해보세요.</p>
+          </section>
+        </aside>
       </div>
 
       <section v-if="page.llm_insight || insightLoading" class="panel compact insight">
@@ -395,172 +566,69 @@ onMounted(loadPage);
           </RouterLink>
         </div>
       </section>
-
-      <section class="panel compact reviews-section">
-        <h2>유저 평가</h2>
-
-        <div class="reviews-wide">
-          <div v-if="page.score_summary" class="steam-score">
-            <div class="score-tabs" role="tablist">
-              <button type="button" :class="{ active: scoreTab === 'recent' }" @click="scoreTab = 'recent'">최근 평가</button>
-              <button type="button" :class="{ active: scoreTab === 'all' }" @click="scoreTab = 'all'">전체 평가</button>
-            </div>
-            <template v-if="activeScoreSummary">
-              <p class="score-verdict" :data-key="activeScoreSummary.verdict?.key">
-                {{ activeScoreSummary.verdict?.label || '평가 없음' }}
-                <small v-if="activeScoreSummary.total">({{ activeScoreSummary.total }}명)</small>
-              </p>
-              <div class="score-bars">
-                <div v-for="key in scoreBucketOrder" :key="key" class="score-bar-row">
-                  <span class="score-bar-label">{{ scoreBucketLabels[key] }}</span>
-                  <div class="score-bar-track">
-                    <span :style="{ width: `${bucketPercent(activeScoreSummary.distribution, key)}%` }"></span>
-                  </div>
-                  <span class="score-bar-pct">{{ bucketPercent(activeScoreSummary.distribution, key) }}%</span>
-                </div>
-              </div>
-            </template>
-          </div>
-
-          <div class="review-compose">
-            <template v-if="session.isAuthenticated">
-              <div v-if="hasMyReview && !reviewEditing" class="my-review-card">
-                <div class="review-head">
-                  <span class="review-stars">
-                    <span v-for="(on, i) in renderStars(page.my_review.score)" :key="i" :class="{ on }">★</span>
-                  </span>
-                  <strong>내 평가</strong>
-                </div>
-                <p>{{ page.my_review.body || '(코멘트 없음)' }}</p>
-                <div class="review-actions">
-                  <button type="button" class="button" @click="startEditReview">수정</button>
-                  <button type="button" class="button" :disabled="reviewSaving" @click="deleteMyReview">삭제</button>
-                </div>
-              </div>
-
-              <div v-else class="review-form" @submit.prevent="submitReview">
-                <p class="form-label">{{ hasMyReview ? '내 평가 수정' : '평가 작성' }}</p>
-                <p v-if="!hasMyReview" class="muted form-hint">플랫폼당 1개의 평가만 작성할 수 있습니다.</p>
-                <div class="star-input" role="group" aria-label="별점 선택">
-                  <button
-                    v-for="star in 5"
-                    :key="star"
-                    type="button"
-                    class="star-btn"
-                    :class="{ active: star <= reviewScore }"
-                    :aria-label="`${star}점`"
-                    @click.prevent="setReviewScore(star)"
-                  >★</button>
-                </div>
-                <textarea v-model="reviewBody" rows="3" placeholder="이 플랫폼에 대한 의견을 남겨주세요."></textarea>
-                <div class="review-actions">
-                  <button class="button primary" type="button" :disabled="reviewSaving" @click.prevent="submitReview">
-                    {{ reviewSaving ? '저장 중...' : '평가 저장' }}
-                  </button>
-                  <button v-if="hasMyReview" type="button" class="button" @click="cancelEditReview">취소</button>
-                </div>
-                <p v-if="reviewSaved" class="review-saved muted">평가가 저장되었습니다.</p>
-              </div>
-            </template>
-            <p v-else class="muted"><RouterLink to="/login">로그인</RouterLink> 후 평가할 수 있습니다.</p>
-          </div>
-        </div>
-
-        <h3 class="reviews-heading">주요 유저 평가</h3>
-        <ul v-if="displayReviews.length" class="review-list">
-          <li v-for="r in displayReviews" :key="r.id" class="review-item">
-            <div class="review-head">
-              <span class="review-stars">
-                <span v-for="(on, i) in renderStars(r.score)" :key="i" :class="{ on }">★</span>
-              </span>
-              <strong>{{ r.author.nickname }}</strong>
-              <span class="muted review-date">{{ formatDate(r.updated_at) }}</span>
-            </div>
-            <p class="review-body">{{ r.body || '(코멘트 없음)' }}</p>
-            <div class="review-social">
-              <button
-                type="button"
-                class="react-btn"
-                :class="{ active: r.reactions?.my_reaction === 'like' }"
-                :disabled="reactionSaving[r.id]"
-                @click="toggleReaction(r, 'like')"
-              >👍 {{ r.reactions?.like_count || 0 }}</button>
-              <button
-                type="button"
-                class="react-btn"
-                :class="{ active: r.reactions?.my_reaction === 'dislike' }"
-                :disabled="reactionSaving[r.id]"
-                @click="toggleReaction(r, 'dislike')"
-              >👎 {{ r.reactions?.dislike_count || 0 }}</button>
-              <button type="button" class="react-btn plain" @click="toggleComments(r.id)">
-                댓글 {{ r.comment_count || 0 }}
-              </button>
-            </div>
-            <div v-if="isCommentsOpen(r.id)" class="comment-block">
-              <ul v-if="r.comments?.length" class="comment-list">
-                <li v-for="c in r.comments" :key="c.id">
-                  <strong>{{ c.author.nickname }}</strong>
-                  <span class="muted">{{ formatDate(c.created_at) }}</span>
-                  <p>{{ c.content }}</p>
-                  <button v-if="c.is_owner" type="button" class="link-btn" @click="removeComment(r, c)">삭제</button>
-                </li>
-              </ul>
-              <div v-if="session.isAuthenticated" class="comment-form">
-                <textarea v-model="commentDrafts[r.id]" rows="2" placeholder="댓글을 입력하세요"></textarea>
-                <button type="button" class="button" :disabled="commentSaving[r.id]" @click="submitComment(r)">
-                  {{ commentSaving[r.id] ? '등록 중...' : '댓글 등록' }}
-                </button>
-              </div>
-              <p v-else class="muted"><RouterLink to="/login">로그인</RouterLink> 후 댓글을 남길 수 있습니다.</p>
-            </div>
-          </li>
-        </ul>
-        <p v-else class="muted">아직 다른 유저의 평가가 없습니다.</p>
-      </section>
-
-      <section v-if="communityBoard" class="panel compact community-section">
-        <div class="section-head">
-          <h2>{{ communityBoard.platform_name }} 게시판</h2>
-          <div class="community-links">
-            <RouterLink class="button" :to="communityBoard.platform_board_url">게시판 바로가기</RouterLink>
-            <RouterLink v-if="session.isAuthenticated" class="button primary" :to="communityBoard.platform_write_url">글쓰기</RouterLink>
-          </div>
-        </div>
-        <p class="muted">OTT 게시판 · {{ communityBoard.platform_name }} 플레어</p>
-        <ul v-if="communityBoard.threads?.length" class="thread-list">
-          <li v-for="post in communityBoard.threads" :key="post.id" :class="{ 'is-notice': post.is_notice }">
-            <RouterLink :to="`/community/${post.id}`">
-              <span v-if="post.is_notice" class="flair notice">공지</span>
-              <span v-else-if="post.platform_name" class="flair">{{ post.platform_name }}</span>
-              <strong>{{ post.title }}</strong>
-            </RouterLink>
-            <span class="muted">{{ post.author.nickname }} · {{ formatDate(post.created_at) }}</span>
-          </li>
-        </ul>
-        <p v-else class="muted">아직 게시글이 없습니다. 첫 글을 작성해보세요.</p>
-      </section>
     </template>
   </main>
 </template>
 
 <style scoped>
 .platform-page {
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 20px 24px;
+  padding: 0 24px 32px;
 }
 
 .back-row {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.hero-row {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .hero-row {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    gap: 20px;
+  }
+}
+
+.hero-main {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hero-charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.hero-charts .panel.compact {
+  margin-bottom: 0;
+}
+
+.hero-side {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.hero-side .panel.compact {
+  margin-bottom: 0;
 }
 
 .platform-hero {
   display: grid;
   gap: 14px;
-  padding: 16px 18px;
-  margin-bottom: 14px;
+  padding: 18px 20px;
+  margin-bottom: 0;
   min-height: 0;
-  grid-template-columns: 1fr;
 }
 
 .hero-head {
@@ -613,16 +681,9 @@ onMounted(loadPage);
   gap: 8px;
 }
 
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
 .panel.compact {
-  padding: 14px 16px;
-  margin-bottom: 14px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
 }
 
 .panel.compact h2 {
@@ -651,11 +712,69 @@ onMounted(loadPage);
 
 .axis-row {
   display: grid;
-  grid-template-columns: 72px 1fr 44px;
+  grid-template-columns: 88px 1fr 44px;
   gap: 10px;
   align-items: center;
   margin-bottom: 8px;
   font-size: 13px;
+}
+
+.axis-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.axis-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ws-border);
+  color: var(--ws-muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.info-icon.has-llm {
+  background: rgba(var(--ws-primary-rgb), 0.25);
+  color: var(--ws-primary);
+}
+
+.info-icon .tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 140%;
+  left: 0;
+  width: 220px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #17202a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  z-index: 30;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.info-icon:hover .tooltip,
+.info-icon.active .tooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
 .bar {
@@ -690,8 +809,8 @@ onMounted(loadPage);
 
 .reviews-wide {
   display: grid;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 @media (min-width: 900px) {
@@ -699,6 +818,18 @@ onMounted(loadPage);
     grid-template-columns: minmax(280px, 340px) 1fr;
     align-items: start;
   }
+}
+
+@media (min-width: 1024px) {
+  .hero-side .reviews-wide {
+    grid-template-columns: 1fr;
+  }
+}
+
+.review-list-compact {
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .steam-score {
@@ -1006,10 +1137,6 @@ onMounted(loadPage);
 }
 
 @media (max-width: 760px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-
   .hero-copy h1 {
     font-size: 24px;
   }

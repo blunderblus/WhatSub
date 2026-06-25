@@ -42,7 +42,7 @@ def _parse_json(content):
         raise
 
 
-def _call_llm(prompt):
+def _call_llm(prompt, model=None):
     url = chat_completions_url()
     payload = build_chat_payload(
         messages=[
@@ -50,6 +50,7 @@ def _call_llm(prompt):
             {'role': 'user', 'content': prompt},
         ],
         use_json_format=True,
+        model=model,
     )
     headers = chat_headers()
     resp = requests.post(url, json=payload, headers=headers, timeout=_TIMEOUT)
@@ -64,6 +65,7 @@ def get_llm_judgment(
     judgment_type,
     target_id='batch',
     schema_hint=None,
+    model=None,
 ):
     """
     Idempotent LLM judgment with DB cache.
@@ -86,7 +88,7 @@ def get_llm_judgment(
 
     logger.info('[llm_judgment] calling LLM: %s', cache_key)
     try:
-        result = _call_llm(full_prompt)
+        result = _call_llm(full_prompt, model=model)
     except Exception as exc:
         logger.warning('[llm_judgment] failed %s: %s', cache_key, exc)
         return None

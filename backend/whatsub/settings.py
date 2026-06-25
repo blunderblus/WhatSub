@@ -257,6 +257,16 @@ AI_API_BASE = env(
 AI_MODEL = (env('AI_MODEL', default='gpt-4o-mini') or 'gpt-4o-mini').strip().strip("'\"")
 if not AI_MODEL:
     AI_MODEL = 'gpt-4o-mini'
+AI_SCORING_MODEL = (
+    env('AI_SCORING_MODEL', default='gpt-5.2') or 'gpt-5.2'
+).strip().strip("'\"")
+if not AI_SCORING_MODEL:
+    AI_SCORING_MODEL = 'gpt-5.2'
+AI_INSIGHT_MODEL = (
+    env('AI_INSIGHT_MODEL', default='gpt-5.5') or 'gpt-5.5'
+).strip().strip("'\"")
+if not AI_INSIGHT_MODEL:
+    AI_INSIGHT_MODEL = 'gpt-5.5'
 AI_VISION_MODEL = (
     env('AI_VISION_MODEL', default='gemini-2.5-flash') or 'gemini-2.5-flash'
 ).strip().strip("'\"")

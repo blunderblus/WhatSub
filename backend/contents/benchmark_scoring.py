@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from subscriptions.models import Platform, SubscriptionPlan
 
+from detector.ai_client import resolve_scoring_model
 from .benchmark_cache import aggregate_platform_genre_stats
 from .llm_judgment import build_cache_key, get_llm_judgment, is_configured
 from .models import (
@@ -173,6 +174,7 @@ def _llm_exclusivity_weights(platform, titles, snapshot_date, use_llm=True):
         LLMJudgmentCache.JudgmentType.EXCLUSIVITY_WEIGHT,
         target_id=str(platform.id),
         schema_hint=EXCLUSIVITY_LLM_SCHEMA,
+        model=resolve_scoring_model(),
     )
     weights = {}
     if result and isinstance(result.get('weights'), list):
@@ -250,6 +252,7 @@ def _llm_beneficial_plan_ids(platform, plans, snapshot_date, use_llm=True):
         LLMJudgmentCache.JudgmentType.PRICE_BENEFICIAL,
         target_id=str(platform.id),
         schema_hint=PRICE_LLM_SCHEMA,
+        model=resolve_scoring_model(),
     )
     beneficial = set()
     if result and isinstance(result.get('judgments'), list):

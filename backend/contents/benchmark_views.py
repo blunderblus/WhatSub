@@ -246,7 +246,30 @@ def benchmark_platform_insight(request, platform_id):
     snap = PlatformBenchmarkSnapshot.objects.filter(
         platform=platform, snapshot_date=snapshot_date,
     ).first()
-    insight = get_platform_llm_insight(platform, snap, snapshot_date, use_llm=True)
+    if not snap:
+        return Response({'detail': '해당 플랫폼 스냅샷이 없습니다.'}, status=404)
+
+    from .benchmark_scoring import compute_availability_raw
+    from .models import PlatformGenreStats
+    from .benchmark_constants import GENRE_NAMES
+
+    avail = compute_availability_raw()
+    title_count = avail.get(platform.id, 0)
+    genre_rows = PlatformGenreStats.objects.filter(
+        platform=platform, snapshot_date=snapshot_date,
+    ).order_by('-title_count')
+    genres = [
+        {
+            'genre_id': row.genre_id,
+            'genre_name': GENRE_NAMES.get(row.genre_id, f'Genre {row.genre_id}'),
+            'title_count': row.title_count,
+        }
+        for row in genre_rows
+    ]
+    insight = get_platform_llm_insight(
+        platform, snap, snapshot_date, use_llm=True,
+        title_count=title_count, genres=genres,
+    )
     return Response({
         'platform_id': platform.id,
         'llm_insight': insight,

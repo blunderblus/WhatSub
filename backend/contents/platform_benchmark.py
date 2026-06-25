@@ -1,15 +1,16 @@
 """Full platform benchmark page payload (stats, LLM insight, plans, reviews)."""
-import json
 from datetime import date
 
 from django.db.models import Avg, Count, F, Q
 from subscriptions.models import Platform, SubscriptionPlan, BundleContent, AddOnPass
 from subscriptions.serializers import SubscriptionPlanSerializer, AddOnPassSerializer
 
+from detector.ai_client import resolve_insight_model
+
 from .benchmark_constants import AXIS_LABELS, GENRE_NAMES, platform_icon
 from .benchmark_scoring import compute_availability_raw
 from .benchmark_views import _resolve_snapshot_date
-from .llm_judgment import get_llm_judgment, is_configured
+from .llm_judgment import build_cache_key, get_llm_judgment, is_configured
 from .models import (
     LLMJudgmentCache,
     PlatformBenchmarkSnapshot,
@@ -27,7 +28,9 @@ from .title_display import get_title_display_map
 
 PLATFORM_INSIGHT_SCHEMA = (
     '{"summary": string, "strengths": [string], "weaknesses": [string], '
-    '"best_for": string, "plan_tip": string}'
+    '"best_for": string, "plan_tip": string, '
+    '"axis_explanations": {"availability": string, "exclusivity": string, '
+    '"quality": string, "price": string, "accessibility": string}}'
 )
 
 
@@ -35,33 +38,75 @@ def _month_key(d: date) -> str:
     return d.strftime('%Y-%m')
 
 
-def get_platform_llm_insight(platform, snap, snapshot_date, use_llm=True):
-    """Monthly LLM insight (temperature=0, cached per platform per month)."""
-    month = _month_key(snapshot_date)
-    cache_key = f'platform_insight:{platform.id}:{month}'
+def _previous_snapshot(platform, snapshot_date):
+    return (
+        PlatformBenchmarkSnapshot.objects
+        .filter(platform=platform, snapshot_date__lt=snapshot_date)
+        .order_by('-snapshot_date')
+        .first()
+    )
 
-    if not use_llm or not is_configured() or not snap:
-        return None
 
-    prompt = (
+def _score_delta_line(label, current_val, previous_val):
+    if previous_val is None or current_val is None:
+        return f'  {label}={current_val} (no prior snapshot)'
+    delta = round(float(current_val) - float(previous_val), 4)
+    sign = '+' if delta >= 0 else ''
+    return f'  {label}={current_val} (delta {sign}{delta} vs prior snapshot)'
+
+
+def _build_insight_prompt(platform, snap, snapshot_date, title_count, genres):
+    prev = _previous_snapshot(platform, snapshot_date)
+    genre_lines = [
+        f"    {g['genre_name']}: {g['title_count']} titles"
+        for g in (genres or [])[:8]
+    ]
+    score_lines = [
+        _score_delta_line('value_score', snap.value_score, prev.value_score if prev else None),
+        _score_delta_line('availability', snap.availability_score, prev.availability_score if prev else None),
+        _score_delta_line('exclusivity', snap.exclusivity_score, prev.exclusivity_score if prev else None),
+        _score_delta_line('quality', snap.quality_score, prev.quality_score if prev else None),
+        _score_delta_line('price', snap.price_score, prev.price_score if prev else None),
+        _score_delta_line('accessibility', snap.accessibility_score, prev.accessibility_score if prev else None),
+    ]
+    prior_date = prev.snapshot_date.isoformat() if prev else 'none'
+
+    return (
         f'Platform: {platform.name}\n'
         f'Country: {platform.country}\n'
         f'Description: {(platform.description or "")[:600]}\n'
-        f'Benchmark snapshot ({snapshot_date}):\n'
-        f'  value_score={snap.value_score}\n'
-        f'  availability={snap.availability_score}, exclusivity={snap.exclusivity_score}\n'
-        f'  quality={snap.quality_score}, price={snap.price_score}, accessibility={snap.accessibility_score}\n'
+        f'Cached title count (available): {title_count}\n'
+        f'Top genres (PlatformGenreStats, snapshot {snapshot_date}):\n'
+        f'{chr(10).join(genre_lines) or "    (none)"}\n'
+        f'Benchmark snapshot ({snapshot_date}), prior snapshot ({prior_date}):\n'
+        f'{chr(10).join(score_lines)}\n'
         f'  confidence={snap.confidence_level}\n'
-        f'Write a concise consumer-facing insight for Korean users.\n'
-        f'REQUIRED: All text fields (summary, strengths, weaknesses, best_for, plan_tip) '
-        f'must be written in Korean only. Do not use English except proper nouns '
-        f'(Netflix, Disney+, etc.). JSON only.'
+        f'Write a concise consumer-facing value insight for Korean users.\n'
+        f'For axis_explanations: one Korean sentence per axis explaining WHY the score '
+        f'is at this level, referencing the data above (genre mix, deltas, confidence).\n'
+        f'REQUIRED: All text fields must be written in Korean only. '
+        f'Do not use English except proper nouns (Netflix, Disney+, etc.). JSON only.'
+    )
+
+
+def get_platform_llm_insight(platform, snap, snapshot_date, use_llm=True, title_count=0, genres=None):
+    """Platform value insight (temperature=0, content-hash cached)."""
+    if not use_llm or not is_configured() or not snap:
+        return None
+
+    prompt = _build_insight_prompt(platform, snap, snapshot_date, title_count, genres)
+    cache_key = build_cache_key(
+        LLMJudgmentCache.JudgmentType.PLATFORM_INSIGHT,
+        snapshot_date,
+        platform.id,
+        prompt,
     )
     return get_llm_judgment(
         cache_key, prompt, snapshot_date,
         LLMJudgmentCache.JudgmentType.PLATFORM_INSIGHT,
         target_id=str(platform.id),
         schema_hint=PLATFORM_INSIGHT_SCHEMA,
+        model=resolve_insight_model(),
     )
 
 
@@ -146,6 +191,7 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
     ).first()
 
     avail = compute_availability_raw()
+    title_count = avail.get(platform.id, 0)
     genre_rows = PlatformGenreStats.objects.filter(
         platform=platform, snapshot_date=snapshot_date,
     ).order_by('-title_count')
@@ -205,7 +251,13 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
         display_map = get_title_display_map(ex_keys, max_tmdb_fetches=0)
         exclusive_highlights = _exclusive_highlights(platform_id, display_map, limit=12)
 
-    insight = get_platform_llm_insight(platform, snap, snapshot_date, use_llm=use_llm) if use_llm else None
+    insight = (
+        get_platform_llm_insight(
+            platform, snap, snapshot_date, use_llm=use_llm,
+            title_count=title_count, genres=genres,
+        )
+        if use_llm else None
+    )
 
     return {
         'snapshot_date': snapshot_date.isoformat(),
@@ -215,7 +267,7 @@ def build_platform_page(platform_id, request=None, use_llm=True, enrich_titles=T
         'category': platform.category.name if platform.category else '',
         'icon_url': platform_icon(platform.name),
         'website_url': platform.website_url,
-        'title_count': avail.get(platform.id, 0),
+        'title_count': title_count,
         'value_score': snap.value_score if snap else None,
         'confidence_level': snap.confidence_level if snap else 'low',
         'scores': {
