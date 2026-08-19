@@ -236,9 +236,3 @@ Watchmode는 무료 티어 한도를 위해 **작품별 24시간 DB 캐시**를 
 - 상세 기능 명세·로드맵: [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)
 - 설치·실행 체크리스트: [SETUP.md](./SETUP.md)
 - Django Admin: `/admin/` (슈퍼유저 생성 후 이용)
-
----
-
-## 라이선스
-
-이 프로젝트는 SSAFY(삼성청년 SW·AI 아카데미) 교육 과정의 팀 프로젝트입니다.
